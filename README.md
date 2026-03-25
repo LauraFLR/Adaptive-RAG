@@ -97,7 +97,7 @@ $ python ./processing_scripts/process_squad.py
 $ python processing_scripts/subsample_dataset_and_remap_paras.py {dataset_name} test 500 # nq, trivia, squad
 $ python processing_scripts/subsample_dataset_and_remap_paras.py {dataset_name} dev_diff_size 500 # nq, trivia, squad
 
-# Build index 
+# Build index
 $ python retriever_server/build_index.py wiki
 ```
 
@@ -115,19 +115,19 @@ Next, if you want to use FLAN-T5 series models, start the llm_server (for flan-t
 MODEL_NAME={model_name} uvicorn serve:app --port 8010 --app-dir llm_server # model_name: flan-t5-xxl, flan-t5-xl
 ```
 
-## Run Three Different Retrieval Strategies
+## Run Three Different Retrieval Strategies (done)
 Now, let's run three different retrieval strategies: multi, single, and zero, on the dev set, which will later be used as the training set for training a classifier.
 ```bash
 # export OPENAI_API_KEY='YOUR_API_KEY' # uncomment for the 'gpt' model 
 SYSTEM=ircot_qa # ircot_qa (multi), oner_qa (single), nor_qa (zero)
-MODEL=flan-t5-xl # flan-t5-xxl, gpt
+MODEL=flan-t5-xxl # flan-t5-xxl, gpt
 DATASET=nq # nq, squad, trivia, 2wikimultihopqa, hotpotqa, musique
 LLM_PORT_NUM='8010'
 
 bash run_retrieval_dev.sh $SYSTEM $MODEL $DATASET $LLM_PORT_NUM
 ```
 
-Next, please run three different retrieval strategies: multi, single, and zero, on the test set.
+Next, please run three different retrieval strategies: multi, single, and zero, on the test set. (in progress)
 ```bash
 # export OPENAI_API_KEY='YOUR_API_KEY' # uncomment for the 'gpt' model 
 SYSTEM=ircot_qa # ircot_qa (multi), oner_qa (single), nor_qa (zero)
