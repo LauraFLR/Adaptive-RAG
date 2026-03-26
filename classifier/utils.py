@@ -237,36 +237,18 @@ def calculate_accuracy(gold_answers, predictions):
     final_acc_score = (total_acc_score / len(gold_answers)) * 100
     return final_acc_score
 
-def calculate_accuracy_perClass(gold_answers, predictions):
-    a_total_acc_score = 0
-    b_total_acc_score = 0
-    c_total_acc_score = 0
+def calculate_accuracy_perClass(gold_answers, predictions, labels=('A', 'B', 'C')):
+    correct = {l: 0 for l in labels}
+    gold_num = {l: sum(1 for g in gold_answers if g == l) for l in labels}
+    pred_num = {l: sum(1 for p in predictions if p == l) for l in labels}
 
-    a_gold_num = len([i for i in gold_answers if i == 'A'])
-    b_gold_num = len([i for i in gold_answers if i == 'B'])
-    c_gold_num = len([i for i in gold_answers if i == 'C'])
+    for gold_answer, prediction in zip(gold_answers, predictions):
+        if gold_answer == prediction and gold_answer in correct:
+            correct[gold_answer] += 1
 
-    a_pred_num = len([i for i in predictions if i == 'A'])
-    b_pred_num = len([i for i in predictions if i == 'B'])
-    c_pred_num = len([i for i in predictions if i == 'C'])
-
-    for (gold_answer, prediction) in zip(gold_answers, predictions):
-        # a
-        a_acc_score = int(gold_answer == prediction == 'A')
-        a_total_acc_score = a_total_acc_score + a_acc_score
-        # b
-        b_acc_score = int(gold_answer == prediction == 'B')
-        b_total_acc_score = b_total_acc_score + b_acc_score
-        # c
-        c_acc_score = int(gold_answer == prediction == 'C')
-        c_total_acc_score = c_total_acc_score + c_acc_score
-
-
-    a_final_acc_score = (a_total_acc_score / a_gold_num) * 100 if a_gold_num != 0 else -1
-    b_final_acc_score = (b_total_acc_score / b_gold_num) * 100 if b_gold_num != 0 else -1
-    c_final_acc_score = (c_total_acc_score / c_gold_num) * 100 if c_gold_num != 0 else -1
-
-    dict_final =  {'A (zero) acc' : a_final_acc_score, 'B (single) acc' : b_final_acc_score, 'C (multi) acc' : c_final_acc_score,
-    'A (zero) pred num' : a_pred_num, 'B (single) pred num' : b_pred_num, 'C (multi) pred num' : c_pred_num,
-    'A (zero) gold num' : a_gold_num, 'B (single) gold num' : b_gold_num, 'C (multi) gold num' : c_gold_num}
+    dict_final = {}
+    for l in labels:
+        dict_final[f'{l} acc'] = (correct[l] / gold_num[l] * 100) if gold_num[l] != 0 else -1
+        dict_final[f'{l} pred num'] = pred_num[l]
+        dict_final[f'{l} gold num'] = gold_num[l]
     return dict_final

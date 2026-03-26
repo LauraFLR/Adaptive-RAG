@@ -86,17 +86,7 @@ except (LookupError, OSError):
     with FileLock(".lock") as lock:
         nltk.download("punkt", quiet=True)
 
-option_to_label = {
-    'A': 0,
-    'B': 1,
-    'C': 2,
-}
-
-label_to_option = {
-    0: 'A',
-    1: 'B',
-    2: 'C',
-}
+# option_to_label and label_to_option are built dynamically in main() from --labels.
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a transformers model on a QA task")
@@ -313,6 +303,13 @@ def parse_args():
         help="Model type to use if training from scratch.",
         choices=MODEL_TYPES,
     )
+    parser.add_argument(
+        "--labels",
+        type=str,
+        nargs="+",
+        default=["A", "B", "C"],
+        help="Ordered list of label tokens the classifier predicts. E.g. 'A B C' (3-class), 'A R' (no-ret vs ret), 'B C' (single vs multi).",
+    )
     parser.add_argument("--push_to_hub", action="store_true", help="Whether or not to push the model to the Hub.")
     parser.add_argument(
         "--hub_model_id", type=str, help="The name of the repository to keep in sync with the local `output_dir`."
@@ -363,6 +360,8 @@ def main():
     # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
     # If we're using tracking, we also need to initialize it here and it will by default pick up all supported trackers
     # in the environment
+    label_to_option = {i: label for i, label in enumerate(args.labels)}
+
     accelerator_log_kwargs = {}
 
     if args.with_tracking:
@@ -703,9 +702,8 @@ def main():
                 probs = (
                     torch.nn.functional.softmax(
                         torch.stack([
-                            scores[:, tokenizer('A').input_ids[0]],
-                            scores[:, tokenizer('B').input_ids[0]],
-                            scores[:, tokenizer('C').input_ids[0]],
+                            scores[:, tokenizer(label).input_ids[0]]
+                            for label in args.labels
                         ]), dim=0,
                     ).detach().cpu().numpy()
                 )
@@ -751,7 +749,7 @@ def main():
             json.dump(final_eval_results, f)
 
         # Acc per class
-        final_eval_results_perClass = calculate_accuracy_perClass(gold_answers, predictions)
+        final_eval_results_perClass = calculate_accuracy_perClass(gold_answers, predictions, labels=args.labels)
 
         logger.info(f"Evaluation metrics per class: {final_eval_results_perClass}")
         print(final_eval_results_perClass)
