@@ -40,7 +40,7 @@ from accelerate.logging import get_logger
 from accelerate.utils import set_seed
 from datasets import load_dataset
 from filelock import FileLock
-from huggingface_hub import Repository, create_repo
+from huggingface_hub import create_repo
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
@@ -55,7 +55,6 @@ from transformers import (
     SchedulerType,
     get_scheduler,
 )
-from transformers.utils import check_min_version, get_full_repo_name, is_offline_mode, send_example_telemetry
 from transformers.utils.versions import require_version
 from transformers.trainer_utils import EvalLoopOutput, EvalPrediction, get_last_checkpoint
 
@@ -79,7 +78,7 @@ MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 try:
     nltk.data.find("tokenizers/punkt")
 except (LookupError, OSError):
-    if is_offline_mode():
+    if os.environ.get("TRANSFORMERS_OFFLINE", "0") == "1":
         raise LookupError(
             "Offline mode: run this script without TRANSFORMERS_OFFLINE first to download nltk data files"
         )
@@ -494,7 +493,7 @@ def main():
         tokenizer,
         model=model,
         label_pad_token_id=label_pad_token_id,
-        pad_to_multiple_of=8 if accelerator.use_fp16 else None,
+        pad_to_multiple_of=8 if accelerator.mixed_precision == "fp16" else None,
     )
 
     if args.do_train:

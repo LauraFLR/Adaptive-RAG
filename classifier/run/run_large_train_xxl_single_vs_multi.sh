@@ -2,7 +2,7 @@ DATE=$(date +%Y_%m_%d)/$(date +%H_%M_%S)
 MODEL=t5-large
 LLM_NAME=flan_t5_xxl
 DATASET_NAME=musique_hotpot_wiki2_nq_tqa_sqd
-GPU=7
+GPU=0
 
 # Classifier 2: single-step retrieval (B) vs multi-step retrieval (C)
 # Training data:  silver/single_vs_multi/train.json  (A samples excluded)
@@ -16,7 +16,7 @@ do
 
     CUDA_VISIBLE_DEVICES=${GPU} python run_classifier.py \
         --model_name_or_path ${MODEL} \
-        --train_file ./data/${DATASET_NAME}/${LLM_NAME}/silver/single_vs_multi/train.json \
+        --train_file ./data/${DATASET_NAME}/${LLM_NAME}/binary_silver_single_vs_multi/train.json \
         --question_column question \
         --answer_column answer \
         --labels B C \

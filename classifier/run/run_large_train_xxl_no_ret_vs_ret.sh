@@ -2,7 +2,7 @@ DATE=$(date +%Y_%m_%d)/$(date +%H_%M_%S)
 MODEL=t5-large
 LLM_NAME=flan_t5_xxl
 DATASET_NAME=musique_hotpot_wiki2_nq_tqa_sqd
-GPU=7
+GPU=0
 
 # Classifier 1: no-retrieval (A) vs retrieval (R = B+C merged)
 # Training data:  silver/no_retrieval_vs_retrieval/train.json
