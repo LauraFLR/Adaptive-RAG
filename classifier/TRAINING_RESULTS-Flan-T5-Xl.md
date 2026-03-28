@@ -72,7 +72,7 @@ High B precision (0.881) but moderate C precision (0.441) — the model over-pre
 
 ---
 
-## Cascaded 3-class confusion matrix
+## Cascaded 3-class confusion matrix (includes propagated errors from classifier 1)
 
 Using best epochs (clf1 epoch 20 + clf2 epoch 35), evaluated on the 1,098 validation samples where both classifiers have predictions (252 gold-A samples misrouted to clf2 at stage 1 are excluded since clf2 was not validated on them):
 
