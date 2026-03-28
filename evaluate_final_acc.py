@@ -20,8 +20,11 @@ from metrics.support_em_f1 import SupportEmF1Metric
 from metrics.answer_support_recall import AnswerSupportRecallMetric
 from metrics.squad_answer_em_f1 import SquadAnswerEmF1Metric
 
-# Set your path accordingly
-base_pred_path = './predictions/classifier/t5-large/flan_t5_xl/epoch/25/2024_04_19/01_53_50/'
+parser = argparse.ArgumentParser()
+parser.add_argument("--pred_path", type=str, required=True,
+                    help="Path to routed predictions directory (e.g. ./predictions/classifier/t5-large/flan_t5_xl/split/no_ret_ep20_single_ep35/)")
+eval_args = parser.parse_args()
+base_pred_path = eval_args.pred_path.rstrip('/') + '/'
 
 def normalize_answer(s):
     """Lower text and remove punctuation, articles and extra whitespace."""
