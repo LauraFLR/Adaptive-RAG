@@ -12,7 +12,7 @@ classifier/postprocess/clf2_feature_probe.py.
 Usage:
     python classifier/data_utils/add_feature_prefix.py
 
-Outputs (for each model in flan_t5_xl, flan_t5_xxl):
+Outputs (for each model in flan_t5_xl, flan_t5_xxl, gpt):
     .../binary_silver_feat_single_vs_multi/train.json
     .../silver_feat_single_vs_multi/valid.json
     .../feat_predict.json
@@ -90,7 +90,7 @@ def main():
         repo_root, "classifier", "data", "musique_hotpot_wiki2_nq_tqa_sqd"
     )
 
-    models = ["flan_t5_xl", "flan_t5_xxl"]
+    models = ["flan_t5_xl", "flan_t5_xxl", "gpt"]
 
     for model in models:
         print(f"\n=== {model} ===")

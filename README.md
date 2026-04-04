@@ -18,8 +18,10 @@ Adaptive-RAG/
 │   ├── run/                               # Training shell scripts
 │   │   ├── run_large_train_xl_no_ret_vs_ret.sh       # Iter 1: Clf1 (A vs R), XL silver labels
 │   │   ├── run_large_train_xxl_no_ret_vs_ret.sh      # Iter 1: Clf1 (A vs R), XXL silver labels
+│   │   ├── run_large_train_gpt_no_ret_vs_ret.sh      # Iter 1: Clf1 (A vs R), GPT silver labels
 │   │   ├── run_large_train_xl_single_vs_multi.sh     # Iter 1: Clf2 (B vs C), XL
 │   │   ├── run_large_train_xxl_single_vs_multi.sh    # Iter 1: Clf2 (B vs C), XXL
+│   │   ├── run_large_train_gpt_single_vs_multi.sh    # Iter 1: Clf2 (B vs C), GPT
 │   │   ├── run_large_train_feat_single_vs_multi.sh   # Iter 3: Feature-augmented Clf2
 │   │   └── ...                            # Original 3-class scripts (not used by thesis)
 │   │
@@ -40,7 +42,8 @@ Adaptive-RAG/
 │   │       │   ├── silver/no_retrieval_vs_retrieval/   # Clf1 train/valid
 │   │       │   ├── silver/single_vs_multi/             # Clf2 valid (silver-only)
 │   │       │   └── binary_silver_single_vs_multi/      # Clf2 train (silver + binary)
-│   │       └── flan_t5_xxl/               # Same structure for XXL
+│   │       ├── flan_t5_xxl/               # Same structure for XXL
+│   │       └── gpt/                       # Same structure for GPT (GPT-3.5)
 │   │
 │   ├── outputs/                           # Trained checkpoints + prediction outputs
 │   │
@@ -50,9 +53,9 @@ Adaptive-RAG/
 │
 ├── predictions/
 │   ├── test/                              # Pre-computed QA predictions (all 3 strategies)
-│   │   ├── nor_qa_flan_t5_{xl,xxl}_{dataset}____prompt_set_1/
-│   │   ├── oner_qa_flan_t5_{xl,xxl}_{dataset}____...___bm25_.../
-│   │   └── ircot_qa_flan_t5_{xl,xxl}_{dataset}____...___bm25_.../
+│   │   ├── nor_qa_{model}_{dataset}____prompt_set_1/
+│   │   ├── oner_qa_{model}_{dataset}____...___bm25_.../
+│   │   └── ircot_qa_{model}_{dataset}____...___bm25_.../
 │   └── classifier/                        # Routed predictions after classifier
 │       └── t5-large/{model}/split_agreement/...
 │
@@ -182,24 +185,27 @@ python ./classifier/preprocess/preprocess_predict.py
 
 ## Data
 
-All classifier data lives under `classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/`. Silver labels are model-specific (different LLMs answer different questions correctly).
+All classifier data lives under `classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/`. Silver labels are model-specific (different LLMs answer different questions correctly). `{model}` is one of `flan_t5_xl`, `flan_t5_xxl`, or `gpt`.
 
 | File | Purpose | Size |
 |------|---------|------|
-| `{model}/silver/no_retrieval_vs_retrieval/train.json` | Clf1 training labels (A / R) | ~1,300 |
-| `{model}/silver/no_retrieval_vs_retrieval/valid.json` | Clf1 validation labels | ~1,350 |
-| `{model}/binary_silver_single_vs_multi/train.json` | Clf2 training labels (B / C), silver + binary merged | ~3,270 |
-| `{model}/silver/single_vs_multi/valid.json` | Clf2 validation labels (silver-only) | ~900 |
+| `{model}/silver/no_retrieval_vs_retrieval/train.json` | Clf1 training labels (A / R) | ~1,300–1,400 |
+| `{model}/silver/no_retrieval_vs_retrieval/valid.json` | Clf1 validation labels | ~1,350–1,430 |
+| `{model}/binary_silver_single_vs_multi/train.json` | Clf2 training labels (B / C), silver + binary merged | ~2,800–3,300 |
+| `{model}/silver/single_vs_multi/valid.json` | Clf2 validation labels (silver-only) | ~400–900 |
 | `predict.json` | 3,000 unlabelled test questions (500 × 6 datasets) | 3,000 |
 
 Six datasets (500 test questions each): **NQ**, **TriviaQA**, **SQuAD**, **HotpotQA**, **2WikiMultiHopQA**, **MuSiQue**.
 
-Pre-computed QA predictions used by the agreement gate:
+Pre-computed QA predictions used by the agreement gate and routing:
 
 | Directory pattern | Content |
 |---|---|
-| `predictions/test/nor_qa_flan_t5_{xl,xxl}_{dataset}____prompt_set_1/` | No-retrieval answers |
-| `predictions/test/oner_qa_flan_t5_{xl,xxl}_{dataset}____...___bm25_retrieval_count__15___distractor_count__1/` | Single-step retrieval answers |
+| `predictions/test/nor_qa_{model}_{dataset}____prompt_set_1/` | No-retrieval answers |
+| `predictions/test/oner_qa_{model}_{dataset}____...___bm25_retrieval_count__{N}___distractor_count__1/` | Single-step retrieval answers |
+| `predictions/test/ircot_qa_{model}_{dataset}____...___bm25_retrieval_count__{N}___distractor_count__1/` | Multi-step retrieval answers |
+
+> **Note:** BM25 retrieval counts differ by model: Flan-T5 uses oner=15/ircot=6, GPT uses oner=6/ircot=3. The scripts handle this automatically via lookup tables.
 
 ---
 
@@ -217,9 +223,12 @@ All commands below assume `cwd` is the **repo root** (`Adaptive-RAG/`). The trai
 
 # Flan-T5-XXL
 (cd classifier && bash run/run_large_train_xxl_no_ret_vs_ret.sh)
+
+# GPT
+(cd classifier && bash run/run_large_train_gpt_no_ret_vs_ret.sh)
 ```
 
-Each script trains T5-Large at epochs 15, 20, 25, 30, 35 and writes checkpoints + predictions to:
+Each script trains T5-Large at epochs 15–35 (35–40 for GPT) and writes checkpoints + predictions to:
 `classifier/outputs/.../no_ret_vs_ret/epoch/{N}/{DATE}/predict/dict_id_pred_results.json`
 
 ### Train Clf2 (B vs. C)
@@ -230,6 +239,9 @@ Each script trains T5-Large at epochs 15, 20, 25, 30, 35 and writes checkpoints 
 
 # Flan-T5-XXL
 (cd classifier && bash run/run_large_train_xxl_single_vs_multi.sh)
+
+# GPT
+(cd classifier && bash run/run_large_train_gpt_single_vs_multi.sh)
 ```
 
 Outputs to: `classifier/outputs/.../single_vs_multi/epoch/{N}/{DATE}/predict/dict_id_pred_results.json`
@@ -262,6 +274,7 @@ The cascade matches the original 3-class Adaptive-RAG within noise:
 |---|---|
 | Flan-T5-XL | 0.466 |
 | Flan-T5-XXL | 0.468 |
+| GPT | — |
 
 ---
 
@@ -282,7 +295,7 @@ python classifier/postprocess/predict_complexity_agreement.py flan_t5_xl \
     --output_path     predictions/classifier/t5-large/flan_t5_xl/split_agreement/nor_oner_clf2ep35/
 ```
 
-Repeat with `flan_t5_xxl` and the corresponding Clf2 prediction file.
+Repeat with `flan_t5_xxl` and `gpt`, using the corresponding Clf2 prediction files.
 
 ### Run the Oracle Ceiling Analysis
 
@@ -291,6 +304,7 @@ Measures the maximum F1 achievable if Clf2 were perfect (agreement gate fixed):
 ```bash
 python classifier/postprocess/predict_complexity_oracle_ceiling.py flan_t5_xl
 python classifier/postprocess/predict_complexity_oracle_ceiling.py flan_t5_xxl
+python classifier/postprocess/predict_complexity_oracle_ceiling.py gpt
 ```
 
 ### Evaluate
@@ -306,6 +320,7 @@ python evaluate_final_acc.py \
 |---|---|---|---|
 | Flan-T5-XL | 0.466 | 0.485 | +2.0 pp |
 | Flan-T5-XXL | 0.468 | 0.505 | +3.7 pp |
+| GPT | — | — | — |
 
 The agreement gate's high A-precision (~92%) means it almost never incorrectly skips retrieval. A-F1 rises from ~0.50 (Clf1) to ~0.83 (agreement).
 
@@ -324,6 +339,7 @@ Run logistic regression on three features to assess B/C separability:
 ```bash
 python classifier/postprocess/clf2_feature_probe.py
 python classifier/postprocess/clf2_feature_probe.py --model flan_t5_xxl
+python classifier/postprocess/clf2_feature_probe.py --model gpt
 ```
 
 Reports ROC-AUC, accuracy, per-feature coefficients, and a scatter plot. Go/no-go threshold: **AUC ≥ 0.65**.
@@ -351,6 +367,9 @@ This writes feature-prefixed copies:
 
 # Flan-T5-XXL
 (cd classifier && bash run/run_large_train_feat_single_vs_multi.sh flan_t5_xxl)
+
+# GPT
+(cd classifier && bash run/run_large_train_feat_single_vs_multi.sh gpt)
 ```
 
 Outputs to: `classifier/outputs/.../feat_single_vs_multi/epoch/{N}/feat/predict/dict_id_pred_results.json`
@@ -377,6 +396,7 @@ python evaluate_final_acc.py \
 |---|---|---|---|
 | Flan-T5-XL | 0.485 | 0.486 | +0.1 pp |
 | Flan-T5-XXL | 0.505 | 0.507 | +0.2 pp |
+| GPT | — | — | — |
 
 **Null result.** The feature prefix improves F1 by ≤ 0.2 pp, within noise. Surface-level structural features carry insufficient semantic signal to meaningfully improve B/C routing beyond what T5-Large already captures from the question text alone.
 

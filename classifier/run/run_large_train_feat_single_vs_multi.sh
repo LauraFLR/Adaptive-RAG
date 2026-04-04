@@ -10,12 +10,13 @@
 # Usage:
 #   bash classifier/run/run_large_train_feat_single_vs_multi.sh flan_t5_xl
 #   bash classifier/run/run_large_train_feat_single_vs_multi.sh flan_t5_xxl
+#   bash classifier/run/run_large_train_feat_single_vs_multi.sh gpt
 
 set -e
 
 LLM_NAME=$1
 if [ -z "$LLM_NAME" ]; then
-    echo "Usage: $0 <flan_t5_xl|flan_t5_xxl>"
+    echo "Usage: $0 <flan_t5_xl|flan_t5_xxl|gpt>"
     exit 1
 fi
 

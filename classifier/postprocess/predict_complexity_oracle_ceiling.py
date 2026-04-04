@@ -30,6 +30,10 @@ from postprocess_utils import load_json, save_json
 
 DATASETS = ['musique', 'hotpotqa', '2wikimultihopqa', 'nq', 'trivia', 'squad']
 
+# BM25 retrieval counts differ per model family
+ONER_BM25 = {'flan_t5_xl': 15, 'flan_t5_xxl': 15, 'gpt': 6}
+IRCOT_BM25 = {'flan_t5_xl': 6, 'flan_t5_xxl': 6, 'gpt': 3}
+
 
 def normalize_answer(s):
     """Lower text and remove punctuation, articles and extra whitespace."""
@@ -62,10 +66,11 @@ def answer_extractor(potentially_cot: str) -> str:
 def load_strategy_predictions(model_name, split="test"):
     nor_preds = {}
     oner_preds = {}
+    oner_bm25 = ONER_BM25[model_name]
     base = f"predictions/{split}"
     for ds in DATASETS:
         nor_dir = f"nor_qa_{model_name}_{ds}____prompt_set_1"
-        oner_dir = f"oner_qa_{model_name}_{ds}____prompt_set_1___bm25_retrieval_count__15___distractor_count__1"
+        oner_dir = f"oner_qa_{model_name}_{ds}____prompt_set_1___bm25_retrieval_count__{oner_bm25}___distractor_count__1"
         sub = "test_subsampled" if split == "test" else "dev_500_subsampled"
         nor_file = os.path.join(base, nor_dir, f"prediction__{ds}_to_{ds}__{sub}.json")
         oner_file = os.path.join(base, oner_dir, f"prediction__{ds}_to_{ds}__{sub}.json")
@@ -96,7 +101,7 @@ def compute_agreement(nor_preds, oner_preds, qids):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("model_name", type=str, choices=("flan_t5_xl", "flan_t5_xxl"))
+    parser.add_argument("model_name", type=str, choices=("flan_t5_xl", "flan_t5_xxl", "gpt"))
     args = parser.parse_args()
 
     m = args.model_name
@@ -157,6 +162,7 @@ def main():
     print(f"  Final A/B/C: {dict(sorted(label_counts.items()))}")
 
     # Load step numbers for ircot
+    ircot_bm25 = IRCOT_BM25[m]
     total_step_num = {}
     consolidated = os.path.join("predictions", "test", f"ircot_qa_{m}", "total", "stepNum.json")
     if os.path.exists(consolidated):
@@ -165,21 +171,22 @@ def main():
         for ds in DATASETS:
             sn_path = os.path.join(
                 "predictions", "test",
-                f"ircot_qa_{m}_{ds}____prompt_set_1___bm25_retrieval_count__6___distractor_count__1",
+                f"ircot_qa_{m}_{ds}____prompt_set_1___bm25_retrieval_count__{ircot_bm25}___distractor_count__1",
                 "stepNum.json"
             )
             if os.path.exists(sn_path):
                 total_step_num.update(load_json(sn_path))
 
     # Build QA prediction files per dataset
+    oner_bm25 = ONER_BM25[m]
     dataName_to_files = {}
     for ds in DATASETS:
         dataName_to_files[ds] = {
             'C': os.path.join("predictions", "test",
-                              f'ircot_qa_{m}_{ds}____prompt_set_1___bm25_retrieval_count__6___distractor_count__1',
+                              f'ircot_qa_{m}_{ds}____prompt_set_1___bm25_retrieval_count__{ircot_bm25}___distractor_count__1',
                               f'prediction__{ds}_to_{ds}__test_subsampled.json'),
             'B': os.path.join("predictions", "test",
-                              f'oner_qa_{m}_{ds}____prompt_set_1___bm25_retrieval_count__15___distractor_count__1',
+                              f'oner_qa_{m}_{ds}____prompt_set_1___bm25_retrieval_count__{oner_bm25}___distractor_count__1',
                               f'prediction__{ds}_to_{ds}__test_subsampled.json'),
             'A': os.path.join("predictions", "test",
                               f'nor_qa_{m}_{ds}____prompt_set_1',

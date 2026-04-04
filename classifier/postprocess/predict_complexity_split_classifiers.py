@@ -14,8 +14,12 @@ import sys
 import argparse
 from postprocess_utils import load_json, save_json, save_prediction_with_classified_label
 
+# BM25 retrieval counts differ per model family
+ONER_BM25 = {'flan_t5_xl': 15, 'flan_t5_xxl': 15, 'gpt': 6}
+IRCOT_BM25 = {'flan_t5_xl': 6, 'flan_t5_xxl': 6, 'gpt': 3}
+
 parser = argparse.ArgumentParser()
-parser.add_argument("model_name", type=str, choices=("flan_t5_xl", "flan_t5_xxl"))
+parser.add_argument("model_name", type=str, choices=("flan_t5_xl", "flan_t5_xxl", "gpt"))
 parser.add_argument("--no_ret_vs_ret_file", type=str, required=True,
                     help="Path to no_ret_vs_ret predict/dict_id_pred_results.json")
 parser.add_argument("--single_vs_multi_file", type=str, required=True,
@@ -50,15 +54,17 @@ print(f"Merged label distribution: {dict(sorted(label_counts.items()))}")
 
 # --- QA prediction file paths ---
 m = args.model_name
+oner_bm25 = ONER_BM25[m]
+ircot_bm25 = IRCOT_BM25[m]
 
 dataName_to_multi_one_zero_file = {}
 for dataset in ['musique', 'hotpotqa', '2wikimultihopqa', 'nq', 'trivia', 'squad']:
     dataName_to_multi_one_zero_file[dataset] = {
         'C': os.path.join("predictions", "test",
-                          f'ircot_qa_{m}_{dataset}____prompt_set_1___bm25_retrieval_count__6___distractor_count__1',
+                          f'ircot_qa_{m}_{dataset}____prompt_set_1___bm25_retrieval_count__{ircot_bm25}___distractor_count__1',
                           f'prediction__{dataset}_to_{dataset}__test_subsampled.json'),
         'B': os.path.join("predictions", "test",
-                          f'oner_qa_{m}_{dataset}____prompt_set_1___bm25_retrieval_count__15___distractor_count__1',
+                          f'oner_qa_{m}_{dataset}____prompt_set_1___bm25_retrieval_count__{oner_bm25}___distractor_count__1',
                           f'prediction__{dataset}_to_{dataset}__test_subsampled.json'),
         'A': os.path.join("predictions", "test",
                           f'nor_qa_{m}_{dataset}____prompt_set_1',
@@ -74,7 +80,7 @@ else:
     total_step_num = {}
     for dataset in ['musique', 'hotpotqa', '2wikimultihopqa', 'nq', 'trivia', 'squad']:
         sn_path = os.path.join("predictions", "test",
-                               f'ircot_qa_{m}_{dataset}____prompt_set_1___bm25_retrieval_count__6___distractor_count__1',
+                               f'ircot_qa_{m}_{dataset}____prompt_set_1___bm25_retrieval_count__{ircot_bm25}___distractor_count__1',
                                'stepNum.json')
         if os.path.exists(sn_path):
             total_step_num.update(load_json(sn_path))
