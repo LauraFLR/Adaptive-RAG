@@ -1,202 +1,406 @@
-# Adaptive-RAG: Learning to Adapt Retrieval-Augmented Large Language Models through Question Complexity
+# Adaptive-RAG: Cascaded Binary Routing
 
-Official Code Repository for the paper ["Adaptive-RAG: Learning to Adapt Retrieval-Augmented Large Language Models through Question Complexity"](https://arxiv.org/pdf/2403.14403.pdf) (NAACL 2024).
+B.Sc. thesis extension of [Adaptive-RAG](https://arxiv.org/pdf/2403.14403.pdf) (NAACL 2024). Replaces the original 3-class query complexity classifier (A/B/C) with a **cascaded binary routing** architecture: **Gate 1** decides *A vs. R* (no retrieval vs. retrieval needed), then **Gate 2** decides *B vs. C* (single-step vs. multi-step retrieval) for R-routed questions. Three iterations progressively refine both gates: (1) a trained cascade baseline, (2) a training-free agreement gate for Gate 1, and (3) structural feature augmentation for Gate 2.
 
-We are so grateful that our Adaptive-RAG is featured in LlamaIndex and LangChain, as follows: [LlamaIndex:Adaptive_RAG](https://github.com/mistralai/cookbook/blob/main/third_party/LlamaIndex/Adaptive_RAG.ipynb), [LangGraph:Adaptive_RAG](https://github.com/langchain-ai/langgraph/blob/main/examples/rag/langgraph_adaptive_rag_cohere.ipynb), and [ReAct:Adaptive_RAG](https://github.com/cohere-ai/notebooks/blob/main/notebooks/react_agent_adaptive_rag_cohere.ipynb)!
+---
 
-## Abstract
+## Repository Structure
 
-<div align="center">
-  <img alt="Adaptive-RAG Overview" src="./images/adaptiverag.png" width="800px">
-</div>
-Retrieval-Augmented Large Language Models (LLMs), which incorporate the non-parametric knowledge from external knowledge bases into LLMs, have emerged as a promising approach to enhancing response accuracy in several tasks, such as Question-Answering (QA). However, even though there are various approaches dealing with queries of different complexities, they either handle simple queries with unnecessary computational overhead or fail to adequately address complex multi-step queries; yet, not all user requests fall into only one of the simple or complex categories. In this work, we propose a novel adaptive QA framework that can dynamically select the most suitable strategy for (retrieval-augmented) LLMs from the simplest to the most sophisticated ones based on the query complexity. Also, this selection process is operationalized with a classifier, which is a smaller LM trained to predict the complexity level of incoming queries with automatically collected labels, obtained from actual predicted outcomes of models and inherent inductive biases in datasets. This approach offers a balanced strategy, seamlessly adapting between the iterative and single-step retrieval-augmented LLMs, as well as the no-retrieval methods, in response to a range of query complexities. We validate our model on a set of open-domain QA datasets, covering multiple query complexities, and show that ours enhances the overall efficiency and accuracy of QA systems, compared to relevant baselines including the adaptive retrieval approaches.
-
-## Installation
-The first step (to run our Adaptive-RAG) is to create a conda environment as follows:
-```bash
-$ conda create -n adaptiverag python=3.8
-$ conda activate adaptiverag
-$ pip install torch==1.13.1+cu117 --extra-index-url https://download.pytorch.org/whl/cu117
-$ pip install -r requirements.txt
+```
+Adaptive-RAG/
+├── evaluate_final_acc.py                  # End-to-end QA evaluation (EM/F1) after routing
+├── run_retrieval_test.sh                  # Runs write → predict → evaluate for one strategy
+├── run_retrieval_dev.sh                   # Same, on the dev_500 split
+│
+├── classifier/
+│   ├── run_classifier.py                  # T5-Large fine-tuning script (used by all training shells)
+│   │
+│   ├── run/                               # Training shell scripts
+│   │   ├── run_large_train_xl_no_ret_vs_ret.sh       # Iter 1: Clf1 (A vs R), XL silver labels
+│   │   ├── run_large_train_xxl_no_ret_vs_ret.sh      # Iter 1: Clf1 (A vs R), XXL silver labels
+│   │   ├── run_large_train_xl_single_vs_multi.sh     # Iter 1: Clf2 (B vs C), XL
+│   │   ├── run_large_train_xxl_single_vs_multi.sh    # Iter 1: Clf2 (B vs C), XXL
+│   │   ├── run_large_train_feat_single_vs_multi.sh   # Iter 3: Feature-augmented Clf2
+│   │   └── ...                            # Original 3-class scripts (not used by thesis)
+│   │
+│   ├── postprocess/                       # Routing + evaluation scripts
+│   │   ├── predict_complexity_split_classifiers.py    # Iter 1: cascade inference (Clf1 → Clf2)
+│   │   ├── predict_complexity_agreement.py            # Iter 2: agreement gate + Clf2
+│   │   ├── predict_complexity_oracle_ceiling.py       # Iter 2: oracle ceiling (perfect Clf2)
+│   │   ├── clf2_feature_probe.py                      # Iter 3: logistic regression B/C probe
+│   │   └── postprocess_utils.py                       # Shared I/O helpers
+│   │
+│   ├── data_utils/
+│   │   └── add_feature_prefix.py          # Iter 3: prepend [LEN:X] [ENT:Y] [BRIDGE:Z]
+│   │
+│   ├── data/                              # Classifier training/validation/prediction labels
+│   │   └── musique_hotpot_wiki2_nq_tqa_sqd/
+│   │       ├── predict.json               # 3,000 unlabelled test questions
+│   │       ├── flan_t5_xl/                # Model-specific silver labels
+│   │       │   ├── silver/no_retrieval_vs_retrieval/   # Clf1 train/valid
+│   │       │   ├── silver/single_vs_multi/             # Clf2 valid (silver-only)
+│   │       │   └── binary_silver_single_vs_multi/      # Clf2 train (silver + binary)
+│   │       └── flan_t5_xxl/               # Same structure for XXL
+│   │
+│   ├── outputs/                           # Trained checkpoints + prediction outputs
+│   │
+│   └── future_work/                       # Out-of-scope experiments (see §8)
+│       ├── clf2_embedding_probe.py
+│       └── clf2_embedding_clf.py
+│
+├── predictions/
+│   ├── test/                              # Pre-computed QA predictions (all 3 strategies)
+│   │   ├── nor_qa_flan_t5_{xl,xxl}_{dataset}____prompt_set_1/
+│   │   ├── oner_qa_flan_t5_{xl,xxl}_{dataset}____...___bm25_.../
+│   │   └── ircot_qa_flan_t5_{xl,xxl}_{dataset}____...___bm25_.../
+│   └── classifier/                        # Routed predictions after classifier
+│       └── t5-large/{model}/split_agreement/...
+│
+├── processed_data/                        # JSONL datasets (500 test Qs per dataset)
+├── llm_server/                            # FastAPI LLM inference server
+├── retriever_server/                      # FastAPI BM25 retrieval server
+└── commaqa/                               # Core QA inference engine
 ```
 
-## Prepare Retriever Server
-After installing the conda environment, you should setup the retriever server as follows:
+---
+
+## Setup
+
+### 1. Create Environment
+
 ```bash
-$ wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.10.2-linux-x86_64.tar.gz
-$ wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.10.2-linux-x86_64.tar.gz.sha512
-$ shasum -a 512 -c elasticsearch-7.10.2-linux-x86_64.tar.gz.sha512
-$ tar -xzf elasticsearch-7.10.2-linux-x86_64.tar.gz
-$ cd elasticsearch-7.10.2/
-$ ./bin/elasticsearch # start the server
-# pkill -f elasticsearch # to stop the server
+conda create -n adaptiverag python=3.8
+conda activate adaptiverag
+pip install torch==1.13.1+cu117 --extra-index-url https://download.pytorch.org/whl/cu117
+pip install -r requirements.txt
 ```
 
-Start the elasticsearch server on port 9200 (default), and then start the retriever server as shown below.
+### 2. Prepare Retriever Server
+
+```bash
+wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.10.2-linux-x86_64.tar.gz
+wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.10.2-linux-x86_64.tar.gz.sha512
+shasum -a 512 -c elasticsearch-7.10.2-linux-x86_64.tar.gz.sha512
+tar -xzf elasticsearch-7.10.2-linux-x86_64.tar.gz
+cd elasticsearch-7.10.2/
+./bin/elasticsearch   # start the server
+# pkill -f elasticsearch   # to stop the server
+```
+
+Start the elasticsearch server on port 9200 (default), then start the retriever server:
+
 ```bash
 uvicorn serve:app --port 8000 --app-dir retriever_server
 ```
 
+### 3. Datasets
 
-## Datasets
-* You can download multi-hop datasets (MuSiQue, HotpotQA, and 2WikiMultiHopQA) from https://github.com/StonyBrookNLP/ircot.
+**Multi-hop datasets** (MuSiQue, HotpotQA, 2WikiMultiHopQA) — download from https://github.com/StonyBrookNLP/ircot:
+
 ```bash
-# Download the preprocessed datasets for the test set.
-$ bash ./download/processed_data.sh
-# Prepare the dev set, which will be used for training our query complexity classfier.
-$ bash ./download/raw_data.sh
-$ python processing_scripts/subsample_dataset_and_remap_paras.py musique dev_diff_size 500
-$ python processing_scripts/subsample_dataset_and_remap_paras.py hotpotqa dev_diff_size 500
-$ python processing_scripts/subsample_dataset_and_remap_paras.py 2wikimultihopqa dev_diff_size 500
+bash ./download/processed_data.sh
+
+bash ./download/raw_data.sh
+python processing_scripts/subsample_dataset_and_remap_paras.py musique dev_diff_size 500
+python processing_scripts/subsample_dataset_and_remap_paras.py hotpotqa dev_diff_size 500
+python processing_scripts/subsample_dataset_and_remap_paras.py 2wikimultihopqa dev_diff_size 500
+
+python retriever_server/build_index.py {dataset_name}   # hotpotqa, 2wikimultihopqa, musique
+```
+
+**Single-hop datasets** (NQ, TriviaQA, SQuAD) — download from https://github.com/facebookresearch/DPR:
+
+```bash
+# Natural Questions
+mkdir -p raw_data/nq && cd raw_data/nq
+wget https://dl.fbaipublicfiles.com/dpr/data/retriever/biencoder-nq-dev.json.gz && gzip -d biencoder-nq-dev.json.gz
+wget https://dl.fbaipublicfiles.com/dpr/data/retriever/biencoder-nq-train.json.gz && gzip -d biencoder-nq-train.json.gz
+
+# TriviaQA
+cd .. && mkdir -p trivia && cd trivia
+wget https://dl.fbaipublicfiles.com/dpr/data/retriever/biencoder-trivia-dev.json.gz && gzip -d biencoder-trivia-dev.json.gz
+wget https://dl.fbaipublicfiles.com/dpr/data/retriever/biencoder-trivia-train.json.gz && gzip -d biencoder-trivia-train.json.gz
+
+# SQuAD
+cd .. && mkdir -p squad && cd squad
+wget https://dl.fbaipublicfiles.com/dpr/data/retriever/biencoder-squad1-dev.json.gz && gzip -d biencoder-squad1-dev.json.gz
+wget https://dl.fbaipublicfiles.com/dpr/data/retriever/biencoder-squad1-train.json.gz && gzip -d biencoder-squad1-train.json.gz
+
+# Wikipedia corpus (shared by NQ/TriviaQA/SQuAD)
+cd .. && mkdir -p wiki && cd wiki
+wget https://dl.fbaipublicfiles.com/dpr/wikipedia_split/psgs_w100.tsv.gz && gzip -d psgs_w100.tsv.gz
+
+# Process raw data
+python ./processing_scripts/process_nq.py
+python ./processing_scripts/process_trivia.py
+python ./processing_scripts/process_squad.py
+
+# Subsample
+python processing_scripts/subsample_dataset_and_remap_paras.py {dataset_name} test 500       # nq, trivia, squad
+python processing_scripts/subsample_dataset_and_remap_paras.py {dataset_name} dev_diff_size 500  # nq, trivia, squad
 
 # Build index
-python retriever_server/build_index.py {dataset_name} # hotpotqa, 2wikimultihopqa, musique
+python retriever_server/build_index.py wiki
 ```
 
-* You can download single-hop datasets (Natural Question, TriviaQA, and SQuAD) from https://github.com/facebookresearch/DPR/blob/main/dpr/data/download_data.py.
+Verify index sizes: `curl localhost:9200/_cat/indices` — expect HotpotQA (5,233,329), 2WikiMultiHopQA (430,225), MuSiQue (139,416), Wiki (21,015,324).
+
+### 4. Prepare LLM Server
+
 ```bash
-# Download Natural Question
-$ mkdir -p raw_data/nq
-$ cd raw_data/nq
-$ wget https://dl.fbaipublicfiles.com/dpr/data/retriever/biencoder-nq-dev.json.gz
-$ gzip -d biencoder-nq-dev.json.gz
-$ wget https://dl.fbaipublicfiles.com/dpr/data/retriever/biencoder-nq-train.json.gz
-$ gzip -d biencoder-nq-train.json.gz
-
-# Download TriviaQA
-$ cd ..
-$ mkdir -p trivia
-$ cd trivia
-$ wget https://dl.fbaipublicfiles.com/dpr/data/retriever/biencoder-trivia-dev.json.gz
-$ gzip -d biencoder-trivia-dev.json.gz
-$ wget https://dl.fbaipublicfiles.com/dpr/data/retriever/biencoder-trivia-train.json.gz
-$ gzip -d biencoder-trivia-train.json.gz
-
-# Download SQuAD
-$ cd ..
-$ mkdir -p squad
-$ cd squad
-$ wget https://dl.fbaipublicfiles.com/dpr/data/retriever/biencoder-squad1-dev.json.gz
-$ gzip -d biencoder-squad1-dev.json.gz
-$ wget https://dl.fbaipublicfiles.com/dpr/data/retriever/biencoder-squad1-train.json.gz
-$ gzip -d biencoder-squad1-train.json.gz
-
-# Download Wiki passages. For the singe-hop datasets, we use the Wikipedia as the document corpus.
-$ cd ..
-$ mkdir -p wiki
-$ cd wiki
-$ wget https://dl.fbaipublicfiles.com/dpr/wikipedia_split/psgs_w100.tsv.gz
-$ gzip -d psgs_w100.tsv.gz
-
-# Process raw data files in a single standard format
-$ python ./processing_scripts/process_nq.py
-$ python ./processing_scripts/process_trivia.py
-$ python ./processing_scripts/process_squad.py
-
-# Subsample the processed datasets
-$ python processing_scripts/subsample_dataset_and_remap_paras.py {dataset_name} test 500 # nq, trivia, squad
-$ python processing_scripts/subsample_dataset_and_remap_paras.py {dataset_name} dev_diff_size 500 # nq, trivia, squad
-
-# Build index
-$ python retriever_server/build_index.py wiki
+MODEL_NAME=flan-t5-xl uvicorn serve:app --port 8010 --app-dir llm_server
 ```
 
-You can ensure that dev and test sets do not overlap, with the code below.
+### 5. Run All Three QA Strategies
+
+Pre-computed predictions are provided in `predictions/`. To regenerate:
+
 ```bash
-$ python processing_scripts/check_duplicate.py {dataset_name} # nq, trivia, squad hotpotqa, 2wikimultihopqa, musique
-```
-We provide the preprocessed datasets in [`processed_data.tar.gz`](./processed_data.tar.gz).
+SYSTEM=ircot_qa   # ircot_qa (multi), oner_qa (single), nor_qa (zero)
+MODEL=flan-t5-xl  # flan-t5-xl, flan-t5-xxl
+DATASET=nq        # nq, squad, trivia, 2wikimultihopqa, hotpotqa, musique
+LLM_PORT_NUM=8010
 
-## Prepare LLM Server
-After indexing for retrieval is done, you can verify the number of indexed documents in each of the four indices by executing the following command in your terminal: `curl localhost:9200/_cat/indices`. You should have 4 indices and expect to see the following sizes: HotpotQA (5,233,329), 2WikiMultihopQA (430,225), MuSiQue (139,416), and Wiki (21,015,324).
-
-Next, if you want to use FLAN-T5 series models, start the llm_server (for flan-t5-xl and xxl) by running:
-```bash
-MODEL_NAME={model_name} uvicorn serve:app --port 8010 --app-dir llm_server # model_name: flan-t5-xxl, flan-t5-xl
-```
-
-## Run Three Different Retrieval Strategies (done)
-Now, let's run three different retrieval strategies: multi, single, and zero, on the dev set, which will later be used as the training set for training a classifier.
-```bash
-# export OPENAI_API_KEY='YOUR_API_KEY' # uncomment for the 'gpt' model 
-SYSTEM=ircot_qa # ircot_qa (multi), oner_qa (single), nor_qa (zero)
-MODEL=flan-t5-xxl # flan-t5-xxl, gpt
-DATASET=nq # nq, squad, trivia, 2wikimultihopqa, hotpotqa, musique
-LLM_PORT_NUM='8010'
-
+# Dev set (used for silver training labels):
 bash run_retrieval_dev.sh $SYSTEM $MODEL $DATASET $LLM_PORT_NUM
-```
 
-Next, please run three different retrieval strategies: multi, single, and zero, on the test set. (in progress)
-```bash
-# export OPENAI_API_KEY='YOUR_API_KEY' # uncomment for the 'gpt' model 
-SYSTEM=ircot_qa # ircot_qa (multi), oner_qa (single), nor_qa (zero)
-MODEL=flan-t5-xl # flan-t5-xxl, gpt
-DATASET=nq # nq, squad, trivia, 2wikimultihopqa, hotpotqa, musique
-LLM_PORT_NUM='8010'
-
+# Test set (used for evaluation + silver validation labels):
 bash run_retrieval_test.sh $SYSTEM $MODEL $DATASET $LLM_PORT_NUM
 ```
-We provide all the results for three different retrieval strategies in [`predictions.tar.gz`](./predictions.tar.gz).
 
-## Run Classifier for Adaptive-RAG
+### 6. Generate Classifier Labels
 
-These are the lines for preprocessing the dataset for QA tasks used to measure the performance of our Adaptive-RAG.
 ```bash
-python ./classifier/preprocess/preprocess_predict.py
-python ./classifier/preprocess/preprocess_step_efficiency.py
-```
-
-These are the lines for preprocessing the dataset (silver and binary) for training and validating the classifier of the query complexity.
-```bash
-# Preprocess the silver data, which is based on samples correctly answered by the retrieval-augmented LLM itself.
-# Note that we validate our classifier using the silver data, which is made from predictions made with the test set.
-python ./classifier/preprocess/preprocess_silver_train.py {mode_name} # flan_t5_xl, flan_t5_xxl, gpt
-python ./classifier/preprocess/preprocess_silver_valid.py {mode_name} # flan_t5_xl, flan_t5_xxl, gpt
-
-# Preprocess the binary data, which is based on the inductive bias within the dataset.
+python ./classifier/preprocess/preprocess_silver_train.py flan_t5_xl    # or flan_t5_xxl
+python ./classifier/preprocess/preprocess_silver_valid.py flan_t5_xl
 python ./classifier/preprocess/preprocess_binary_train.py
-
-# Concatenate the silver and binary data.
 python ./classifier/preprocess/concat_binary_silver_train.py
+python ./classifier/preprocess/preprocess_predict.py
 ```
-We provide the datasets for the classifier in [`data.tar.gz`](./data.tar.gz).
 
-Now, you are ready with the training dataset for the classifier. 
-You will train a `t5-large` model using the training dataset created from each of the three different LLMs.
+---
+
+## Data
+
+All classifier data lives under `classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/`. Silver labels are model-specific (different LLMs answer different questions correctly).
+
+| File | Purpose | Size |
+|------|---------|------|
+| `{model}/silver/no_retrieval_vs_retrieval/train.json` | Clf1 training labels (A / R) | ~1,300 |
+| `{model}/silver/no_retrieval_vs_retrieval/valid.json` | Clf1 validation labels | ~1,350 |
+| `{model}/binary_silver_single_vs_multi/train.json` | Clf2 training labels (B / C), silver + binary merged | ~3,270 |
+| `{model}/silver/single_vs_multi/valid.json` | Clf2 validation labels (silver-only) | ~900 |
+| `predict.json` | 3,000 unlabelled test questions (500 × 6 datasets) | 3,000 |
+
+Six datasets (500 test questions each): **NQ**, **TriviaQA**, **SQuAD**, **HotpotQA**, **2WikiMultiHopQA**, **MuSiQue**.
+
+Pre-computed QA predictions used by the agreement gate:
+
+| Directory pattern | Content |
+|---|---|
+| `predictions/test/nor_qa_flan_t5_{xl,xxl}_{dataset}____prompt_set_1/` | No-retrieval answers |
+| `predictions/test/oner_qa_flan_t5_{xl,xxl}_{dataset}____...___bm25_retrieval_count__15___distractor_count__1/` | Single-step retrieval answers |
+
+---
+
+## Iteration 1 — Cascade Baseline
+
+**Question:** Does decomposing the 3-class classifier into two binary stages (Gate 1: A vs. R, Gate 2: B vs. C) improve over the original single Adaptive-RAG classifier?
+
+All commands below assume `cwd` is the **repo root** (`Adaptive-RAG/`). The training shell scripts use relative paths (`./data/`, `./outputs/`) and must be run from inside `classifier/`, so those are wrapped in a subshell.
+
+### Train Clf1 (A vs. R)
+
 ```bash
-# Train the classifiers!
-cd classifier
-bash ./run/run_large_train_xl.sh
-bash ./run/run_large_train_xxl.sh
-bash ./run/run_large_train_gpt.sh
+# Flan-T5-XL
+(cd classifier && bash run/run_large_train_xl_no_ret_vs_ret.sh)
 
-# Create the file containing the test set queries, each labeled with its classified query complexity.
-# Additionally, this outputs the step efficiency for each dataset.
-cd ..
-python ./classifier/postprocess/predict_complexity_on_classification_results.py
+# Flan-T5-XXL
+(cd classifier && bash run/run_large_train_xxl_no_ret_vs_ret.sh)
 ```
 
-Finally, you are able to evaluate the QA performance of our Adaptive-RAG (based on the identified query complexity results) with the following code!
+Each script trains T5-Large at epochs 15, 20, 25, 30, 35 and writes checkpoints + predictions to:
+`classifier/outputs/.../no_ret_vs_ret/epoch/{N}/{DATE}/predict/dict_id_pred_results.json`
+
+### Train Clf2 (B vs. C)
+
 ```bash
-python ./evaluate_final_acc.py
+# Flan-T5-XL
+(cd classifier && bash run/run_large_train_xl_single_vs_multi.sh)
+
+# Flan-T5-XXL
+(cd classifier && bash run/run_large_train_xxl_single_vs_multi.sh)
 ```
 
-## Acknowledgement
-We refer to the repository of [IRCoT](https://github.com/StonyBrookNLP/ircot) as a skeleton code.
+Outputs to: `classifier/outputs/.../single_vs_multi/epoch/{N}/{DATE}/predict/dict_id_pred_results.json`
+
+### Run Cascade Inference
+
+Select the epoch with highest validation accuracy for each classifier. For the XL experiments reported in the thesis, ep20 (Clf1) and ep35 (Clf2) were used:
+
+```bash
+(cd classifier/postprocess && python predict_complexity_split_classifiers.py flan_t5_xl \
+    --no_ret_vs_ret_file  ../../classifier/outputs/.../no_ret_vs_ret/epoch/20/{DATE}/predict/dict_id_pred_results.json \
+    --single_vs_multi_file ../../classifier/outputs/.../single_vs_multi/epoch/35/{DATE}/predict/dict_id_pred_results.json \
+    --output_path ../../predictions/classifier/t5-large/flan_t5_xl/split/no_ret_ep20_single_ep35/)
+```
+
+> **Note:** `predict_complexity_split_classifiers.py` must be run from `classifier/postprocess/` due to a local import. The other postprocess scripts handle `sys.path` internally and work from the repo root.
+
+### Evaluate
+
+```bash
+python evaluate_final_acc.py \
+    --pred_path predictions/classifier/t5-large/flan_t5_xl/split/no_ret_ep20_single_ep35/
+```
+
+### Expected Results
+
+The cascade matches the original 3-class Adaptive-RAG within noise:
+
+| Model | Avg F1 |
+|---|---|
+| Flan-T5-XL | 0.466 |
+| Flan-T5-XXL | 0.468 |
+
+---
+
+## Iteration 2 — Agreement Gate (UE-Based Gate 1)
+
+**Question:** Does replacing the trained Clf1 with a training-free cross-strategy answer agreement test fix Gate 1's self-knowledge blindness?
+
+**Method:** If `normalize(nor_qa_answer) == normalize(oner_qa_answer)` and both non-empty → route **A**; otherwise → pass to Clf2 for B/C classification. Normalization: lowercase, strip articles (a/an/the), strip punctuation, collapse whitespace.
+
+This requires **no new inference** — it uses the pre-computed nor_qa and oner_qa predictions already in `predictions/test/`.
+
+### Run the Agreement Gate
+
+```bash
+python classifier/postprocess/predict_complexity_agreement.py flan_t5_xl \
+    --clf2_pred_file  classifier/outputs/.../single_vs_multi/epoch/35/{DATE}/predict/dict_id_pred_results.json \
+    --predict_file    classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/predict.json \
+    --output_path     predictions/classifier/t5-large/flan_t5_xl/split_agreement/nor_oner_clf2ep35/
+```
+
+Repeat with `flan_t5_xxl` and the corresponding Clf2 prediction file.
+
+### Run the Oracle Ceiling Analysis
+
+Measures the maximum F1 achievable if Clf2 were perfect (agreement gate fixed):
+
+```bash
+python classifier/postprocess/predict_complexity_oracle_ceiling.py flan_t5_xl
+python classifier/postprocess/predict_complexity_oracle_ceiling.py flan_t5_xxl
+```
+
+### Evaluate
+
+```bash
+python evaluate_final_acc.py \
+    --pred_path predictions/classifier/t5-large/flan_t5_xl/split_agreement/nor_oner_clf2ep35/
+```
+
+### Expected Results
+
+| Model | Iter 1 Avg F1 | Iter 2 Avg F1 | Δ |
+|---|---|---|---|
+| Flan-T5-XL | 0.466 | 0.485 | +2.0 pp |
+| Flan-T5-XXL | 0.468 | 0.505 | +3.7 pp |
+
+The agreement gate's high A-precision (~92%) means it almost never incorrectly skips retrieval. A-F1 rises from ~0.50 (Clf1) to ~0.83 (agreement).
+
+The oracle ceiling shows +2.4 pp headroom from a perfect Clf2, motivating Iteration 3.
+
+---
+
+## Iteration 3 — Feature-Augmented Clf2
+
+**Question:** Do structural query features (token length, entity count, bridging phrase flag) improve Gate 2's B/C routing?
+
+### Step 1 — Feasibility Probe
+
+Run logistic regression on three features to assess B/C separability:
+
+```bash
+python classifier/postprocess/clf2_feature_probe.py
+python classifier/postprocess/clf2_feature_probe.py --model flan_t5_xxl
+```
+
+Reports ROC-AUC, accuracy, per-feature coefficients, and a scatter plot. Go/no-go threshold: **AUC ≥ 0.65**.
+
+Expected: AUC ≈ 0.676 → **GO** (above 0.65, proceed to retraining).
+
+### Step 2 — Add Feature Prefix
+
+Prepend `[LEN:X] [ENT:Y] [BRIDGE:Z]` to each question in the Clf2 train, valid, and predict files:
+
+```bash
+python classifier/data_utils/add_feature_prefix.py
+```
+
+This writes feature-prefixed copies:
+- `classifier/data/.../binary_silver_feat_single_vs_multi/train.json`
+- `classifier/data/.../silver_feat_single_vs_multi/valid.json`
+- `classifier/data/.../feat_predict.json`
+
+### Step 3 — Retrain Clf2 with Features
+
+```bash
+# Flan-T5-XL
+(cd classifier && bash run/run_large_train_feat_single_vs_multi.sh flan_t5_xl)
+
+# Flan-T5-XXL
+(cd classifier && bash run/run_large_train_feat_single_vs_multi.sh flan_t5_xxl)
+```
+
+Outputs to: `classifier/outputs/.../feat_single_vs_multi/epoch/{N}/feat/predict/dict_id_pred_results.json`
+
+### Step 4 — Run Agreement Gate with Feature-Augmented Clf2
+
+```bash
+python classifier/postprocess/predict_complexity_agreement.py flan_t5_xl \
+    --clf2_pred_file  classifier/outputs/.../feat_single_vs_multi/epoch/25/feat/predict/dict_id_pred_results.json \
+    --predict_file    classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/predict.json \
+    --output_path     predictions/classifier/t5-large/flan_t5_xl/split_agreement/nor_oner_featclf2ep25/
+```
+
+### Step 5 — Evaluate
+
+```bash
+python evaluate_final_acc.py \
+    --pred_path predictions/classifier/t5-large/flan_t5_xl/split_agreement/nor_oner_featclf2ep25/
+```
+
+### Expected Results
+
+| Model | Iter 2 Avg F1 | Iter 3 Avg F1 | Δ |
+|---|---|---|---|
+| Flan-T5-XL | 0.485 | 0.486 | +0.1 pp |
+| Flan-T5-XXL | 0.505 | 0.507 | +0.2 pp |
+
+**Null result.** The feature prefix improves F1 by ≤ 0.2 pp, within noise. Surface-level structural features carry insufficient semantic signal to meaningfully improve B/C routing beyond what T5-Large already captures from the question text alone.
+
+---
+
+## Out of Scope / Future Work
+
+The directory `classifier/future_work/` contains two scripts exploring semantic-embedding-based Clf2 improvements beyond the scope of this thesis:
+
+- **`clf2_embedding_probe.py`** — Logistic regression on frozen all-MiniLM-L6-v2 sentence embeddings (384-dim). Achieved AUC 0.818 on B/C classification, well above the 0.75 go/no-go threshold.
+- **`clf2_embedding_clf.py`** — MLP classifier on the same embeddings, producing a drop-in `dict_id_pred_results.json`. End-to-end evaluation showed a small regression (−0.5 to −0.7 pp F1), suggesting that while embeddings separate B/C better in isolation, the T5-Large Clf2 makes errors that are more benign for downstream QA accuracy.
+
+These are discussed in the thesis Chapter 6 (Future Work) as a potential direction for improving Gate 2 with richer representations.
+
+---
 
 ## Citation
-If you found the provided code with our paper useful, we kindly request that you cite our work.
+
 ```BibTex
 @inproceedings{jeong2024adaptiverag,
-  author       = {Soyeong Jeong and
-                  Jinheon Baek and
-                  Sukmin Cho and
-                  Sung Ju Hwang and
-                  Jong Park},
+  author       = {Soyeong Jeong and Jinheon Baek and Sukmin Cho and Sung Ju Hwang and Jong Park},
   title        = {Adaptive-RAG: Learning to Adapt Retrieval-Augmented Large Language Models through Question Complexity},
-  booktitle={NAACL},
-  year={2024},
-  url={https://arxiv.org/abs/2403.14403}
+  booktitle    = {NAACL},
+  year         = {2024},
+  url          = {https://arxiv.org/abs/2403.14403}
 }
 ```
