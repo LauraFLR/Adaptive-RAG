@@ -331,7 +331,7 @@ python evaluate_final_acc.py \
 
 | Model | Iter 1 Avg F1 | Iter 2 Avg F1 | Δ |
 |---|---|---|---|
-| Flan-T5-XL | 0.466 | 0.485 | +2.0 pp |
+| Flan-T5-XL | 0.466 | 0.485 | +1.9 pp |
 | Flan-T5-XXL | 0.468 | 0.505 | +3.7 pp |
 | GPT | 0.508 | 0.504 | −0.4 pp |
 
