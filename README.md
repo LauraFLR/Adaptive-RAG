@@ -4,6 +4,11 @@ B.Sc. thesis extension of [Adaptive-RAG](https://arxiv.org/pdf/2403.14403.pdf) (
 
 ---
 
+> **Quick start — pre-computed data included.**
+> This repository ships with all pre-computed QA predictions (`predictions/`), classifier training labels (`classifier/data/`), and processed datasets (`processed_data/`). If you only want to reproduce the classifier training and evaluation (Iterations 1–3), you can **skip Setup sections 2–6** entirely and jump straight from §1 (environment) to the Iteration sections. Sections 2–6 document how the upstream data was originally generated and are only needed if you want to regenerate it from scratch.
+
+---
+
 ## Repository Structure
 
 ```
@@ -78,7 +83,7 @@ pip install torch==1.13.1+cu117 --extra-index-url https://download.pytorch.org/w
 pip install -r requirements.txt
 ```
 
-### 2. Prepare Retriever Server
+### 2. Prepare Retriever Server *(skip if using pre-computed data)*
 
 ```bash
 wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.10.2-linux-x86_64.tar.gz
@@ -96,7 +101,7 @@ Start the elasticsearch server on port 9200 (default), then start the retriever 
 uvicorn serve:app --port 8000 --app-dir retriever_server
 ```
 
-### 3. Datasets
+### 3. Datasets *(skip if using pre-computed data)*
 
 **Multi-hop datasets** (MuSiQue, HotpotQA, 2WikiMultiHopQA) — download from https://github.com/StonyBrookNLP/ircot:
 
@@ -148,13 +153,13 @@ python retriever_server/build_index.py wiki
 
 Verify index sizes: `curl localhost:9200/_cat/indices` — expect HotpotQA (5,233,329), 2WikiMultiHopQA (430,225), MuSiQue (139,416), Wiki (21,015,324).
 
-### 4. Prepare LLM Server
+### 4. Prepare LLM Server *(skip if using pre-computed data)*
 
 ```bash
 MODEL_NAME=flan-t5-xl uvicorn serve:app --port 8010 --app-dir llm_server
 ```
 
-### 5. Run All Three QA Strategies
+### 5. Run All Three QA Strategies *(skip if using pre-computed data)*
 
 Pre-computed predictions are provided in `predictions/`. To regenerate:
 
@@ -171,7 +176,7 @@ bash run_retrieval_dev.sh $SYSTEM $MODEL $DATASET $LLM_PORT_NUM
 bash run_retrieval_test.sh $SYSTEM $MODEL $DATASET $LLM_PORT_NUM
 ```
 
-### 6. Generate Classifier Labels
+### 6. Generate Classifier Labels *(skip if using pre-computed data)*
 
 ```bash
 python ./classifier/preprocess/preprocess_silver_train.py flan_t5_xl    # or flan_t5_xxl
