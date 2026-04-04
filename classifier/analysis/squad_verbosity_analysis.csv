@@ -1,0 +1,501 @@
+question_id,gold,gpt_nor_pred,xl_nor_pred,gpt_token_f1,xl_token_f1,gpt_contains_gold,gpt_verbosity_ratio
+single_squad_dev_1002,genome evolution,genome evolution and genetic diversity,evolution,0.5714,0.6667,1,2.50
+single_squad_dev_1007,grade inflation,academic misconduct,racial discrimination,0.0000,0.0000,0,1.00
+single_squad_dev_1012,"commodities, manufactured goods, and people",goods,ivory,0.3333,0.0000,0,0.20
+single_squad_dev_1035,Taoiseach,Taoiseach,Minister for Foreign Affairs,1.0000,0.0000,1,1.00
+single_squad_dev_1038,prime minister,Prime Minister,Speaker of the House,1.0000,0.0000,1,1.00
+single_squad_dev_1071,Catholic services,"It is not specified in the question which country or time period is being referred to. Therefore, it is impossible to accurately answer this question. Please provide more context",drinking,0.0000,0.0000,0,14.00
+single_squad_dev_1089,Pope Urban VIII,Pope Boniface VIII,Pope Pius XII,0.6667,0.3333,0,1.00
+single_squad_dev_1103,Indoor lighting,"color, texture, and lighting",color,0.3333,0.0000,0,2.00
+single_squad_dev_1109,LEDs,Light Emitting Diode (LED) lighting,LED,0.0000,0.0000,0,5.00
+single_squad_dev_111,Catapult,"The question does not specify which concert is being referred to. Therefore, it is impossible to accurately answer this question. Please provide more information",Kickstarter,0.0000,0.0000,0,23.00
+single_squad_dev_1132,form,The question does not provide enough context to determine what quest is being referred to. Please provide more information,the resulting sand,0.0000,0.0000,1,18.00
+single_squad_dev_1160,Alexandra Palace,Broadcasting House in London,London,0.0000,0.0000,0,2.00
+single_squad_dev_1188,Union Street,Bedford Street,Regent Street,0.5000,0.5000,0,1.00
+single_squad_dev_1202,lowest,lowest,second,1.0000,0.0000,1,1.00
+single_squad_dev_1208,150,37,66,0.0000,0.0000,0,1.00
+single_squad_dev_1229,1968,1955,1945,0.0000,0.0000,0,1.00
+single_squad_dev_1238,Aggregate-4 (A-4) rocket,German V-2 rocket,a rocket,0.3333,0.5000,0,1.00
+single_squad_dev_1247,"June 16, 1963","June 16, 1963","October 3, 1983",1.0000,0.0000,1,1.00
+single_squad_dev_1253,Apollo-Soyuz Test Project,Apollo-Soyuz Test Project,Advanced Simulation Technology Program,1.0000,0.0000,1,1.00
+single_squad_dev_1329,large mammal species,many large mammals,antelope,0.3333,0.0000,0,1.00
+single_squad_dev_135,smokejumpers and for other forest fire-fighting duties.,work on Civilian Public Service projects,work on the cattle ranches,0.0000,0.0000,0,0.86
+single_squad_dev_1378,1931,1931,1931,1.0000,1.0000,1,1.00
+single_squad_dev_1381,1942,9th century,1996,0.0000,0.0000,0,2.00
+single_squad_dev_139,James J. Hill,Theodore Roosevelt,William A. Clark,0.0000,0.0000,0,0.67
+single_squad_dev_1392,botanical specimens,"shells, rocks, and other natural objects",tinker toys,0.0000,0.0000,0,3.00
+single_squad_dev_1436,tankōbon,tank\u014dbon,volumes,0.0000,0.0000,0,1.00
+single_squad_dev_144,prominence within the group,ethnic and religious composition,the nature of the crimes,0.0000,0.0000,0,1.33
+single_squad_dev_1442,digital technology,digital art,digital comics,0.5000,0.5000,0,1.00
+single_squad_dev_1458,the Governor,the leader or head of the council,the President of the Executive Council,0.0000,0.0000,0,5.00
+single_squad_dev_1481,Icelandic and Faroese,Icelandic and Faroese,Hong Kong Standard Mandarin,1.0000,0.0000,1,1.00
+single_squad_dev_1500,bacteria and algae,"steam reforming of natural gas, electrolysis of water, and biomass gasification",oxidation,0.1429,0.0000,0,3.67
+single_squad_dev_1518,"about 46,226","43,298","61,590",0.0000,0.0000,0,0.50
+single_squad_dev_1553,5,35,six,0.0000,0.0000,1,1.00
+single_squad_dev_1557,2007,"April 14, 2007","December 1, 2007",0.5000,0.5000,1,3.00
+single_squad_dev_1567,12th,11th century,11th century,0.0000,0.0000,0,2.00
+single_squad_dev_1575,the National Communications Act,Telecommunications Act of 1996,Communications Act,0.2857,0.8000,0,1.33
+single_squad_dev_1579,private television networks,Somali television networks,cable television,0.6667,0.4000,0,1.00
+single_squad_dev_159,20th century,1928,1939,0.0000,0.0000,0,0.50
+single_squad_dev_1612,suffix -s,adding -s or -es to the end of a noun,-ing,0.2000,0.0000,0,4.00
+single_squad_dev_1618,Kristjan Jaak Peterson,Kristjan Jaak Peterson,Jüri Rataj,1.0000,0.0000,1,1.00
+single_squad_dev_1631,china clay,kaolin clay,kaolin,0.5000,0.0000,0,1.00
+single_squad_dev_1635,"September 30, 2007","The expiration date of Foster's patent is not specified. There have been multiple patents issued to individuals with the last name Foster, so it is unclear which specific patent is being referred to. Without more information, it is not possible to determine the answer to this question",1837,0.0000,0.0000,0,14.67
+single_squad_dev_1644,$14 million,$20 million,$1.1 billion,0.5000,0.0000,0,1.00
+single_squad_dev_1649,two,10 years,20,0.0000,0.0000,0,2.00
+single_squad_dev_1655,"June 30, 2006","January 1, 1966","September 1, 2017",0.0000,0.0000,0,1.00
+single_squad_dev_167,absorption of estrogens,inflammation and maintain a healthy digestive system,toxins,0.0000,0.0000,0,2.00
+single_squad_dev_1677,raising children,personal struggles and emotions,life after death,0.0000,0.0000,0,2.00
+single_squad_dev_1713,late May 1645,"June 6, 1645",6 June 1644,0.3333,0.0000,0,1.00
+single_squad_dev_173,Dorothy Crowfoot Hodgkin,Alexander Fleming,Sir Alexander Fleming,0.0000,0.0000,0,0.67
+single_squad_dev_1735,"15,011,792 passengers",The question does not specify which airport is being referred to. Please provide more information to accurately answer the question,58.7 million,0.0000,0.0000,0,9.00
+single_squad_dev_1746,from 16 to 28 August,"August 16 to August 28, 2014",July,0.7273,0.0000,0,1.20
+single_squad_dev_1759,a Cultural World Heritage Site,a World Heritage Site,World Heritage Site,0.8571,0.8571,0,0.75
+single_squad_dev_1780,1987,2005,2012,0.0000,0.0000,0,1.00
+single_squad_dev_1818,1929,1929,1927,1.0000,0.0000,1,1.00
+single_squad_dev_1866,privatized less,The question is unclear and does not specify which countries or what type of extralegal and unofficial things are being referred to. Please provide more information for an accurate answer,have weaker legal systems,0.0000,0.0000,0,14.00
+single_squad_dev_1880,South Slavic,South Slavic,Albanian,1.0000,0.0000,1,1.00
+single_squad_dev_1886,use of a printed score and the performance of very complex instrumental works,complexity and use of orchestral instruments,it is a form of art music,0.3529,0.1176,0,0.55
+single_squad_dev_1893,female,male,female,0.0000,1.0000,0,1.00
+single_squad_dev_19,five-year,five years,four-year,0.0000,0.0000,0,2.00
+single_squad_dev_1919,the Balkans,the Balkans,Poland,1.0000,0.0000,1,1.00
+single_squad_dev_194,a march,polonaise,Piano Trio in E flat major,0.0000,0.0000,0,1.00
+single_squad_dev_1950,depth,narrow and shallow,its depth,0.0000,0.6667,0,3.00
+single_squad_dev_197,sister Emilia,Emilia,his father,0.6667,0.0000,0,0.50
+single_squad_dev_1992,A state's consent,the treaty,treaty,0.0000,0.0000,0,0.50
+single_squad_dev_1996,permitting no violations and so cannot be altered through treaty obligations,their absolute and universal nature,they are binding on all parties,0.1250,0.0000,0,0.45
+single_squad_dev_2028,Montenegro,"Rijeka, Croatia",Zagreb,0.0000,0.0000,0,2.00
+single_squad_dev_2038,Los Barbudos,Cebu,Visayas,0.0000,0.0000,0,0.50
+single_squad_dev_2043,6th Fleet,Combined Fleet,The Imperial Japanese Navy,0.5000,0.0000,0,1.00
+single_squad_dev_2051,ten,15,15,0.0000,0.0000,0,1.00
+single_squad_dev_2059,"the ius militare,",mourning and grieving process,screams,0.0000,0.0000,0,2.00
+single_squad_dev_2075,King to pay indemnities,ransom or exchange,he could make them a knight,0.0000,0.0000,0,0.75
+single_squad_dev_2094,"September 21, 19 BC","September 21, 19 BC",c. AD 79,1.0000,0.0000,1,1.00
+single_squad_dev_2114,the Napoleonic Wars,"American Revolutionary War, French Revolutionary Wars, Napoleonic Wars, and War of 1812",Napoleonic Wars,0.2857,1.0000,1,6.00
+single_squad_dev_2116,the 9th or 10th centuries,1050,15th century,0.0000,0.0000,0,0.25
+single_squad_dev_2125,winter,"during the winter months, typically from November to April",during winter,0.2222,0.6667,1,8.00
+single_squad_dev_2139,a unit,mRNA,mRNA,0.0000,0.0000,0,1.00
+single_squad_dev_2153,1000 genes,"5,800",168,0.0000,0.0000,0,0.50
+single_squad_dev_2175,Oumarou Ganda Prize,Tanit d'Or (Golden Tanit) award,Best Foreign Language Film,0.0000,0.0000,0,1.67
+single_squad_dev_219,tenth,1830,100th,0.0000,0.0000,0,1.00
+single_squad_dev_2194,Amsterdam Avenue,Amsterdam Avenue,Broadway,1.0000,0.0000,1,1.00
+single_squad_dev_2222,neuroscience and psychology,psychology and computer science,psychology and neuroscience,0.5714,1.0000,0,1.33
+single_squad_dev_2225,molecular components of the brain to be altered experimentally;,the manipulation of an organism's genetic material,cloning,0.1538,0.0000,0,0.62
+single_squad_dev_2253,"day-to-day running of the armed forces, contingency planning and defence procurement",the armed forces,Defence,0.3333,0.1818,0,0.20
+single_squad_dev_2272,MUSE,Strategic Defense Initiative (SDI),Xerox System,0.0000,0.0000,0,4.00
+single_squad_dev_229,1895,1889,1888,0.0000,0.0000,0,1.00
+single_squad_dev_2301,Variation,variation in density,The wood will be lighter or heavier than the expected value.,0.5000,0.0000,1,3.00
+single_squad_dev_2306,timber,timber or lumber,planks,0.5000,0.0000,1,3.00
+single_squad_dev_2329,Djibouti,any of the listed countries,Tunisia,0.0000,0.0000,0,4.00
+single_squad_dev_233,Michel Fokine,Mikhail Fokine,George Balanchine,0.5000,0.0000,0,1.00
+single_squad_dev_2362,Denmark,Denmark,Denmark,1.0000,1.0000,1,1.00
+single_squad_dev_24,Central Collegiate Hockey Association,Central Collegiate Hockey Association (CCHA),NCAA Division I,0.8889,0.0000,1,1.25
+single_squad_dev_2409,CPUs,central processing units (CPUs),cores,0.4000,0.0000,1,4.00
+single_squad_dev_2410,a computer,computers,computer,0.0000,1.0000,1,1.00
+single_squad_dev_2442,the binary polarization of society into black and white,Brazil has avoided a major terrorist attack,recession,0.0000,0.0000,0,0.75
+single_squad_dev_2498,Aristotle,Herodotus,Plato,0.0000,0.0000,0,1.00
+single_squad_dev_2513,The ability to navigate,the movement of people from one place to another for various reasons,migration,0.1429,0.0000,0,3.67
+single_squad_dev_2566,2017,2017,2010,1.0000,0.0000,1,1.00
+single_squad_dev_2572,1980s,1980s,1980s,1.0000,1.0000,1,1.00
+single_squad_dev_2575,1985,1984,1987,0.0000,0.0000,0,1.00
+single_squad_dev_2581,Chicago,"Chicago, Illinois",Jefferson County,0.6667,0.0000,1,2.00
+single_squad_dev_2583,topped the US charts,It reached number one on the Billboard Hot 100 chart and became the best-selling single of 1990 in the US,chart-topping,0.1000,0.0000,0,5.67
+single_squad_dev_2598,1826,The question is unclear as it does not specify which body is being referred to. Please provide more context or information,1834,0.0000,0.0000,0,20.00
+single_squad_dev_2609,mining center,mining,textile,0.6667,0.0000,0,0.50
+single_squad_dev_2613,six men,This question is unclear and does not provide enough context to determine an answer. Please provide more information,ten,0.0000,0.0000,0,8.50
+single_squad_dev_2616,two,multiple,four,0.0000,0.0000,0,1.00
+single_squad_dev_2617,the missing fundamental,high-pitched sound,stutter,0.0000,0.0000,0,1.00
+single_squad_dev_2619,indefinite pitch,musical notes,a musical instrument,0.0000,0.0000,0,1.00
+single_squad_dev_2654,George Bush Intercontinental Airport,"Houston, Texas, United States","Houston, Texas",0.0000,0.0000,0,1.00
+single_squad_dev_2658,355,275,three,0.0000,0.0000,0,1.00
+single_squad_dev_2661,0.6%,between 0.6% and 2.5%,0.15%,0.4000,0.0000,1,4.00
+single_squad_dev_2664,identity,present,The Past Present Future,0.0000,0.0000,0,1.00
+single_squad_dev_2665,the identity variant,family structure,social environment,0.0000,0.0000,0,1.00
+single_squad_dev_2675,₹ 52.7 million,This question is incomplete and cannot be answered without more information. Please provide more context or details,"$500,000",0.0000,0.0000,0,5.67
+single_squad_dev_2685,another person or being,intended recipient or audience,brain,0.2500,0.0000,0,1.00
+single_squad_dev_2698,Semiformally Verified Design and Tested,extensive testing and analysis of security features,a level of security that is equivalent to the highest level of security achieved by the U.S. Department of Defense,0.1667,0.0000,0,1.40
+single_squad_dev_2702,Avid Life Media,Avid Life Media,Ashley Madison Holdings Inc.,1.0000,0.0000,1,1.00
+single_squad_dev_2704,R. Clarke,Ralph Nader,John Maynard Keynes,0.0000,0.0000,0,1.00
+single_squad_dev_2708,October,October,October,1.0000,1.0000,1,1.00
+single_squad_dev_2771,8th,2nd,ranked tenth,0.0000,0.0000,0,1.00
+single_squad_dev_2773,Department of Medicine,"Without knowing the name of the professor, it is impossible to determine which department they belonged to. Please provide more information for an accurate answer",Department of Chemistry,0.1600,0.6667,0,7.33
+single_squad_dev_2799,40,20,five,0.0000,0.0000,0,1.00
+single_squad_dev_2805,Robert C. Solomon,Robert C. Solomon,John Dewey,1.0000,0.0000,1,1.00
+single_squad_dev_2820,$3.16 billion,$4.76 billion,€21.6 billion,0.5000,0.5000,0,1.00
+single_squad_dev_2829,derbi,Copa del Rey final,La Liga,0.0000,0.0000,0,4.00
+single_squad_dev_2839,1878,1878,1878,1.0000,1.0000,1,1.00
+single_squad_dev_2849,The Black Watch,The Black Watch,Black Cats,1.0000,0.5000,1,1.00
+single_squad_dev_2854,word-endings,nouns and adjectives,affricate and genitive,0.0000,0.0000,0,3.00
+single_squad_dev_2856,mercantile hulls,merchant ship hulls,steel,0.4000,0.0000,0,1.50
+single_squad_dev_2857,accelerate more quickly to gain lift,increase takeoff speed and use more thrust,land with a greater angle of attack,0.1538,0.0000,0,1.17
+single_squad_dev_2888,The Red Rose of Lancaster,Red Rose,dahlia,0.6667,0.0000,0,0.50
+single_squad_dev_2912,the pope,"The question does not specify which calendar is being referred to. Therefore, it is impossible to determine who awarded the rights to publish the calendar. Please provide more information for an accurate answer",the British Royal Family,0.0000,0.0000,0,29.00
+single_squad_dev_2927,scaling down and in some cases discontinuing sales,stop selling,canceled the product,0.0000,0.0000,0,0.25
+single_squad_dev_2987,If a crop fails in a monoculture,when crops fail or when farmers want to rotate their crops,when a crop fails,0.0000,0.5000,0,2.20
+single_squad_dev_304,Wal-Mart,Hewlett-Packard (HP),Best Buy,0.0000,0.0000,0,2.00
+single_squad_dev_3058,17.0,16.9 years old,16,0.0000,0.0000,0,3.00
+single_squad_dev_3061,U.S. and South Sudan,Somalia and South Sudan,France and Germany,0.7500,0.2857,0,1.00
+single_squad_dev_3083,south of 60° S,66.33 degrees South,60°N,0.2857,0.0000,0,0.75
+single_squad_dev_3086,21 July 1983,"July 21, 1983","January 29, 1979",1.0000,0.0000,0,1.00
+single_squad_dev_3094,Biologists,Scientists and researchers,anthropologist,0.0000,0.0000,0,3.00
+single_squad_dev_3122,property market,housing market,Melbourne's residential property market,0.5000,0.6667,0,1.00
+single_squad_dev_3126,Melbourne,Toowoomba,Melbourne,0.0000,1.0000,0,1.00
+single_squad_dev_3151,Jim Bradbury,Frank Barlow,John Dryden,0.0000,0.0000,0,1.00
+single_squad_dev_3201,throughout the inter-war period,"It is not specified which guns are being referred to in this question. Therefore, it is impossible to accurately answer this question. Please provide more information",1812,0.0000,0.0000,0,8.67
+single_squad_dev_3217,self-propelled anti-aircraft guns,Self-Propelled Anti-Aircraft Gun,Species at Risk Act of Australia,0.6667,0.0000,0,1.00
+single_squad_dev_3219,three AA corps,three,three,0.5000,0.5000,0,0.33
+single_squad_dev_3225,"60,000 ft","30,000 to 160,000 feet","30,000 feet",0.0000,0.0000,0,2.00
+single_squad_dev_3233,regional scripts,the ability to record and preserve language and information,it was written in a script,0.0000,0.0000,0,4.00
+single_squad_dev_3274,Jeff Immelt,Jeff Immelt,Jeffrey Immelt,1.0000,0.5000,1,1.00
+single_squad_dev_3301,General Manstein,William C. Westmoreland,General George S. Patton,0.0000,0.3333,0,1.50
+single_squad_dev_3305,20 September,"September 18, 1870",1 July 1453,0.4000,0.0000,0,1.50
+single_squad_dev_3328,more than 500 km,approximately 120 kilometers (75 miles),66 km,0.0000,0.3333,0,1.25
+single_squad_dev_3336,region that included eastern Ethiopia and all of Eritrea,"Eritrea, Ethiopia, or Somalia",in the Middle East,0.3077,0.0000,0,0.44
+single_squad_dev_3345,Depleted,depleted uranium,thorium,0.6667,0.0000,1,2.00
+single_squad_dev_3353,1–2%,difficult to determine,99%,0.0000,0.0000,0,3.00
+single_squad_dev_3379,Rousseau,Jean-Jacques Rousseau,John Stuart Mill,0.6667,0.0000,1,2.00
+single_squad_dev_3409,time cues,circadian rhythm,arousal,0.0000,0.0000,0,1.00
+single_squad_dev_3432,abdication of his brother,the abdication of King Edward VIII,the Battle of Bosworth,0.4444,0.2857,0,1.25
+single_squad_dev_3437,reform,"It is unclear who \""Trudeau\"" and \""Elizabeth\"" refer to in this question. Please provide more context or information for an accurate answer",French cuisine,0.0000,0.0000,0,21.00
+single_squad_dev_3477,1990s,2000s,1980s,0.0000,0.0000,0,1.00
+single_squad_dev_3479,declines,declined,it declined,0.0000,0.0000,0,1.00
+single_squad_dev_3486,1100,"approximately 1,000",900,0.0000,0.0000,0,2.00
+single_squad_dev_3488,13.9%,16.1%,12%,0.0000,0.0000,0,1.00
+single_squad_dev_3492,external environmental impact,energy consumption and carbon emissions,carbon footprint,0.0000,0.0000,0,1.67
+single_squad_dev_3500,38,38,58,1.0000,0.0000,1,1.00
+single_squad_dev_3503,sodium thiopental,sodium thiopental,morphine,1.0000,0.0000,1,1.00
+single_squad_dev_3505,William O. Douglas,Thurgood Marshall,John Roberts,0.0000,0.0000,0,0.67
+single_squad_dev_3514,Kansas,Kansas,Minnesota,1.0000,0.0000,1,1.00
+single_squad_dev_3525,$5,$5,$70,1.0000,0.0000,1,1.00
+single_squad_dev_3568,fled,pretended to be sick,he hid himself in a cave,0.0000,0.0000,0,4.00
+single_squad_dev_3571,Arian,Arian Christianity,Catholicism,0.6667,0.0000,1,2.00
+single_squad_dev_3608,arts colleges,"University of Washington School of Art + Art History + Design, Cornish College of the Arts, Seattle University, and Seattle Pacific University",Seattle Art Museum,0.0952,0.0000,0,9.50
+single_squad_dev_3609,visual information and acoustic information,"chunks, phonological loops, visuospatial sketchpad, and episodic buffer",short-term memory is a type of memory that is used to store information for a short period of time.,0.1538,0.0909,0,1.60
+single_squad_dev_3620,black (historically) or African American,Black or African American,Black,0.8889,0.3333,0,0.80
+single_squad_dev_3622,The last slaves in New York were not freed until 1827.,"July 4, 1827","June 30, 1865",0.1538,0.0000,0,0.30
+single_squad_dev_3635,the one-drop rule,There is no one specific thing that has brought African Americans together,the Black Panther Party,0.0000,0.0000,0,6.00
+single_squad_dev_3669,May 2015,"There is no specific article mentioned in the question. Therefore, it is impossible to determine when the article came out about the importance of interactions. Please provide more information for an accurate answer",2005,0.0000,0.0000,0,14.50
+single_squad_dev_3672,European Medicines Agency,Medicines and Healthcare products Regulatory Agency (MHRA),The National Institute for Health and Clinical Excellence,0.4000,0.0000,0,2.33
+single_squad_dev_3686,Kufa,"Kufa, Iraq",Baghdad,0.6667,0.0000,1,2.00
+single_squad_dev_3709,1915,Claridge's has not liquidated,1931,0.0000,0.0000,0,4.00
+single_squad_dev_371,2 minutes,unknown,one minute,0.0000,0.0000,0,0.50
+single_squad_dev_3753,1817,1817,1837,1.0000,0.0000,1,1.00
+single_squad_dev_3810,Israeli Coastal Plain,"The nation referred to in this question is not specified. Therefore, it is impossible to accurately answer this question",New York City,0.0000,0.0000,0,6.00
+single_squad_dev_3811,"700,000","around 141,000",a small minority,0.0000,0.0000,0,2.00
+single_squad_dev_3828,Constantine the Great,"There were many Roman emperors throughout history. Some of the most well-known include Julius Caesar, Augustus, Nero, Trajan, Hadrian, Marcus Aurelius, and Constantine the Great. So the answer cannot be determined without specifying a specific time period or emperor",Claudius,0.1081,0.0000,1,17.50
+single_squad_dev_3850,204,204 BC,332 BC,0.6667,0.0000,1,2.00
+single_squad_dev_3871,Empiric,Hippocratic school of medicine,Hippocrates,0.0000,0.0000,0,4.00
+single_squad_dev_3875,Iberia,Russia,the Rhineland,0.0000,0.0000,0,1.00
+single_squad_dev_3893,Karl Mack,Karl Mack von Leiberich,General Otto von Bismarck,0.6667,0.0000,1,2.00
+single_squad_dev_3894,500,100,900,0.0000,0.0000,0,1.00
+single_squad_dev_3908,the Malet coup,French invasion of Russia,Battle of Waterloo,0.0000,0.0000,0,2.00
+single_squad_dev_391,Wei Hong,George W. Bush,John McCain,0.0000,0.0000,0,1.50
+single_squad_dev_3918,"40,000","40,000","20,000",1.0000,0.0000,1,1.00
+single_squad_dev_3922,the Napoleonic Code,the Napoleonic Code or the French Civil Code,Civil Code,0.5000,0.5000,1,3.00
+single_squad_dev_3943,first and second Unabomber,Tylenol poisonings,The Northwestern University Commodores football team was the first team to win the NCAA Division I football championship in 1978.,0.0000,0.0952,0,0.50
+single_squad_dev_3948,four,4-5,six,0.0000,0.0000,0,1.00
+single_squad_dev_3953,Northwestern,"Northwestern University in Evanston, Illinois",University of Chicago,0.3333,0.0000,1,5.00
+single_squad_dev_396,in relief centres,This question is unclear and cannot be answered without more context. Please provide more information,in the homes of relatives,0.0000,0.2857,0,5.00
+single_squad_dev_3967,Xiamen dialect,Hokkien or Minnan,Standard Mandarin,0.0000,0.0000,0,1.50
+single_squad_dev_3971,meaning,meaning and tone of the sentence,pronunciation,0.3333,0.0000,1,5.00
+single_squad_dev_3985,the Río de la Plata,Rio de la Plata,Uruguay River,0.7500,0.0000,0,1.00
+single_squad_dev_4000,Our Lady of the Sacred Heart,Our Lady of the Sacred Heart,Our Lady of the Holy Heart,1.0000,0.8000,1,1.00
+single_squad_dev_4025,founding members,15 years,15 years,0.0000,0.0000,0,1.00
+single_squad_dev_4072,the balcony,North Portico,The Pieta,0.0000,0.0000,0,2.00
+single_squad_dev_4076,Between 1847 and 1850,"Without context, it is impossible to determine which building or structure the question is referring to. Please provide more information",1939,0.0000,0.0000,0,4.75
+single_squad_dev_4085,in the Ballroom,state rooms of a royal palace or official residence,The White House,0.0000,0.0000,0,4.00
+single_squad_dev_4089,David Lloyd George,The answer to this question is not provided. Please provide more context or information,John of Gaunt,0.0000,0.0000,0,4.33
+single_squad_dev_4095,Hungarian Sándor Just and Croatian Franjo Hanaman,Thomas Edison and Joseph Swan,Thomas Edison and James Watt,0.1667,0.1667,0,0.71
+single_squad_dev_4208,February 1907,1907,1932,0.6667,0.0000,0,0.50
+single_squad_dev_4212,$2–3bn,$30 billion,$45 billion,0.0000,0.0000,0,2.00
+single_squad_dev_4231,"""circumvent[ing] a technological measure",cracking or piracy,pirate,0.0000,0.0000,0,1.00
+single_squad_dev_4269,eighteen,14,16,0.0000,0.0000,0,1.00
+single_squad_dev_4282,liger,liger,tamerlane,1.0000,0.0000,1,1.00
+single_squad_dev_4292,The Microcosm of London,The Costume of Great Britain,The History of the United Kingdom,0.2857,0.2857,0,1.33
+single_squad_dev_4332,22%,21%,58.7,0.0000,0.0000,0,1.00
+single_squad_dev_4386,Beethoven,Ludwig van Beethoven,Joseph Haydn,0.5000,0.0000,1,3.00
+single_squad_dev_4409,"""The Arsenal of America""",The Arsenal of Democracy,Connecticut Arsenal,0.6667,0.4000,0,1.00
+single_squad_dev_4419,Dutch Elm disease,Dutch elm disease,elm wilt disease,1.0000,0.6667,1,1.00
+single_squad_dev_4425,working-class,This question is unclear and cannot be answered accurately. Please provide more context or information,St. Mark's Square and the Lower East Side,0.0000,0.0000,0,15.00
+single_squad_dev_4453,Interstate 95,Interstate 95,I-95,1.0000,0.0000,1,1.00
+single_squad_dev_4465,Mona Lisa Smile (2003),Mystic Pizza,The Girl with the Dragon Tattoo,0.0000,0.0000,0,0.50
+single_squad_dev_4479,its religious nature,students,its athletics,0.0000,0.4000,0,0.33
+single_squad_dev_448,1913,1913,1931,1.0000,0.0000,1,1.00
+single_squad_dev_451,July 2014,2014,"January 1, 2010",0.6667,0.0000,0,0.50
+single_squad_dev_4519,Galeries Lafayette and Le Printemps,Galeries Lafayette and Printemps,Carrefour and Galeries Lafayette,0.8889,0.6667,0,0.80
+single_squad_dev_4533,common law,national laws,Copyright law,0.0000,0.5000,0,1.00
+single_squad_dev_4549,"966 Claude R. Kirk, Jr. was elected as the first post-Reconstruction Republican governor, in an upset election",an American politician and businessman,"Claude R. Kirk (born June 17, 1931) was an American politician and a member of the United States House of Representatives from New Jersey.",0.0000,0.2222,0,0.27
+single_squad_dev_4550,"Daytona Beach, Orlando, and Tampa/St. Petersburg, has had a fairly even breakdown of Republican and Democratic voters",predominantly conservative and Republican,Republican,0.2000,0.1176,0,0.25
+single_squad_dev_4553,There are likely to be additional challenges to the map and districts.,I am an AI and do not have access to current information or updates on maps. It is best to check with a reliable source for any changes to maps,yes,0.1538,0.0000,0,2.55
+single_squad_dev_4576,2005,2004,1975,0.0000,0.0000,0,1.00
+single_squad_dev_4578,2004,2004,2006,1.0000,0.0000,1,1.00
+single_squad_dev_4599,the Landgraviate of Thuringia,The largest state in the region depends on which region is being referred to. Please provide more context for a specific answer,New York,0.0000,0.0000,0,6.33
+single_squad_dev_462,28.6%,18.5%,12%,0.0000,0.0000,0,1.00
+single_squad_dev_4624,eat from multiple levels of the food chain,have overlapping characteristics and can also evolve and change over time,are morphologically similar,0.0000,0.0000,0,1.57
+single_squad_dev_4637,Homer Hooper,Josie McCoy,Veronica Harmon,0.0000,0.0000,0,1.00
+single_squad_dev_4645,ABC,ABC,Cartoon Network,1.0000,0.0000,1,1.00
+single_squad_dev_4665,after 1900,"January 17, 1853",1840,0.0000,0.0000,0,1.50
+single_squad_dev_4668,Over 2.5 million,1.5 million,"500,000",0.4000,0.0000,0,0.67
+single_squad_dev_4680,synthesis of chemicals and raw materials,"Botany can be applied to the construction industry through erosion control, use of plant-based materials, and sustainable building practices",horticulture is used to produce building materials,0.2500,0.1538,0,3.00
+single_squad_dev_4697,Queen of Pop,Queen of Pop,Madonna,1.0000,0.0000,1,1.00
+single_squad_dev_4722,MDNA,MDNA,Madonna II,1.0000,0.0000,1,1.00
+single_squad_dev_4731,Morton,Christopher Ciccone,Michael Wolff,0.0000,0.0000,0,2.00
+single_squad_dev_4736,40,over 40,dozens,0.6667,0.0000,1,2.00
+single_squad_dev_4748,the south-west to the east,west to east,northwards,0.6667,0.0000,0,1.00
+single_squad_dev_4791,it has preserved extensive commercial ties,Yes,yes,0.0000,0.0000,0,0.17
+single_squad_dev_4793,to sign a bilateral trade and investment framework agreement on 21 May 2013.,"establishment of diplomatic relations, lifting of economic sanctions, and promotion of human rights and democracy in Burma",bilateral trade and investment,0.0690,0.5000,0,1.42
+single_squad_dev_4797,South Africa,"China, Russia, and India",China and Russia,0.0000,0.0000,0,2.00
+single_squad_dev_4804,rice,rice,tea,1.0000,0.0000,1,1.00
+single_squad_dev_4821,Ashkenazim,Abrahamic religions,aristocracy,0.0000,0.0000,0,2.00
+single_squad_dev_4824,early decades of the 20th century,late 19th and early 20th centuries,1848,0.3636,0.0000,0,1.20
+single_squad_dev_4827,Dhimmis,non-Muslims,Turks,0.0000,0.0000,0,1.00
+single_squad_dev_4841,Compression,"recycling, using renewable energy sources, conserving water, reducing consumption of single-use products, and implementing sustainable practices",reuse,0.0000,0.0000,0,16.00
+single_squad_dev_4872,conspiring to commit misconduct in a public office,phone hacking and making illegal payments to public officials,fraud,0.2500,0.0000,0,1.29
+single_squad_dev_491,"24,000","over 27,000","over 500,000",0.0000,0.0000,0,2.00
+single_squad_dev_4910,"HM Prison Shepton Mallet, which was England's oldest prison still in use prior to its closure in 2013, having opened in 1610",Somerset County Jail,Somerset Prison,0.0000,0.0833,0,0.14
+single_squad_dev_4950,Hundred Years' War,The Hundred Years' War,French Revolution,1.0000,0.0000,1,1.00
+single_squad_dev_4963,Ann Arbor Municipal Airport,It is not specified which city is being referred to. Please provide more information to answer this question accurately,YVR,0.0000,0.0000,0,4.75
+single_squad_dev_4993,early as 1920,1912,1890,0.0000,0.0000,0,0.33
+single_squad_dev_5052,the Glorious Revolution of 1688,the Glorious Revolution of 1688,the American Revolution,1.0000,0.3333,1,1.00
+single_squad_dev_5053,Lord Bacon and Cicero,a political quack,William Shakespeare,0.0000,0.0000,0,0.50
+single_squad_dev_5102,direct current,DC stands for District of Columbia,DC Comics,0.0000,0.0000,0,3.00
+single_squad_dev_5113,accelerate much more rapidly,lighter and more efficient,it is lighter,0.2500,0.0000,0,1.00
+single_squad_dev_5129,referendums,the judicial system,judicial review,0.0000,0.0000,0,2.00
+single_squad_dev_5138,3.2%,3.2%,4%,1.0000,0.0000,1,1.00
+single_squad_dev_5140,Product market liberalisation,gender equality in the workplace,Purchasing power parity,0.0000,0.0000,0,1.33
+single_squad_dev_5195,Carter-Finley Stadium,Carter-Finley Stadium,Cameron Indoor Stadium,1.0000,0.4000,1,1.00
+single_squad_dev_5216,food,nutrients and substances consumed,waste products from plants,0.0000,0.0000,0,4.00
+single_squad_dev_5248,1854,1395,1353,0.0000,0.0000,0,1.00
+single_squad_dev_5265,advances and specialization,increasing specialization and pressure to publish quickly,computerization and peer review,0.4000,0.2857,0,2.33
+single_squad_dev_5266,“wonder”,"The writer did not specify a specific psychological state experienced as a youth. Therefore, there is no answer to this question",separation from reality,0.0000,0.0000,0,18.00
+single_squad_dev_5267,what psychological emotion he or she is attempting to describe,"the author's intended purpose, audience, and ideas",the author's purpose,0.0000,0.0000,0,0.60
+single_squad_dev_5277,Nishapur,"Ibn Sina, also known as Avicenna, traveled through various districts in search of work. Some of these districts include Bukhara, Gorgan, and Rayy. So the answer could be any of these districts",Mecca,0.0000,0.0000,0,31.00
+single_squad_dev_5281,the prophets,Aristotle and Plato,"Avicenna viewed Plato, Aristotle, and Avicenna as inspired philosophers.",0.0000,0.0000,0,3.00
+single_squad_dev_5291,Hamadan,"Hamadan, Iran","in the city of Aix-en-Provence, France",0.6667,0.0000,1,2.00
+single_squad_dev_530,The South itself,it depends on the specific book,the setting,0.0000,0.0000,0,2.50
+single_squad_dev_5307,Chinese characters in Vietnam,"The phrase \""once in widespread use\"" is quite broad and can refer to many things. Some examples could be: typewriters, cassette tapes, rotary phones, horse-drawn carriages, etc. Without more context, it is difficult to determine a specific answer",sextettes,0.0500,0.0000,0,9.00
+single_squad_dev_5339,Nigeria,Nigeria,Nigeria,1.0000,1.0000,1,1.00
+single_squad_dev_5371,"Utrecht is host to the international Early Music Festival (Festival Oude Muziek, for music before 1800) and the Netherlands Film Festival",Le Guess Who?,Utrecht Music Festival,0.0000,0.2727,0,0.16
+single_squad_dev_5389,oversaw computations,He was not directly involved in the selection of targets,computer,0.0000,0.0000,0,4.50
+single_squad_dev_539,auxiliary heating and cooling equipment,heating and cooling,heating,0.7500,0.3333,0,0.60
+single_squad_dev_5399,occupied Polish territories,Molotov-Ribbentrop Pact or Nazi-Soviet Pact,the Black Sea,0.0000,0.0000,0,1.67
+single_squad_dev_5426,Samos,Pythagoras,Galileo Galilei,0.0000,0.0000,0,1.00
+single_squad_dev_5441,Algebra,algebra,arithmetic,1.0000,0.0000,1,1.00
+single_squad_dev_5451,the borders between what was religious and what was political,the perception of Brazilian cinema and brought international attention to the country's film industry,the way in which the Roman Catholic Church viewed the papacy,0.0952,0.0000,0,1.33
+single_squad_dev_5462,all at once,by inserting a short vowel sound between the consonants,sounded as a single consonant,0.0000,0.0000,0,2.33
+single_squad_dev_5472,infinitive,infinitive form,een,0.6667,0.0000,1,2.00
+single_squad_dev_549,the sun21 catamaran,Sun21,Solar Impulse,0.6667,0.0000,0,0.50
+single_squad_dev_5547,high dropout rates,"mismatching of students with schools, resulting in lower academic performance and higher dropout rates",racial segregation,0.2353,0.0000,0,4.67
+single_squad_dev_555,"1,575–49,837 exajoules (EJ)","173,000 terawatts (TW)",365.8 billion kilowatt hours,0.0000,0.0000,0,1.00
+single_squad_dev_5560,Villa Park in Birmingham (55 times),The top most used venue is not specified in the question. Please provide more information,The O2 Arena,0.1053,0.0000,0,2.17
+single_squad_dev_5569,1789,1871,1871,0.0000,0.0000,0,1.00
+single_squad_dev_5612,80 °F,80 degrees Fahrenheit,68 °F,0.4000,0.5000,0,1.50
+single_squad_dev_5624,recreational,outdoor recreational activities,recreation,0.5000,0.0000,1,3.00
+single_squad_dev_5627,Tobacco,smoking,smoking,0.0000,0.0000,0,1.00
+single_squad_dev_5631,Taira Kiyomori,Ashikaga Takauji,Toyotomi Hidetada,0.0000,0.0000,0,1.00
+single_squad_dev_5634,every creature,all beings,all beings,0.0000,0.0000,0,1.00
+single_squad_dev_5654,variability and change in the environment,"natural selection, inheritance, and variation within a species",natural selection and mutation,0.1667,0.2222,0,1.40
+single_squad_dev_5656,so as not to prejudice readers against his theory,He feared backlash and controversy,He was concerned that his readers would be offended by his views.,0.0000,0.1905,0,0.56
+single_squad_dev_5695,about 70 AD,unknown,1590,0.0000,0.0000,0,0.33
+single_squad_dev_5752,Professor Douglas Stuart,"The answer to this question is not specified. It could be a religious scholar, a theologian, or a person with a specific belief or interpretation. Without more context, it is impossible to determine who claims that the Old Testament is essentially the same throughout all variations",John Calvin,0.0000,0.0000,0,13.00
+single_squad_dev_5766,United Kingdom,India,Japan,0.0000,0.0000,0,0.50
+single_squad_dev_5768,March 1949,"March 31, 1949",1927,0.8000,0.0000,0,1.50
+single_squad_dev_5788,on edge,"in a cool, dry place away from direct sunlight and extreme temperatures, and in an upright position","in a cool, dry place",0.0000,0.0000,0,7.50
+single_squad_dev_5790,compact discs,physical music sales,film,0.0000,0.0000,0,1.50
+single_squad_dev_5816,"African National Congress in South Africa, the Cambodian People's Party in Cambodia","African National Congress, Liberal Democratic Party, United Russia, People's Action Party, Institutional Revolutionary Party, and Communist Party of China",the United States and the United Kingdom,0.3333,0.0000,0,1.73
+single_squad_dev_5819,2000,2000,1968,1.0000,0.0000,1,1.00
+single_squad_dev_5827,Barbershop Harmony Society,the Barbershop Harmony Society,The American Choral Directors Association,1.0000,0.0000,1,1.00
+single_squad_dev_5837,the Cathars,Aristotle,Pope Gregory IX,0.0000,0.0000,0,1.00
+single_squad_dev_5838,England,many European countries,France,0.0000,0.0000,0,3.00
+single_squad_dev_5840,charity,emphasis on preaching and teaching,It is a secular order,0.0000,0.0000,0,5.00
+single_squad_dev_5858,an illegal hare hunt,illegally hunting foxes,rape,0.0000,0.0000,0,1.00
+single_squad_dev_5933,"""bit stuff violation",it depends on the context,a sexier appearance,0.0000,0.0000,0,1.33
+single_squad_dev_5935,a packet identifier (PID) byte,a unit of digital information consisting of 8 bits,0,0.0000,0.0000,0,2.00
+single_squad_dev_5948,subdivisions,"Letter, Mark, Number, Punctuation, Symbol, Separator, and Other",Unicode Supplement,0.0000,0.0000,0,8.00
+single_squad_dev_596,communist sympathies.,political beliefs and activities,they are unable to provide a scientifically valid account of the anthropological record,0.0000,0.0000,0,2.00
+single_squad_dev_5999,$417 M,"Vanguard is a large investment management company and does not have any information about retiring debt for DMC. Therefore, the answer cannot be determined",$1.1 billion,0.0000,0.0000,0,11.00
+single_squad_dev_6002,Diffusion of innovations,cultural diffusion,diffusion,0.4000,0.5000,0,0.67
+single_squad_dev_6032,royalist,civil law,the judicial review system,0.0000,0.0000,0,2.00
+single_squad_dev_6044,Mongols,This question is unclear and does not provide enough context to accurately answer. Please provide more information,the king,0.0000,0.0000,0,17.00
+single_squad_dev_6050,1959,1950,2010,0.0000,0.0000,0,1.00
+single_squad_dev_6055,Cactus League,Cactus League,Arizona Fall League,1.0000,0.4000,1,1.00
+single_squad_dev_6080,"2,977,187","2,450,000",88.7 percent,0.0000,0.0000,0,1.00
+single_squad_dev_6090,Thirty-nine,39,58,0.0000,0.0000,0,1.00
+single_squad_dev_6102,Hinduism,Hinduism,Vedanta,1.0000,0.0000,1,1.00
+single_squad_dev_6140,National Union,This question is incomplete and cannot be answered without more context. Please provide more information,the Liberal Party,0.0000,0.0000,0,7.50
+single_squad_dev_6143,Algerian,Algeria,Egyptians,0.0000,0.0000,0,1.00
+single_squad_dev_6148,Amer,Gamal Abdel Nasser,Gamal Abdel Nasser,0.0000,0.0000,0,3.00
+single_squad_dev_6155,nervous breakdown,He remained the president of Egypt until his death in 1970,he was exiled to Egypt,0.0000,0.0000,0,5.00
+single_squad_dev_6188,The hourglass,hourglass or sand timer,sand clock,0.4000,0.0000,1,4.00
+single_squad_dev_6189,Incense sticks and candles,sundials and water clocks,astrolabe,0.2500,0.0000,0,1.00
+single_squad_dev_6193,"the Second law of thermodynamics,",the second law of thermodynamics,second law of thermodynamics,1.0000,1.0000,1,1.00
+single_squad_dev_6249,90 out of 100,4 out of 5,a score of 81 out of 100,0.5000,0.6000,0,1.00
+single_squad_dev_6251,reserve powers,power of veto,the veto,0.0000,0.0000,0,1.50
+single_squad_dev_6268,1875,1986,2016,0.0000,0.0000,0,1.00
+single_squad_dev_6285,the étale fundamental group,Grothendieck group,The Lie group,0.4000,0.4000,0,0.67
+single_squad_dev_629,"Ministry of Science, Technology and Higher Education (MCTES)","Ministry of Science, Technology and Higher Education",Ministry of Science and Higher Education,0.9333,0.8571,0,0.88
+single_squad_dev_630,29%,20.5%,45%,0.0000,0.0000,0,1.00
+single_squad_dev_6317,decrease the number of people hospitalized for asthma,reduce exposure to secondhand smoke and improve public health,reducing the number of smokers,0.0000,0.3636,0,1.29
+single_squad_dev_6323,only format to include the cut scene of Harrison Ford playing the part of the school headmaster,It was the first home video release of the film,it was the first LaserDisc release to feature a theatrical trailer,0.0909,0.0870,0,0.57
+single_squad_dev_6363,Hinduism and Sikhism,Baha'i Faith,Hinduism,0.0000,0.5000,0,0.67
+single_squad_dev_6365,the discovery that the universe is infinitely old,empirical evidence and scientific inquiry,the universe,0.0000,0.2857,0,0.83
+single_squad_dev_6383,Lashkar-e-Taiba,Lashkar-e-Taiba,Taliban,1.0000,0.0000,1,1.00
+single_squad_dev_644,Roc-A-Fella Records,Roc-A-Fella Records,Roc-A-Fella Records,1.0000,1.0000,1,1.00
+single_squad_dev_6476,Cowan Powers and his family,The Carter Family,The Stanley Brothers,0.2857,0.0000,0,0.40
+single_squad_dev_6478,eggs,eggs,eggs,1.0000,1.0000,1,1.00
+single_squad_dev_648,Matthew Trammell,Jon Caramanica,John Peel,0.0000,0.0000,0,1.00
+single_squad_dev_6501,insects themselves,anteater,ants,0.0000,0.0000,0,0.50
+single_squad_dev_6518,Caucasians,Caucasian or White,monophyletic,0.0000,0.0000,0,3.00
+single_squad_dev_6546,colonial and early federal history,throughout history,the 1960s and 1970s,0.2857,0.2500,0,0.40
+single_squad_dev_655,2,10,three,0.0000,0.0000,0,1.00
+single_squad_dev_6566,1913,1909,1905,0.0000,0.0000,0,1.00
+single_squad_dev_6569,80,80%,80%,1.0000,1.0000,1,1.00
+single_squad_dev_658,John Legend,John Legend,Eminem,1.0000,0.0000,1,1.00
+single_squad_dev_6580,"80,000","80,698",245,0.0000,0.0000,0,1.00
+single_squad_dev_6597,in order to keep the original forms,to describe and understand relationships between quantities and variables in the physical world,to describe the physical world,0.2222,0.2000,0,2.00
+single_squad_dev_6598,Asclepius,Asclepius,Artemis,1.0000,0.0000,1,1.00
+single_squad_dev_6603,Marsyas' blood,a satyr,the river Nile,0.0000,0.0000,0,0.50
+single_squad_dev_6616,"provisional ballots that had yet to be counted, initially reported to number as high as 200,000",The question is incomplete and does not provide enough information to answer accurately. Please provide more context or information,the possibility of a Bush-Cheney landslide,0.0588,0.0000,0,1.12
+single_squad_dev_663,"""one of the most disgusting moments"" of his presidency","\""one of the most disgusting moments\"" of his presidency",as a retort to the president's re-election campaign,1.0000,0.0000,1,1.00
+single_squad_dev_6637,26 January 1966,"January 26, 1966",1931,1.0000,0.0000,0,1.00
+single_squad_dev_6644,Eastern Army,United Nations forces,United States Army,0.0000,0.4000,0,1.50
+single_squad_dev_6645,innovation,"military strength, innovation, and unification of Japan",chivalry,0.2500,0.0000,1,7.00
+single_squad_dev_6649,"an adult name (nanori) given at genpuku, the coming of age ceremony",It can have multiple meanings depending on the kanji characters used,the lord of the sea,0.0000,0.1538,0,1.00
+single_squad_dev_6669,lack of backward compatibility,test and debug,They do not test their code,0.0000,0.0000,0,0.75
+single_squad_dev_6670,phase in the release process and the risk of the added features,"complexity and size of the codebase, number of changes, and time/resources available",the test case,0.2000,0.0000,0,1.22
+single_squad_dev_67,the ONE Campaign,100 other artists and music industry professionals,Barack Obama,0.0000,0.0000,0,3.50
+single_squad_dev_6703,reduced importance of agriculture in the Sicilian economy has led to a massive migration to the cities,influx of immigrants,The abolition of the death penalty,0.1176,0.1111,0,0.21
+single_squad_dev_673,Christian,"Christian, with interest in other religions and spiritual practices",African-American,0.2000,0.0000,1,9.00
+single_squad_dev_6757,energy,energy,Matter,1.0000,0.0000,1,1.00
+single_squad_dev_6762,an external source of energy,energy,DNA,0.4000,0.0000,0,0.25
+single_squad_dev_6766,Matter,different forms,matter,0.0000,1.0000,0,2.00
+single_squad_dev_6804,commercial centres and routes,irrigation systems,irrigation systems,0.0000,0.0000,0,0.50
+single_squad_dev_6824,does not accelerate,remain at rest or continue to move at a constant velocity,accelerates,0.0000,0.0000,0,3.33
+single_squad_dev_6910,February 1978,"There is not enough information to accurately answer this question. It is unclear who \""Kerry\"" refers to and what specific Naval Reserve is being mentioned. Please provide more context for an accurate answer",2003,0.0000,0.0000,0,16.00
+single_squad_dev_6934,"35,797","approximately 36,037 feet (10,971 meters)","a depth of, or,",0.0000,0.0000,0,5.00
+single_squad_dev_6937,on size and time of year,mode of transportation and distance,distance,0.3636,0.0000,0,0.83
+single_squad_dev_6961,Friedrich Nietzsche,Arthur Schopenhauer,John Stuart Mill,0.0000,0.0000,0,1.00
+single_squad_dev_6971,19th century,late 19th century,1890,0.8000,0.0000,1,1.50
+single_squad_dev_6989,1756,1769,1727,0.0000,0.0000,0,1.00
+single_squad_dev_699,suffering,suffering or unsatisfactoriness,dhukkha,0.5000,0.0000,1,3.00
+single_squad_dev_7002,Chattanooga to Clarksville,Nashville and Chattanooga,Chattanooga and Knoxville,0.3333,0.3333,0,1.00
+single_squad_dev_7023,industrial,experimental music,Industrial music,0.0000,0.6667,0,2.00
+single_squad_dev_7024,post-punk,1980s,the era of the '60s,0.0000,0.0000,0,1.00
+single_squad_dev_7027,Burnside,Canadian football rules,Canadian rules,0.0000,0.0000,0,3.00
+single_squad_dev_704,Everything,"Many things can be in a constant flux, such as the stock market, the weather, or a person's emotions. It is not possible to determine a specific answer without more context",climate,0.0000,0.0000,0,26.00
+single_squad_dev_7053,"Duke Ferdinand of Brunswick, regrouped his army and launched a series of offensives that drove the French back across the River Rhine.",annexation and establishment of the North German Confederation,the Treaty of Breda,0.1538,0.0909,0,0.37
+single_squad_dev_7054,Count András Hadik,Art\u00far G\u00f6rgey,General Gyula Károlyi,0.0000,0.0000,0,0.67
+single_squad_dev_7069,the defection of Hyderabad to the British,"There have been many people who have defected to the British throughout history. Without more context, it is impossible to determine a specific answer",John Ruskin,0.1481,0.0000,0,4.40
+single_squad_dev_7071,The act protected Catholic religion and French language,The Quebec Act of 1774 recognized French as the official language of Quebec,It prohibited the use of French in public.,0.3333,0.1429,0,1.57
+single_squad_dev_7105,Nasser,Michel Aflaq,Abd al-Rahim al-Nasser,0.0000,0.0000,0,2.00
+single_squad_dev_7118,Mauritania,Mauritania,Tunisia,1.0000,0.0000,1,1.00
+single_squad_dev_7145,107,108,five,0.0000,0.0000,0,1.00
+single_squad_dev_7179,1981,"June 12, 1981","November 12, 1977",0.5000,0.0000,1,3.00
+single_squad_dev_7188,"October 16, 2015","October 16, 2015","November 11, 2017",1.0000,0.0000,1,1.00
+single_squad_dev_7217,at the reception counter on the 2nd floor,This question is unclear and does not provide enough information to answer accurately. Please provide more context or details,the ground floor,0.0000,0.2500,0,3.17
+single_squad_dev_7223,Uranus,Uranus,Uranus,1.0000,1.0000,1,1.00
+single_squad_dev_7250,2003,1992,1870,0.0000,0.0000,0,1.00
+single_squad_dev_7254,12 kV voltage,700 volts,230 V,0.0000,0.0000,0,0.67
+single_squad_dev_726,The reliability,authenticity and accuracy,whether the Buddha was a historical person,0.0000,0.0000,0,3.00
+single_squad_dev_7312,St. George's Cross,Crusader's Cross or Jerusalem Cross,The Crusader's Cross,0.2500,0.4000,0,1.67
+single_squad_dev_7327,English,English Channel,The English Channel,0.6667,0.6667,1,2.00
+single_squad_dev_7328,Battle of Britain Day,Battle of Britain,Operation Dynamo,0.8571,0.0000,0,0.75
+single_squad_dev_7338,one million,1 million,"30,000",0.5000,0.0000,0,1.00
+single_squad_dev_7349,airborne search lights,bombs,a strafing run,0.0000,0.0000,0,0.33
+single_squad_dev_7374,1850,1865,1879,0.0000,0.0000,0,1.00
+single_squad_dev_7382,"oil contamination, vibration",Two other relevant characteristics of a pumping system are flow rate and power consumption,final volume and final velocity,0.0000,0.0000,0,4.33
+single_squad_dev_7404,cultivation of morally grounded personal relationships,the Roman Empire as a whole,acquainting the public with the new government,0.0000,0.0000,0,0.67
+single_squad_dev_7415,The Minister Steward,The answer to this question depends on which emperor is being referred to. Please provide more context or information for a specific answer,Liu Bei,0.0000,0.0000,0,10.50
+single_squad_dev_7419,five,"The Northern Army is a broad term that can refer to different armies throughout history. Without a specific context, it is impossible to determine the number of regiments in the Northern Army. Please provide more information for an accurate answer",ten,0.0000,0.0000,0,34.00
+single_squad_dev_7436,creation of the Modern Greek state in 1830,11 June 1975,1832,0.0000,0.0000,0,0.43
+single_squad_dev_7450,1013,1013,1234,1.0000,0.0000,1,1.00
+single_squad_dev_7453,Belief,taqwa,piety,0.0000,0.0000,0,1.00
+single_squad_dev_7468,Italy,Italy,China,1.0000,0.0000,1,1.00
+single_squad_dev_7485,30 billion,over 1.2 billion,over 500 million,0.4000,0.0000,0,1.50
+single_squad_dev_7490,fungus Geotrichum candidum,"bacteria, fungi, and insects",fungi,0.0000,0.0000,0,1.33
+single_squad_dev_7530,Africa’s land and resources.,This question is unclear and does not provide enough context to determine the answer. Please provide more information,the throne,0.0952,0.0000,0,4.25
+single_squad_dev_7537,partitioning of the Ottoman Empire,the collapse of the Ottoman Empire after World War I,the Crusades,0.5000,0.0000,0,2.00
+single_squad_dev_7551,Nazi Germany and Fascist Italy.,Nazi Germany and Fascist Italy,"France, Britain, and the Soviet Union",1.0000,0.2000,1,1.00
+single_squad_dev_7581,resistive impedance,a properly tuned antenna,reflected signal,0.0000,0.0000,0,1.50
+single_squad_dev_7582,antenna terminals,electrical circuits,in the inverse of the tangent line,0.0000,0.0000,0,1.00
+single_squad_dev_7669,guiding research and treatment,measuring and categorizing pain levels,preventing the spread of HIV,0.2222,0.0000,0,1.25
+single_squad_dev_7689,standard operating system,"a software system, a data model, a query language, a data definition language, security measures, and backup and recovery capabilities",data storage,0.1053,0.0000,0,5.33
+single_squad_dev_7725,1987,1987,"January 1, 1899",1.0000,0.0000,1,1.00
+single_squad_dev_7726,December 1971,January,January,0.0000,0.0000,0,0.50
+single_squad_dev_7738,782 BC,1918,12th century,0.0000,0.0000,0,0.50
+single_squad_dev_7764,"$700,000","10 million Armenian Drams (approximately $20,000 USD)",Armenian Golden Eagle,0.0000,0.0000,0,7.00
+single_squad_dev_7777,"the kind of energy used for growth, the source of carbon, and the electron donors","energy source, electron acceptor, and carbon source","oxidative phosphorylation, oxidative nitrogenous phosphorylation, and oxidative nitrogenous phosphorylation",0.5263,0.0952,0,0.58
+single_squad_dev_7779,organic compounds,organic compounds,lipids,1.0000,0.0000,1,1.00
+single_squad_dev_7804,type designation,resin content,core,0.0000,0.0000,0,1.00
+single_squad_dev_7819,the Premier League would operate with a single division,22,three,0.0000,0.0000,0,0.14
+single_squad_dev_7837,Fox Sports,Optus Sport,Fox Sports,0.0000,1.0000,0,1.00
+single_squad_dev_7841,his country must have averaged at least 70th place in the official FIFA world rankings over the previous two years.,It is unclear what specific context this question is referring to. Please provide more information for an accurate answer,to be able to speak English,0.0000,0.0000,0,1.00
+single_squad_dev_7846,malachite,malachite,turquoise,1.0000,0.0000,1,1.00
+single_squad_dev_7853,Hasdrubal Barca,Hasdrubal,"Hannibal's brother, Marcellus",0.6667,0.0000,0,0.50
+single_squad_dev_7863,Octavian,Augustus Caesar,Claudius,0.0000,0.0000,0,2.00
+single_squad_dev_7902,temporary alliance,"officially neutral, but allowed Japanese troops to pass through and declared war on the Allies",a pacifist state,0.0000,0.0000,0,7.00
+single_squad_dev_796,Casey Abrams,There is no specific information provided about which contestant suffered from ulcerative colitis. Please provide more context or information to accurately answer this question,Jennifer Saunders,0.0000,0.0000,0,12.00
+single_squad_dev_7966,93,85,116,0.0000,0.0000,0,1.00
+single_squad_dev_8026,1587–1629,early 17th century,1605–1712,0.0000,0.0000,0,3.00
+single_squad_dev_8032,the 1979 Constitution,Constitution of the Islamic Republic of Iran,The Constitution of Iran,0.2500,0.4000,0,3.00
+single_squad_dev_8033,more than $84 billion,$100 billion,$2 billion,0.3333,0.3333,0,0.50
+single_squad_dev_8084,Accra in June of that year,"Accra, Ghana",Monrovia,0.2500,0.0000,0,0.33
+single_squad_dev_8098,"May 31, 2012","May 31, 2012","November 1, 2007",1.0000,0.0000,1,1.00
+single_squad_dev_8116,1973,1973,2003,1.0000,0.0000,1,1.00
+single_squad_dev_8123,Themba Dlamini,Absalom Themba Dlamini,Enoch Singa,0.8000,0.0000,1,1.50
+single_squad_dev_8196,silt deposited by the Tigris and the Euphrates rivers,because of the Tigris and Euphrates rivers,aridity,0.6154,0.0000,0,0.86
+single_squad_dev_8222,Tuvaluan,Tuvaluan,French,1.0000,0.0000,1,1.00
+single_squad_dev_829,$900 million,$851 million,$70 million,0.5000,0.5000,0,1.00
+single_squad_dev_8294,40 years later,"September 18, 1947","June 1, 1947",0.0000,0.0000,0,1.00
+single_squad_dev_8309,an organization in which mostly its officers fought,It is a separate branch of the military with a focus on aerial warfare and space operations,It is a branch of the armed forces that operates aircraft and spacecraft.,0.0000,0.0000,0,2.00
+single_squad_dev_8322,arsenic,None,lead,0.0000,0.0000,0,1.00
+single_squad_dev_8333,directly into the lungs,Earth's oceans and plants/trees,the atmosphere,0.0000,0.0000,0,1.33
+single_squad_dev_8335,Capillaries,capillaries,blood,1.0000,0.0000,1,1.00
+single_squad_dev_8357,Han Chinese,Han Chinese soldiers,Han dynasty,0.8000,0.5000,1,1.50
+single_squad_dev_840,dukkōn,hundaz,dg,0.0000,0.0000,0,1.00
+single_squad_dev_8404,extensive text,an early form of Olmec script,Ancient Greek,0.0000,0.0000,0,2.50
+single_squad_dev_8422,"Syria in the east, to Cyrene to the west, and south to the frontier with Nubia","Egypt, parts of Libya, Cyprus, and southern Syria","Egypt, Asia Minor, and the Levant",0.1905,0.1111,0,0.62
+single_squad_dev_8426,1958,1958,1870,1.0000,0.0000,1,1.00
+single_squad_dev_8427,foreign investment,economic liberalization,abolition of slavery,0.0000,0.0000,0,1.00
+single_squad_dev_8432,44.8 years,around 69 years for men and 75 years for women,79.4 years,0.1667,0.5000,0,5.00
+single_squad_dev_8451,apse,The Golden Sky,The Last Judgement,0.0000,0.0000,0,2.00
+single_squad_dev_8471,scant remains,surviving examples and historical records,Mosaics were used in the construction of the Roman Forum and the Roman Temple of Jupiter Hercules.,0.0000,0.0000,0,2.50
+single_squad_dev_8542,Nintendo,Nintendo,Sony Interactive Entertainment,1.0000,0.0000,1,1.00
+single_squad_dev_8552,New England,New England,Danish-speaking region,1.0000,0.0000,1,1.00
+single_squad_dev_8554,attend religious worship each morning,self-governance,Free tuition,0.0000,0.0000,0,0.20
+single_squad_dev_8561,government funds to pay for transportation of students to both public and Catholic schools,constitutionality of using public funds for transportation to religious schools,racial segregation in public schools,0.5833,0.2105,0,0.71
+single_squad_dev_8562,"that the Constitution has erected a ""wall between church and state""","Without a specific case or context, it is impossible to determine the answer to this question. Please provide more information",the constitutionality of the ban,0.0000,0.0000,0,2.00
+single_squad_dev_8568,religion,religion,church-state separation,1.0000,0.0000,1,1.00
+single_squad_dev_8581,the Church and the papacy,the Catholic Church,Martin Luther,0.4000,0.0000,0,0.67
+single_squad_dev_8596,over 279 million,279 million,over a billion,0.8000,0.4000,0,0.67
+single_squad_dev_8604,John Smyth and Thomas Helwys,John Locke,John Wycliffe,0.2857,0.2857,0,0.40
+single_squad_dev_863,humans and dogs,humans and dogs,ants and bees,1.0000,0.3333,1,1.00
+single_squad_dev_8631,83.9 million,19.8 million,67,0.5000,0.0000,0,1.00
+single_squad_dev_8636,if his party fails to offer policy alternatives that appeal to broad segments of the general public,minimizing or avoiding potential risks or negative outcomes,avoiding risky activities,0.0000,0.0000,0,0.50
+single_squad_dev_8669,"Acts 15:28, 29",Acts 15:28-29,Let no man deceive you by any means,0.4000,0.0000,0,0.67
+single_squad_dev_8683,Great Depression,It is not specified which period is being referred to in this question. Please provide more context or information,the First World War,0.0000,0.0000,0,9.50
+single_squad_dev_8698,Secretary Dulles,General Douglas MacArthur,John Adams,0.0000,0.0000,0,1.50
+single_squad_dev_8705,Republicans,Harlan and Stewart are not specific enough names to determine their party affiliations. Can you provide more context or information?,Republican,0.0000,0.0000,0,20.00
+single_squad_dev_8707,1969,1969,1953,1.0000,0.0000,1,1.00
+single_squad_dev_8709,Gettysburg,"Gettysburg, Pennsylvania","Hoover, Alabama",0.6667,0.0000,1,2.00
+single_squad_dev_8727,0.1%,2.5%,6%,0.0000,0.0000,0,1.00
+single_squad_dev_8728,"Rubén Díaz, Jr.",Not enough information available,John Carrion,0.0000,0.0000,0,1.33
+single_squad_dev_8756,the Bible,the Bible,The Bible,1.0000,1.0000,1,1.00
+single_squad_dev_8769,brachiopods,brachiopod,horn fossils,0.0000,0.0000,0,1.00
+single_squad_dev_8773,the Ouachita Mountains,Ouachita Mountains,Appalachian Mountains,1.0000,0.5000,1,1.00
+single_squad_dev_8791,91.379.615,approximately 30.7 million,"127,520,000",0.0000,0.0000,0,3.00
+single_squad_dev_8793,second largest,Punjab is larger than the other three provinces,a third,0.0000,0.0000,0,3.50
+single_squad_dev_8799,90%,60%,80%,0.0000,0.0000,0,1.00
+single_squad_dev_88,The Guardian,Billboard magazine,The New York Times,0.0000,0.0000,0,2.00
+single_squad_dev_8800,electricity,police brutality and racial tensions,unemployment,0.0000,0.0000,0,5.00
+single_squad_dev_8803,1150 AD,"Gardezi is a surname and it is not clear which person with this surname is being referred to. Therefore, it is not possible to determine when Gardezi died",1890,0.0000,0.0000,0,13.50
+single_squad_dev_8810,by infecting different cells of the body,by integrating their genetic material into the host cell's DNA and constantly mutating,by evading the immune system,0.2222,0.2000,0,2.00
+single_squad_dev_8816,infections from being passed from one person to another,the spread of infectious diseases,infections,0.0000,0.2000,0,0.44
+single_squad_dev_8858,Krishna,Krishna,Aftab Khan,1.0000,0.0000,1,1.00
+single_squad_dev_8859,Turk Muslims,Tibetans,Khasa,0.0000,0.0000,0,0.50
+single_squad_dev_8877,medieval,19th century,18th century,0.0000,0.0000,0,2.00
+single_squad_dev_8885,Oregon,United States,New York,0.0000,0.0000,0,2.00
+single_squad_dev_897,Peter Ueberroth,Susanne Lyons,John McKay,0.0000,0.0000,0,1.00
+single_squad_dev_909,Baichung Bhutia,The question does not specify which relay is being referred to. Please provide more context or information,Josef Bican,0.0000,0.0000,0,8.00
+single_squad_dev_955,"July 11, 2008","July 11, 2008","April 1, 2008",1.0000,0.3333,1,1.00
+single_squad_dev_971,TALF,Term Asset-Backed Securities Loan Facility (TALF),Quantitative Easing,0.2857,0.0000,1,6.00
