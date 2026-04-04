@@ -275,11 +275,13 @@ python evaluate_final_acc.py \
 
 The cascade matches the original 3-class Adaptive-RAG within noise:
 
-| Model | Avg F1 |
-|---|---|
-| Flan-T5-XL | 0.466 |
-| Flan-T5-XXL | 0.468 |
-| GPT | — |
+| Model | NQ | TriviaQA | SQuAD | MuSiQue | HotpotQA | 2WikiMHQA | Avg F1 |
+|---|---|---|---|---|---|---|---|
+| Flan-T5-XL | 0.464 | 0.603 | 0.389 | 0.321 | 0.538 | 0.478 | 0.466 |
+| Flan-T5-XXL | 0.475 | 0.569 | 0.384 | 0.293 | 0.512 | 0.575 | 0.468 |
+| GPT | 0.557 | 0.751 | 0.310 | 0.328 | 0.520 | 0.584 | 0.508 |
+
+Best Clf1/Clf2 epochs: XL ep20/ep35, XXL ep35/ep30, GPT ep35/ep35.
 
 ---
 
@@ -321,15 +323,27 @@ python evaluate_final_acc.py \
 
 ### Expected Results
 
+| Model | NQ | TriviaQA | SQuAD | MuSiQue | HotpotQA | 2WikiMHQA | Avg F1 |
+|---|---|---|---|---|---|---|---|
+| Flan-T5-XL | 0.473 | 0.619 | 0.390 | 0.316 | 0.545 | 0.568 | 0.485 |
+| Flan-T5-XXL | 0.510 | 0.645 | 0.402 | 0.288 | 0.554 | 0.631 | 0.505 |
+| GPT | 0.469 | 0.662 | 0.337 | 0.330 | 0.581 | 0.646 | 0.504 |
+
 | Model | Iter 1 Avg F1 | Iter 2 Avg F1 | Δ |
 |---|---|---|---|
 | Flan-T5-XL | 0.466 | 0.485 | +2.0 pp |
 | Flan-T5-XXL | 0.468 | 0.505 | +3.7 pp |
-| GPT | — | — | — |
+| GPT | 0.508 | 0.504 | −0.4 pp |
 
-The agreement gate's high A-precision (~92%) means it almost never incorrectly skips retrieval. A-F1 rises from ~0.50 (Clf1) to ~0.83 (agreement).
+The agreement gate's high A-precision (~92%) means it almost never incorrectly skips retrieval for XL/XXL. For GPT, the agreement rate is lower (36.9% vs ~50% for Flan-T5) and the gate provides no improvement over the cascade, suggesting GPT's nor_qa and oner_qa answers diverge more frequently.
 
-The oracle ceiling shows +2.4 pp headroom from a perfect Clf2, motivating Iteration 3.
+**Oracle ceiling** (perfect Clf2 with agreement gate):
+
+| Model | Iter 2 Avg F1 | Oracle Avg F1 | Headroom |
+|---|---|---|---|
+| Flan-T5-XL | 0.485 | 0.509 | +2.4 pp |
+| Flan-T5-XXL | 0.505 | 0.529 | +2.4 pp |
+| GPT | 0.504 | 0.522 | +1.8 pp |
 
 ---
 
@@ -397,13 +411,21 @@ python evaluate_final_acc.py \
 
 ### Expected Results
 
+| Model | NQ | TriviaQA | SQuAD | MuSiQue | HotpotQA | 2WikiMHQA | Avg F1 |
+|---|---|---|---|---|---|---|---|
+| Flan-T5-XL | 0.473 | 0.619 | 0.386 | 0.317 | 0.550 | 0.569 | 0.486 |
+| Flan-T5-XXL | 0.512 | 0.645 | 0.402 | 0.292 | 0.557 | 0.632 | 0.507 |
+| GPT | 0.468 | 0.665 | 0.339 | 0.338 | 0.573 | 0.647 | 0.505 |
+
 | Model | Iter 2 Avg F1 | Iter 3 Avg F1 | Δ |
 |---|---|---|---|
 | Flan-T5-XL | 0.485 | 0.486 | +0.1 pp |
 | Flan-T5-XXL | 0.505 | 0.507 | +0.2 pp |
-| GPT | — | — | — |
+| GPT | 0.504 | 0.505 | +0.1 pp |
 
-**Null result.** The feature prefix improves F1 by ≤ 0.2 pp, within noise. Surface-level structural features carry insufficient semantic signal to meaningfully improve B/C routing beyond what T5-Large already captures from the question text alone.
+Best feat Clf2 epochs: XL ep25, XXL ep35, GPT ep25.
+
+**Null result.** The feature prefix improves F1 by ≤ 0.2 pp across all three models, within noise. Surface-level structural features carry insufficient semantic signal to meaningfully improve B/C routing beyond what T5-Large already captures from the question text alone.
 
 ---
 
