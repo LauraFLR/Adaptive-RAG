@@ -686,7 +686,8 @@ def main():
             seed=args.seed if args.seed is not None else 42,
             gradient_accumulation_steps=args.gradient_accumulation_steps,
             warmup_steps=args.num_warmup_steps,
-            save_strategy="epoch",
+            # Keep focal/weighted-CE runs lightweight: no intermediate checkpoints.
+            save_strategy="no",
             eval_strategy="no",
             logging_dir=args.output_dir,
             report_to="none",
@@ -701,6 +702,8 @@ def main():
             label_token_ids=_label_token_ids,
         )
         focal_trainer.train()
+        if args.output_dir is not None:
+            focal_trainer.save_model(args.output_dir)
         model = focal_trainer.model
 
     if args.do_train and not args.use_focal_loss:

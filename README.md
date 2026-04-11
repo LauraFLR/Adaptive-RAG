@@ -283,6 +283,8 @@ The cascade matches the original 3-class Adaptive-RAG within noise:
 
 Best Clf1/Clf2 epochs: XL ep20/ep35, XXL ep35/ep30, GPT ep35/ep35.
 
+Additional Clf1 loss tuning in this project found the following model-specific optimum: GPT performs best with focal loss, while Flan-T5-XL and Flan-T5-XXL perform best with the standard CE baseline.
+
 ---
 
 ## Iteration 2 — Agreement Gate (UE-Based Gate 1)
