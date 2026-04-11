@@ -1,0 +1,286 @@
+{
+  "flan_t5_xl": {
+    "rows": [
+      {
+        "epoch": 25,
+        "timestamp": "2026_04_10/17_21_35",
+        "checkpoint": "checkpoint-1025",
+        "A_precision": 0.5592233009708738,
+        "A_recall": 0.6560364464692483,
+        "A_f1": 0.6037735849056605,
+        "R_precision": 0.8191616766467066,
+        "R_recall": 0.7508232711306256,
+        "R_f1": 0.7835051546391752,
+        "macro_f1": 0.6936393697724179,
+        "confusion": [
+          [
+            288,
+            151
+          ],
+          [
+            227,
+            684
+          ]
+        ],
+        "pred_file": "classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/no_ret_vs_ret_focal/epoch/25/2026_04_10/17_21_35/valid/dict_id_pred_results.json"
+      },
+      {
+        "epoch": 15,
+        "timestamp": "2026_04_10/17_21_35",
+        "checkpoint": "checkpoint-615",
+        "A_precision": 0.5533980582524272,
+        "A_recall": 0.6492027334851936,
+        "A_f1": 0.5974842767295598,
+        "R_precision": 0.8155688622754491,
+        "R_recall": 0.747530186608123,
+        "R_f1": 0.7800687285223368,
+        "macro_f1": 0.6887765026259483,
+        "confusion": [
+          [
+            285,
+            154
+          ],
+          [
+            230,
+            681
+          ]
+        ],
+        "pred_file": "classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/no_ret_vs_ret_focal/epoch/15/2026_04_10/17_21_35/valid/dict_id_pred_results.json"
+      },
+      {
+        "epoch": 20,
+        "timestamp": "2026_04_10/17_21_35",
+        "checkpoint": "checkpoint-820",
+        "A_precision": 0.5508637236084453,
+        "A_recall": 0.6537585421412301,
+        "A_f1": 0.5979166666666668,
+        "R_precision": 0.8166465621230398,
+        "R_recall": 0.743139407244786,
+        "R_f1": 0.7781609195402299,
+        "macro_f1": 0.6880387931034484,
+        "confusion": [
+          [
+            287,
+            152
+          ],
+          [
+            234,
+            677
+          ]
+        ],
+        "pred_file": "classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/no_ret_vs_ret_focal/epoch/20/2026_04_10/17_21_35/valid/dict_id_pred_results.json"
+      },
+      {
+        "epoch": 30,
+        "timestamp": "2026_04_10/17_21_35",
+        "checkpoint": "checkpoint-1230",
+        "A_precision": 0.5580448065173116,
+        "A_recall": 0.6241457858769932,
+        "A_f1": 0.589247311827957,
+        "R_precision": 0.8079161816065192,
+        "R_recall": 0.7618002195389681,
+        "R_f1": 0.7841807909604519,
+        "macro_f1": 0.6867140513942045,
+        "confusion": [
+          [
+            274,
+            165
+          ],
+          [
+            217,
+            694
+          ]
+        ],
+        "pred_file": "classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/no_ret_vs_ret_focal/epoch/30/2026_04_10/17_21_35/valid/dict_id_pred_results.json"
+      },
+      {
+        "epoch": 35,
+        "timestamp": "2026_04_10/17_21_35",
+        "checkpoint": "checkpoint-1435",
+        "A_precision": 0.5645514223194749,
+        "A_recall": 0.5876993166287016,
+        "A_f1": 0.5758928571428572,
+        "R_precision": 0.7973124300111982,
+        "R_recall": 0.7815587266739846,
+        "R_f1": 0.7893569844789355,
+        "macro_f1": 0.6826249208108963,
+        "confusion": [
+          [
+            258,
+            181
+          ],
+          [
+            199,
+            712
+          ]
+        ],
+        "pred_file": "classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/no_ret_vs_ret_focal/epoch/35/2026_04_10/17_21_35/valid/dict_id_pred_results.json"
+      }
+    ],
+    "best": {
+      "epoch": 25,
+      "timestamp": "2026_04_10/17_21_35",
+      "checkpoint": "checkpoint-1025",
+      "A_precision": 0.5592233009708738,
+      "A_recall": 0.6560364464692483,
+      "A_f1": 0.6037735849056605,
+      "R_precision": 0.8191616766467066,
+      "R_recall": 0.7508232711306256,
+      "R_f1": 0.7835051546391752,
+      "macro_f1": 0.6936393697724179,
+      "confusion": [
+        [
+          288,
+          151
+        ],
+        [
+          227,
+          684
+        ]
+      ],
+      "pred_file": "classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/no_ret_vs_ret_focal/epoch/25/2026_04_10/17_21_35/valid/dict_id_pred_results.json"
+    }
+  },
+  "flan_t5_xxl": {
+    "rows": [
+      {
+        "epoch": 30,
+        "timestamp": "2026_04_10/18_11_58",
+        "checkpoint": "checkpoint-1350",
+        "A_precision": 0.5557729941291585,
+        "A_recall": 0.5472061657032755,
+        "A_f1": 0.5514563106796116,
+        "R_precision": 0.7400442477876106,
+        "R_recall": 0.7466517857142857,
+        "R_f1": 0.7433333333333333,
+        "macro_f1": 0.6473948220064725,
+        "confusion": [
+          [
+            284,
+            235
+          ],
+          [
+            227,
+            669
+          ]
+        ],
+        "pred_file": "classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/no_ret_vs_ret_focal/epoch/30/2026_04_10/18_11_58/valid/dict_id_pred_results.json"
+      },
+      {
+        "epoch": 35,
+        "timestamp": "2026_04_10/18_11_58",
+        "checkpoint": "checkpoint-1575",
+        "A_precision": 0.558,
+        "A_recall": 0.5375722543352601,
+        "A_f1": 0.5475956820412169,
+        "R_precision": 0.7377049180327869,
+        "R_recall": 0.7533482142857143,
+        "R_f1": 0.7454445057979018,
+        "macro_f1": 0.6465200939195593,
+        "confusion": [
+          [
+            279,
+            240
+          ],
+          [
+            221,
+            675
+          ]
+        ],
+        "pred_file": "classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/no_ret_vs_ret_focal/epoch/35/2026_04_10/18_11_58/valid/dict_id_pred_results.json"
+      },
+      {
+        "epoch": 25,
+        "timestamp": "2026_04_10/18_11_58",
+        "checkpoint": "checkpoint-1125",
+        "A_precision": 0.5372340425531915,
+        "A_recall": 0.5838150289017341,
+        "A_f1": 0.559556786703601,
+        "R_precision": 0.7461809635722679,
+        "R_recall": 0.7087053571428571,
+        "R_f1": 0.726960503720664,
+        "macro_f1": 0.6432586452121325,
+        "confusion": [
+          [
+            303,
+            216
+          ],
+          [
+            261,
+            635
+          ]
+        ],
+        "pred_file": "classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/no_ret_vs_ret_focal/epoch/25/2026_04_10/18_11_58/valid/dict_id_pred_results.json"
+      },
+      {
+        "epoch": 15,
+        "timestamp": "2026_04_10/18_11_58",
+        "checkpoint": "checkpoint-675",
+        "A_precision": 0.5229508196721312,
+        "A_recall": 0.6146435452793835,
+        "A_f1": 0.5651018600531443,
+        "R_precision": 0.7515527950310559,
+        "R_recall": 0.6752232142857143,
+        "R_f1": 0.7113462669018225,
+        "macro_f1": 0.6382240634774834,
+        "confusion": [
+          [
+            319,
+            200
+          ],
+          [
+            291,
+            605
+          ]
+        ],
+        "pred_file": "classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/no_ret_vs_ret_focal/epoch/15/2026_04_10/18_11_58/valid/dict_id_pred_results.json"
+      },
+      {
+        "epoch": 20,
+        "timestamp": "2026_04_10/18_11_58",
+        "checkpoint": "checkpoint-900",
+        "A_precision": 0.5238907849829352,
+        "A_recall": 0.5915221579961464,
+        "A_f1": 0.555656108597285,
+        "R_precision": 0.744270205066345,
+        "R_recall": 0.6886160714285714,
+        "R_f1": 0.7153623188405798,
+        "macro_f1": 0.6355092137189324,
+        "confusion": [
+          [
+            307,
+            212
+          ],
+          [
+            279,
+            617
+          ]
+        ],
+        "pred_file": "classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/no_ret_vs_ret_focal/epoch/20/2026_04_10/18_11_58/valid/dict_id_pred_results.json"
+      }
+    ],
+    "best": {
+      "epoch": 30,
+      "timestamp": "2026_04_10/18_11_58",
+      "checkpoint": "checkpoint-1350",
+      "A_precision": 0.5557729941291585,
+      "A_recall": 0.5472061657032755,
+      "A_f1": 0.5514563106796116,
+      "R_precision": 0.7400442477876106,
+      "R_recall": 0.7466517857142857,
+      "R_f1": 0.7433333333333333,
+      "macro_f1": 0.6473948220064725,
+      "confusion": [
+        [
+          284,
+          235
+        ],
+        [
+          227,
+          669
+        ]
+      ],
+      "pred_file": "classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/no_ret_vs_ret_focal/epoch/30/2026_04_10/18_11_58/valid/dict_id_pred_results.json"
+    }
+  }
+}

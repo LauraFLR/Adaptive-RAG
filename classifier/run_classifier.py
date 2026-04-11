@@ -53,6 +53,8 @@ from transformers import (
     AutoTokenizer,
     DataCollatorForSeq2Seq,
     SchedulerType,
+    Trainer,
+    TrainingArguments,
     get_scheduler,
 )
 from transformers.utils.versions import require_version
@@ -62,6 +64,89 @@ from transformers.trainer_utils import EvalLoopOutput, EvalPrediction, get_last_
 from torch.nn import CrossEntropyLoss
 
 from utils import *
+
+
+class FocalLoss(torch.nn.Module):
+    """Focal Loss: FL(p_t) = -alpha_t * (1 - p_t)^gamma * log(p_t).
+
+    Args:
+        gamma (float): Focusing parameter. 0 reduces to cross-entropy.
+        alpha: Class weights. Accepts:
+            - ``None``                     — no alpha weighting;
+            - ``float``                    — weight for index 1 (minority class);
+              internally stored as ``[1-alpha, alpha]`` for binary tasks;
+            - ``list`` / ``torch.Tensor``  — explicit per-class weights.
+    """
+
+    def __init__(self, gamma: float = 2.0, alpha=None):
+        super().__init__()
+        self.gamma = gamma
+        if alpha is None:
+            self.alpha = None
+        elif isinstance(alpha, float):
+            self.alpha = torch.tensor([1.0 - alpha, alpha], dtype=torch.float)
+        elif isinstance(alpha, (list, torch.Tensor)):
+            self.alpha = (
+                torch.tensor(alpha, dtype=torch.float)
+                if not isinstance(alpha, torch.Tensor)
+                else alpha.float().clone().detach()
+            )
+        else:
+            raise TypeError(
+                f"alpha must be None, a float, a list, or a torch.Tensor; got {type(alpha)}"
+            )
+
+    def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """Compute mean focal loss.
+
+        Args:
+            logits:  Raw (un-normalised) class scores, shape ``(N, C)``.
+            targets: Ground-truth class indices, shape ``(N,)``, dtype long.
+        """
+        probs = torch.softmax(logits, dim=-1).clamp(min=1e-8)
+        batch_idx = torch.arange(probs.size(0), device=logits.device)
+        p_t = probs[batch_idx, targets]
+        focal_weight = (1.0 - p_t) ** self.gamma
+        loss = -focal_weight * torch.log(p_t)
+        if self.alpha is not None:
+            alpha_t = self.alpha.to(logits.device)[targets]
+            loss = alpha_t * loss
+        return loss.mean()
+
+
+class FocalLossTrainer(Trainer):
+    """HuggingFace Trainer subclass that replaces cross-entropy with FocalLoss.
+
+    Extra constructor kwargs:
+        focal_loss_fn (FocalLoss): Pre-built FocalLoss instance.
+        label_token_ids (list[int]): Vocabulary token IDs for each class label,
+            in the same order as ``args.labels``.  Used to select the relevant
+            logit columns from the seq2seq decoder output at position 0.
+    """
+
+    def __init__(self, *args, focal_loss_fn: FocalLoss, label_token_ids: list, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.focal_loss_fn = focal_loss_fn
+        self.label_token_ids = label_token_ids
+
+    def compute_loss(self, model, inputs, return_outputs: bool = False, **kwargs):
+        """Override compute_loss to apply FocalLoss on the first decoder position."""
+        labels = inputs.get("labels")
+        outputs = model(**inputs)
+        # outputs.logits: (batch, tgt_seq_len, vocab_size)
+        # For a single-token class label the relevant score is at position 0.
+        logits = outputs.logits[:, 0, :]  # (batch, vocab_size)
+
+        # Narrow to the num_labels columns that correspond to the class tokens.
+        tid = torch.tensor(self.label_token_ids, dtype=torch.long, device=logits.device)
+        label_logits = logits[:, tid]  # (batch, num_labels)
+
+        # Convert vocab token IDs stored in labels[:,0] → 0-based class indices.
+        token_ids = labels[:, 0]  # (batch,)
+        class_indices = (token_ids.unsqueeze(1) == tid.unsqueeze(0)).long().argmax(dim=1)
+
+        loss = self.focal_loss_fn(label_logits, class_indices)
+        return (loss, outputs) if return_outputs else loss
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
@@ -309,6 +394,27 @@ def parse_args():
         default=["A", "B", "C"],
         help="Ordered list of label tokens the classifier predicts. E.g. 'A B C' (3-class), 'A R' (no-ret vs ret), 'B C' (single vs multi).",
     )
+    parser.add_argument(
+        "--use_focal_loss",
+        action="store_true",
+        help="Replace cross-entropy with Focal Loss to handle class imbalance.",
+    )
+    parser.add_argument(
+        "--focal_gamma",
+        type=float,
+        default=2.0,
+        help="Focusing parameter gamma for Focal Loss (default: 2.0). Higher values down-weight easy examples more strongly.",
+    )
+    parser.add_argument(
+        "--focal_alpha",
+        type=float,
+        default=None,
+        help=(
+            "Scalar alpha weight for the minority class (index 1). "
+            "Converted to a [1-alpha, alpha] per-class tensor before being passed to FocalLoss. "
+            "Example: --focal_alpha 0.75 gives weights [0.25, 0.75]."
+        ),
+    )
     parser.add_argument("--push_to_hub", action="store_true", help="Whether or not to push the model to the Hub.")
     parser.add_argument(
         "--hub_model_id", type=str, help="The name of the repository to keep in sync with the local `output_dir`."
@@ -526,11 +632,15 @@ def main():
 
 
     # Prepare everything with our `accelerator`.
-    model, optimizer = accelerator.prepare(
-        model, optimizer
-    )
+    # FocalLossTrainer manages its own device placement internally, so skip
+    # accelerator wrapping for model/optimizer/training-dataloader when focal
+    # loss is enabled.
+    if not args.use_focal_loss:
+        model, optimizer = accelerator.prepare(
+            model, optimizer
+        )
 
-    if args.do_train:
+    if args.do_train and not args.use_focal_loss:
         train_dataloader = accelerator.prepare(
             train_dataloader
         )
@@ -554,7 +664,46 @@ def main():
         accelerator.init_trackers("no_trainer", experiment_config)
 
     # Train!
-    if args.do_train:
+    if args.do_train and args.use_focal_loss:
+        # ── Focal-Loss training via FocalLossTrainer (HF Trainer subclass) ──────
+        if args.focal_alpha is not None:
+            _alpha_tensor = torch.tensor(
+                [1.0 - args.focal_alpha, args.focal_alpha], dtype=torch.float
+            )
+        else:
+            _alpha_tensor = None
+
+        _label_token_ids = [tokenizer(lbl).input_ids[0] for lbl in args.labels]
+        _focal_loss_fn = FocalLoss(gamma=args.focal_gamma, alpha=_alpha_tensor)
+
+        _fl_training_args = TrainingArguments(
+            output_dir=args.output_dir,
+            num_train_epochs=args.num_train_epochs,
+            per_device_train_batch_size=args.per_device_train_batch_size,
+            per_device_eval_batch_size=args.per_device_eval_batch_size,
+            learning_rate=args.learning_rate,
+            weight_decay=args.weight_decay,
+            seed=args.seed if args.seed is not None else 42,
+            gradient_accumulation_steps=args.gradient_accumulation_steps,
+            warmup_steps=args.num_warmup_steps,
+            save_strategy="epoch",
+            eval_strategy="no",
+            logging_dir=args.output_dir,
+            report_to="none",
+        )
+
+        focal_trainer = FocalLossTrainer(
+            model=model,
+            args=_fl_training_args,
+            train_dataset=train_dataset_for_model,
+            data_collator=data_collator,
+            focal_loss_fn=_focal_loss_fn,
+            label_token_ids=_label_token_ids,
+        )
+        focal_trainer.train()
+        model = focal_trainer.model
+
+    if args.do_train and not args.use_focal_loss:
         
         args.max_train_steps, args.num_train_epochs, lr_scheduler_train = prepare_scheduler(args, accelerator, train_dataloader, optimizer, args.max_train_steps, args.num_train_epochs)
 
