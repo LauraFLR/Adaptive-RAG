@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 DATE=$(date +%Y_%m_%d)/$(date +%H_%M_%S)
 MODEL=t5-large
-LLM_NAME=flan_t5_xxl
+LLM_NAME=gpt
 DATASET_NAME=musique_hotpot_wiki2_nq_tqa_sqd
 GPU=${GPU:-0}
 
-# Weighted CE via FocalLossTrainer with gamma=0.
-FOCAL_GAMMA=${FOCAL_GAMMA:-0.0}
-FOCAL_ALPHA=${FOCAL_ALPHA:-0.6}
+# Focal-loss hyperparameters for Clf1 (A vs R).
+# For GPT silver labels, A is the majority class, so alpha > 0.5 upweights R.
+FOCAL_GAMMA=${FOCAL_GAMMA:-2.0}
+FOCAL_ALPHA=${FOCAL_ALPHA:-0.71}
 
-for EPOCH in 15 20 25 30 35
+# Classifier 1: no-retrieval (A) vs retrieval (R = B+C merged)
+# Training data:  silver/no_retrieval_vs_retrieval/train.json
+# Validation data: silver/no_retrieval_vs_retrieval/valid.json
+
+for EPOCH in 35 40
 do
-	TRAIN_OUTPUT_DIR=./outputs/${DATASET_NAME}/model/${MODEL}/${LLM_NAME}/no_ret_vs_ret_weighted_ce/epoch/${EPOCH}/${DATE}
+	# train
+	TRAIN_OUTPUT_DIR=./outputs/${DATASET_NAME}/model/${MODEL}/${LLM_NAME}/no_ret_vs_ret_focal/epoch/${EPOCH}/${DATE}
 	mkdir -p ${TRAIN_OUTPUT_DIR}
 
 	echo "[TRAIN] ${LLM_NAME} epoch=${EPOCH} gamma=${FOCAL_GAMMA} alpha=${FOCAL_ALPHA}"
@@ -35,20 +42,23 @@ do
 		--focal_gamma ${FOCAL_GAMMA} \
 		--focal_alpha ${FOCAL_ALPHA}
 
+	# FocalLossTrainer saves in checkpoint-* dirs; evaluate the latest checkpoint.
 	CKPT_PATH=$(ls -d ${TRAIN_OUTPUT_DIR}/checkpoint-* 2>/dev/null | sort -V | tail -n 1)
 	if [[ -z "${CKPT_PATH}" ]]; then
 		CKPT_PATH=${TRAIN_OUTPUT_DIR}
 	fi
 
-	# Clean up extra checkpoints
+	# Keep only the latest checkpoint for this epoch to avoid disk blow-up.
 	for ckpt in ${TRAIN_OUTPUT_DIR}/checkpoint-*; do
 		if [[ -d "${ckpt}" && "${ckpt}" != "${CKPT_PATH}" ]]; then
 			rm -rf "${ckpt}"
 		fi
 	done
 
+	# valid
 	VALID_OUTPUT_DIR=${TRAIN_OUTPUT_DIR}/valid
 	mkdir -p ${VALID_OUTPUT_DIR}
+
 	echo "[VALID] ${LLM_NAME} epoch=${EPOCH} checkpoint=${CKPT_PATH}"
 	CUDA_VISIBLE_DEVICES=${GPU} python run_classifier.py \
 		--model_name_or_path ${CKPT_PATH} \
@@ -64,8 +74,10 @@ do
 		--val_column validation \
 		--do_eval || echo "[WARN] Validation failed for epoch ${EPOCH}"
 
+	# predict (on unlabeled test set)
 	PREDICT_OUTPUT_DIR=${TRAIN_OUTPUT_DIR}/predict
 	mkdir -p ${PREDICT_OUTPUT_DIR}
+
 	echo "[PREDICT] ${LLM_NAME} epoch=${EPOCH} checkpoint=${CKPT_PATH}"
 	CUDA_VISIBLE_DEVICES=${GPU} python run_classifier.py \
 		--model_name_or_path ${CKPT_PATH} \
@@ -80,6 +92,6 @@ do
 		--overwrite_cache \
 		--val_column validation \
 		--do_eval || echo "[WARN] Prediction failed for epoch ${EPOCH}"
-		
+
 	echo "[COMPLETE] Epoch ${EPOCH}"
 done

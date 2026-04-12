@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 DATE=$(date +%Y_%m_%d)/$(date +%H_%M_%S)
 MODEL=t5-large
@@ -41,6 +40,7 @@ do
 		CKPT_PATH=${TRAIN_OUTPUT_DIR}
 	fi
 
+	# Clean up extra checkpoints
 	for ckpt in ${TRAIN_OUTPUT_DIR}/checkpoint-*; do
 		if [[ -d "${ckpt}" && "${ckpt}" != "${CKPT_PATH}" ]]; then
 			rm -rf "${ckpt}"
@@ -62,7 +62,7 @@ do
 		--output_dir ${VALID_OUTPUT_DIR} \
 		--overwrite_cache \
 		--val_column validation \
-		--do_eval
+		--do_eval || echo "[WARN] Validation failed for epoch ${EPOCH}"
 
 	PREDICT_OUTPUT_DIR=${TRAIN_OUTPUT_DIR}/predict
 	mkdir -p ${PREDICT_OUTPUT_DIR}
@@ -79,5 +79,7 @@ do
 		--output_dir ${PREDICT_OUTPUT_DIR} \
 		--overwrite_cache \
 		--val_column validation \
-		--do_eval
+		--do_eval || echo "[WARN] Prediction failed for epoch ${EPOCH}"
+		
+	echo "[COMPLETE] Epoch ${EPOCH}"
 done

@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 DATE=$(date +%Y_%m_%d)/$(date +%H_%M_%S)
 MODEL=t5-large
@@ -11,7 +10,7 @@ GPU=${GPU:-0}
 FOCAL_GAMMA=${FOCAL_GAMMA:-0.0}
 FOCAL_ALPHA=${FOCAL_ALPHA:-0.6}
 
-for EPOCH in 15 20 25 30 35
+for EPOCH in 20 25 30 35
 do
 	TRAIN_OUTPUT_DIR=./outputs/${DATASET_NAME}/model/${MODEL}/${LLM_NAME}/no_ret_vs_ret_weighted_ce/epoch/${EPOCH}/${DATE}
 	mkdir -p ${TRAIN_OUTPUT_DIR}
@@ -41,6 +40,7 @@ do
 		CKPT_PATH=${TRAIN_OUTPUT_DIR}
 	fi
 
+	# Clean up extra checkpoints
 	for ckpt in ${TRAIN_OUTPUT_DIR}/checkpoint-*; do
 		if [[ -d "${ckpt}" && "${ckpt}" != "${CKPT_PATH}" ]]; then
 			rm -rf "${ckpt}"
@@ -62,7 +62,7 @@ do
 		--output_dir ${VALID_OUTPUT_DIR} \
 		--overwrite_cache \
 		--val_column validation \
-		--do_eval
+		--do_eval || echo "[WARN] Validation failed for epoch ${EPOCH}"
 
 	PREDICT_OUTPUT_DIR=${TRAIN_OUTPUT_DIR}/predict
 	mkdir -p ${PREDICT_OUTPUT_DIR}
@@ -79,5 +79,7 @@ do
 		--output_dir ${PREDICT_OUTPUT_DIR} \
 		--overwrite_cache \
 		--val_column validation \
-		--do_eval
+		--do_eval || echo "[WARN] Prediction failed for epoch ${EPOCH}"
+		
+	echo "[COMPLETE] Epoch ${EPOCH}"
 done

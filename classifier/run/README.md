@@ -91,25 +91,16 @@ These pass `--use_focal_loss` with a nonzero gamma.
 |---|---|---|---|---|
 | `run_large_train_xl_no_ret_vs_ret_focal.sh` | `2.0` | `0.33` | `flan_t5_xl/no_ret_vs_ret_focal/epoch/...` | Keeps only the latest `checkpoint-*` directory per epoch and evaluates that checkpoint. GPU can be overridden with `GPU=...`. |
 | `run_large_train_xxl_no_ret_vs_ret_focal.sh` | `2.0` | `0.36` | `flan_t5_xxl/no_ret_vs_ret_focal/epoch/...` | Same focal-loss setup for XXL labels. GPU can be overridden with `GPU=...`. |
+| `run_large_train_gpt_no_ret_vs_ret_focal.sh` | `2.0` | `0.71` | `gpt/no_ret_vs_ret_focal/epoch/...` | Same focal-loss setup for GPT labels. Uses epochs `35` and `40`, keeps the latest checkpoint, and downgrades validation/prediction failures to warnings. |
 
 #### Weighted cross-entropy runs
 
 These use the focal-loss implementation with `gamma=0`, which reduces focal loss to class-weighted cross-entropy.
 
-| Script | Default gamma | Default alpha | Output subdir | Notes |
-|---|---|---|---|---|
-| `run_large_train_xl_no_ret_vs_ret_weighted_ce.sh` | `0.0` | `0.6` | `flan_t5_xl/no_ret_vs_ret_weighted_ce/epoch/...` | Uses latest checkpoint for eval/predict and deletes older checkpoints. GPU override supported. |
-| `run_large_train_xxl_no_ret_vs_ret_weighted_ce.sh` | `0.0` | `0.6` | `flan_t5_xxl/no_ret_vs_ret_weighted_ce/epoch/...` | Same for XXL labels. GPU override supported. |
-| `run_large_train_gpt_no_ret_vs_ret_weighted_ce.sh` | `0.0` | `0.6` | `gpt/no_ret_vs_ret_weighted_ce/epoch/...` | Same for GPT labels. Validation and prediction failures are downgraded to warnings. |
-
-#### Weighted cross-entropy fixed reruns
-
-These are safer rerun versions of the weighted-CE scripts. They still write under the same `no_ret_vs_ret_weighted_ce` output family.
-
 | Script | Main difference |
 |---|---|
-| `run_large_train_xl_no_ret_vs_ret_weighted_ce_fixed.sh` | Starts at epoch `20` instead of `15`, cleans extra checkpoints, and tolerates validation/prediction failures with warning messages. |
-| `run_large_train_xxl_no_ret_vs_ret_weighted_ce_fixed.sh` | Same cleanup and warning-tolerant behavior for XXL. |
+| `run_large_train_xl_no_ret_vs_ret_weighted_ce.sh` | Starts at epoch `20` instead of `15`, cleans extra checkpoints, and tolerates validation/prediction failures with warning messages. |
+| `run_large_train_xxl_no_ret_vs_ret_weighted_ce.sh` | Same cleanup and warning-tolerant behavior for XXL. |
 
 #### Undersampling run
 
@@ -151,7 +142,7 @@ bash run/run_large_train_feat_single_vs_multi.sh gpt
 
 - Use `run_large_train_{xl,xxl,gpt}.sh` only if you want the original single 3-class classifier.
 - Use `*_no_ret_vs_ret.sh` and `*_single_vs_multi.sh` if you want the standard two-stage split classifier.
-- Use `*_focal.sh`, `*_weighted_ce*.sh`, or `*_undersampled.sh` only for Clf1 imbalance experiments.
+- Use `*_focal.sh`, `*_weighted_ce.sh`, or `*_undersampled.sh` only for Clf1 imbalance experiments.
 - Use `run_large_train_silver_only_single_vs_multi.sh` to test whether inductive-bias binary data is helping Clf2.
 - Use `run_large_train_feat_single_vs_multi.sh` to test the feature-prefixed Clf2 input format.
 
@@ -166,5 +157,5 @@ bash run/run_large_train_feat_single_vs_multi.sh gpt
 
 - Several scripts hardcode `GPU=0` or `GPU=7` instead of using an environment override.
 - The focal and weighted-CE scripts evaluate the latest saved checkpoint, not necessarily the top-level output directory.
-- The `*_weighted_ce_fixed.sh` scripts write to the same `no_ret_vs_ret_weighted_ce` output family as the non-`fixed` scripts; the distinction is operational, not a separate experiment name.
+- The `*_weighted_ce.sh` scripts keep the safer behavior that previously lived in the `*_fixed.sh` filenames.
 - `run_large_train_silver_only_single_vs_multi.sh` and `run_large_train_feat_single_vs_multi.sh` require a positional model argument.
