@@ -101,6 +101,7 @@ These use the focal-loss implementation with `gamma=0`, which reduces focal loss
 |---|---|
 | `run_large_train_xl_no_ret_vs_ret_weighted_ce.sh` | Starts at epoch `20` instead of `15`, cleans extra checkpoints, and tolerates validation/prediction failures with warning messages. |
 | `run_large_train_xxl_no_ret_vs_ret_weighted_ce.sh` | Same cleanup and warning-tolerant behavior for XXL. |
+| `run_large_train_gpt_no_ret_vs_ret_weighted_ce.sh` | GPT version of the same safer weighted-CE launcher. Uses epochs `35` and `40`. |
 
 #### Undersampling run
 
@@ -116,7 +117,7 @@ These scripts explore alternatives to the standard `single_vs_multi` training se
 
 | Script | Model argument | Training file | Validation file | Output subdir | Notes |
 |---|---|---|---|---|---|
-| `run_large_train_silver_only_single_vs_multi.sh` | `flan_t5_xl` or `flan_t5_xxl` | `data/.../{model}/silver/single_vs_multi/train.json` | `data/.../{model}/silver/single_vs_multi/valid.json` | `{model}/single_vs_multi/epoch/.../silver_only` | Removes the inductive-bias binary data and trains Clf2 on silver labels only. This script expects the model name as its first positional argument. |
+| `run_large_train_silver_only_single_vs_multi.sh` | `flan_t5_xl`, `flan_t5_xxl`, or `gpt` | `data/.../{model}/silver/single_vs_multi/train.json` | `data/.../{model}/silver/single_vs_multi/valid.json` | `{model}/single_vs_multi/epoch/.../silver_only` | Removes the inductive-bias binary data and trains Clf2 on silver labels only. This script expects the model name as its first positional argument. GPT uses epochs `35` and `40`; XL and XXL use `15 20 25 30 35`. |
 
 Example:
 

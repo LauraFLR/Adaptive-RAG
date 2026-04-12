@@ -15,14 +15,27 @@ DATASET_NAME=musique_hotpot_wiki2_nq_tqa_sqd
 GPU=0
 
 if [ -z "$LLM_NAME" ]; then
-    echo "Usage: $0 <flan_t5_xl|flan_t5_xxl>"
+    echo "Usage: $0 <flan_t5_xl|flan_t5_xxl|gpt>"
     exit 1
 fi
+
+case "$LLM_NAME" in
+    flan_t5_xl|flan_t5_xxl)
+        EPOCHS="15 20 25 30 35"
+        ;;
+    gpt)
+        EPOCHS="35 40"
+        ;;
+    *)
+        echo "Usage: $0 <flan_t5_xl|flan_t5_xxl|gpt>"
+        exit 1
+        ;;
+esac
 
 echo "=== Retraining Clf2 (silver-only) for ${LLM_NAME} ==="
 echo "Training data: silver/single_vs_multi/train.json"
 
-for EPOCH in 15 20 25 30 35
+for EPOCH in ${EPOCHS}
 do
     echo ""
     echo "--- Epoch ${EPOCH} ---"
