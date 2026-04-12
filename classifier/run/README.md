@@ -126,11 +126,31 @@ cd /root/laura/Adaptive-RAG/classifier
 bash run/run_large_train_silver_only_single_vs_multi.sh flan_t5_xl
 ```
 
+#### Clf2 oracle ceiling
+
+`classifier/postprocess/predict_complexity_oracle_ceiling.py` answers: *how much QA F1 could be gained by a perfect Clf2, given the current fixed Clf1?*
+
+It holds Clf1 fixed as the agreement gate from Iteration 2a (questions where `nor_qa` and `oner_qa` agree get routed to A; all others are treated as R-routed). For each R-routed question it applies oracle Clf2 routing: route to B if `oner_qa` is correct, else to C if `ircot_qa` is correct, else default to B. The resulting QA predictions represent the theoretical ceiling that any real Clf2 improvement can close toward.
+
+Outputs are written to `predictions/classifier/t5-large/{model}/split_agreement_oracle/` — one prediction file per dataset plus `oracle_stats.json`. Pass that path to `evaluate_final_acc.py` to get the F1 numbers.
+
+Usage (run from the repo root, not from `classifier/`):
+
+```bash
+python classifier/postprocess/predict_complexity_oracle_ceiling.py flan_t5_xl
+python classifier/postprocess/predict_complexity_oracle_ceiling.py flan_t5_xxl
+```
+
 #### Feature-augmented Clf2
 
 | Script | Model argument | Training file | Validation file | Predict file | Output subdir | Notes |
 |---|---|---|---|---|---|---|
 | `run_large_train_feat_single_vs_multi.sh` | `flan_t5_xl`, `flan_t5_xxl`, or `gpt` | `data/.../{model}/binary_silver_feat_single_vs_multi/train.json` | `data/.../{model}/silver_feat_single_vs_multi/valid.json` | `data/.../feat_predict.json` | `{model}/feat_single_vs_multi/epoch/.../feat` | Retrains Clf2 using structural feature prefixes in the input text. |
+
+Supporting probe and data-generation files:
+
+- `classifier/postprocess/clf2_feature_probe.py` runs a lightweight feasibility experiment for Clf2 features. It extracts three hand-built features from each B/C question: token length, named-entity count, and a regex-based bridge flag for likely multi-hop phrasing. It then trains a logistic regression on an 80/20 stratified split and reports ROC-AUC, accuracy, a classification report, and per-feature coefficients. It also saves `clf2_feature_probe_data.csv` and `clf2_feature_probe_scatter.png`.
+- `classifier/data_utils/add_feature_prefix.py` takes the same feature logic and rewrites the Clf2 train/valid/predict JSON files so each question is prefixed with tags like `[LEN:X] [ENT:Y] [BRIDGE:Z]`. Those generated files are what `run_large_train_feat_single_vs_multi.sh` consumes.
 
 Example:
 
@@ -151,6 +171,9 @@ bash run/run_large_train_feat_single_vs_multi.sh gpt
 
 - `run_classifier.py`: actual training and evaluation entry point used by every script.
 - `data_utils/make_no_ret_vs_ret_undersampled.py`: builds the balanced training file used by the GPT undersampling experiment.
+- `classifier/postprocess/predict_complexity_oracle_ceiling.py`: measures the maximum QA F1 achievable with a perfect Clf2, given a fixed agreement-gate Clf1. Run from the repo root.
+- `classifier/postprocess/clf2_feature_probe.py`: probes whether simple structural features can separate Clf2 labels `B` vs `C` before training a feature-augmented classifier.
+- `classifier/data_utils/add_feature_prefix.py`: materializes the feature-prefixed Clf2 train/valid/predict files used by `run_large_train_feat_single_vs_multi.sh`.
 - `classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/SPLIT_CLASSIFIERS.md`: explains the split label files and folder layout.
 - `classifier/SPLIT_CLASSIFIERS_CHANGES.md`: documents the move from one 3-class classifier to two binary classifiers.
 
