@@ -13,9 +13,16 @@ Most scripts follow the same pattern:
 
 Run these scripts from the `classifier/` directory, not from the repository root.
 
+Also activate the project environment first so `python` resolves correctly:
+
+```bash
+source /root/laura/adaptiverag/bin/activate
+```
+
 Example:
 
 ```bash
+source /root/laura/adaptiverag/bin/activate
 cd /root/laura/Adaptive-RAG/classifier
 bash run/run_large_train_xl_no_ret_vs_ret.sh
 ```
