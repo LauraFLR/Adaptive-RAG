@@ -256,3 +256,43 @@ While you're editing `run_large_train_xl_no_ret_vs_ret_weighted_ce.sh`, also cha
 ### Justification for the Thesis
 
 You can now cite the inverse class frequency formula `w_c = N / (K × n_c)` as the standard approach (used by scikit-learn's `compute_class_weight('balanced', ...)`; see also King & Zeng, 2001 for the theoretical grounding of inverse frequency weighting in imbalanced binary classification). The per-model computation is justified because class distributions differ substantially across backbone models (32.8% vs. 36.3% vs. 71.5% for class A), making a single fixed alpha inappropriate.
+
+This is a good question to ask before re-running. Let me think about what each iteration actually tests and whether they are redundant.
+
+### What Each Iteration Tests
+
+**Iteration 3 (Weighted CE):** Tests whether reweighting the loss by inverse class frequency — giving minority-class errors a higher cost — recovers A-recall. The mechanism is purely about class frequency: every A-sample costs more than every R-sample, regardless of whether the model finds it easy or hard. γ=0 means all samples within a class are treated equally.
+
+**Iteration 4 (Focal Loss):** Tests whether additionally down-weighting *easy* examples (those the model already classifies correctly with high confidence) and up-weighting *hard* examples improves beyond frequency-based reweighting. γ=2.0 means a sample classified with p_t=0.9 gets only ~1% of the loss contribution it would get with CE. α handles class frequency; γ handles example difficulty.
+
+### Are They Redundant?
+
+No — they test *different hypotheses* about why Clf1 fails:
+
+- **Weighted CE hypothesis:** "Clf1 underperforms on A because the optimizer sees 2× more R gradients, drowning out the A signal. Equalizing the gradient contribution per class will fix it."
+
+- **Focal loss hypothesis:** "Even after correcting for class frequency, Clf1 is dominated by *easy* majority-class examples that contribute large but uninformative gradients. The model needs to focus on hard, ambiguous examples near the decision boundary."
+
+These are logically ordered: weighted CE addresses the simpler explanation (frequency), focal loss addresses a deeper one (difficulty). If weighted CE alone closes the gap, you don't need focal loss. If weighted CE doesn't help but focal loss does, the bottleneck is example difficulty, not frequency. If neither helps, the bottleneck is signal type — which is your main thesis argument for switching to UE.
+
+### The Ablation Logic Is Sound
+
+Your three imbalance iterations (2–4) form a clean ablation along one dimension with increasing sophistication:
+
+| Iteration | What it changes | What it holds constant |
+|:--|:--|:--|
+| 2 (Undersampling) | Data distribution (discard majority samples) | Loss function (standard CE) |
+| 3 (Weighted CE) | Loss function (frequency-based reweighting) | Data distribution (full dataset) |
+| 4 (Focal Loss) | Loss function (frequency + difficulty weighting) | Data distribution (full dataset) |
+
+Iterations 3 and 4 are a *nested* comparison: focal loss with γ=0 *is* weighted CE, so Iter 3 is literally the γ=0 ablation of Iter 4. This makes the pair especially clean from an experimental design perspective — the only variable between them is γ (0 vs. 2.0), with identical α values, identical data, identical code path.
+
+### My Assessment
+
+**Keep both iterations.** They are not redundant — they isolate different causal mechanisms. Dropping either would weaken the ablation:
+
+- Dropping Iter 3 means you jump from "change the data" (Iter 2) to "change the loss with two modifications at once" (Iter 4, which combines α-weighting and γ-focusing). You couldn't tell whether any improvement came from the frequency correction or the difficulty modulation.
+
+- Dropping Iter 4 means you never test the hard-example hypothesis, which is actually the more interesting one for your narrative — because if focal loss *also* fails, it strengthens the conclusion that the problem is not about training dynamics at all but about the *absence of a self-knowledge signal* in question text.
+
+The fact that your two scripts are structurally identical with only `FOCAL_GAMMA` differing is a *strength*, not a redundancy concern. It means the comparison is maximally controlled.
