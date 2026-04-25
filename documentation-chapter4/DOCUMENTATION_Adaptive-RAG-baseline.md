@@ -61,3 +61,22 @@ There are three tiers of what you can realistically do:
 ## One Concrete Action You Should Do Regardless
 
 Even if you do not run multiple seeds, **add `--seed 42` to all future shell scripts now**. It costs nothing and makes IT3–IT7 internally reproducible. This means any reviewer can re-run your work and get the same result, which is distinct from the Adaptive-RAG baseline concern.
+
+---
+
+All three shell scripts are identical in the hyperparameters they pass. Here's the summary:
+
+**Learning rate warmup: No.** The scripts don't pass `--num_warmup_steps`, so the default of **0** warmup steps is used (see run_classifier.py). The LR scheduler type also defaults to `"linear"`, but with 0 warmup steps it's just a linear decay from the start.
+
+**Weight decay: 0.0 (none).** The scripts don't pass `--weight_decay`, so the default of **0.0** applies (see run_classifier.py). In the optimizer setup, bias/LayerNorm params are explicitly exempted from weight decay as well (run_classifier.py), but since the value is 0.0 for all parameter groups, no weight decay is applied to any parameters.
+
+No. The README just says to run the shell scripts as-is:
+
+```bash
+cd classifier
+bash ./run/run_large_train_xl.sh
+bash ./run/run_large_train_xxl.sh
+bash ./run/run_large_train_gpt.sh
+```
+
+It doesn't mention `--weight_decay`, `--num_warmup_steps`, or `--lr_scheduler_type` at all. The only training hyperparameters documented (implicitly, via the shell scripts) are `--learning_rate 3e-5`, `--per_device_train_batch_size 32`, and `--num_train_epochs`. So warmup and weight decay are left at their defaults (0 warmup steps, 0.0 weight decay).

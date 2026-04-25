@@ -28,6 +28,7 @@ do
         --overwrite_cache \
         --train_column 'train' \
         --do_train \
+        --seed 42 \
         --num_train_epochs ${EPOCH}
 
 
