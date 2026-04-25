@@ -8,7 +8,7 @@ GPU=${GPU:-0}
 
 # Weighted CE via FocalLossTrainer with gamma=0.
 FOCAL_GAMMA=${FOCAL_GAMMA:-0.0}
-FOCAL_ALPHA=${FOCAL_ALPHA:-0.6}
+FOCAL_ALPHA=${FOCAL_ALPHA:-0.33}
 
 for EPOCH in 20 25 30 35
 do

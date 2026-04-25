@@ -13,6 +13,8 @@ Most scripts follow the same pattern:
 
 Run these scripts from the `classifier/` directory, not from the repository root.
 
+From IT2 onwards, add --seed 42 to all scripts so new runs are at least reproducible
+
 Also activate the project environment first so `python` resolves correctly:
 
 ```bash
