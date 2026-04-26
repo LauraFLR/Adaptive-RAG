@@ -1,191 +1,160 @@
-## Iteration 7 — Parameter Audit: Structural Feature Prefix for Gate 2 (Clf2)
-
-Since base hyperparameters are identical to Iteration 1's Clf2 (with one exception), and the architecture is unchanged, the audit focuses on the **feature injection design decisions**.
-
----
-
-### 1. Feature Injection Method: Plain-Text Prefix
-
-**Verdict: ⚠️ Justifiable but needs careful framing — alternatives exist**
-
-Prepending structured features as text tokens (`[LEN:14] [ENT:2] [BRIDGE:1]`) before the question is a recognized approach in the T5/seq2seq literature. The model must learn to associate these token patterns with the classification decision during fine-tuning.
-
-**Precedents:**
-- **Raffel et al. (2020)** — T5 uses task-specific text prefixes ("translate English to German:", "summarize:") to condition the model on the task. Your feature prefix follows the same principle: conditioning the encoder on structured metadata via natural-language-like tokens.
-- **Schick & Schütze (2021)** — Pattern-Exploiting Training (PET) shows that reformulating classification inputs with structured textual patterns can improve few-shot performance on pre-trained language models.
-- **Chai et al. (2025)** — use feature-enriched inputs for complexity classification, though with different features and injection methods.
-
-**Alternatives not explored:**
-- **Binned categorical prefixes** (e.g., `[LEN:short]` instead of `[LEN:14]`) — reduces the token vocabulary the model must learn. Your documentation flags this in item 6 of the suspicious items. More on this below.
-- **Separate embedding concatenation** — inject features as a learned embedding vector concatenated to the encoder hidden states. This would require architectural changes and is out of scope for your thesis.
-- **Multi-task / auxiliary loss** — train with a secondary objective predicting the features. Also out of scope.
-
-The plain-text prefix is the simplest injection method that requires zero architectural changes, which is a legitimate design choice for a DSR iteration testing whether the signal transfers at all.
-
-**Cite:** Raffel et al. (2020) for the T5 prefix-conditioning paradigm; Schick & Schütze (2021) for structured textual pattern injection.
+Problem: You Cannot Replicate SymRAG Exactly
+SymRAG's κ(q) includes A(q) — mean attention values from the LLM. Your pipeline has output_scores=False hardcoded, meaning you have no access to attention values or logits. You would need to run a forward pass through T5 or another model just to compute attention scores for each query — which is not "training-free" in the way your Gate 1 is.
+Additionally, SymRAG routes to three paths (symbolic / neural / hybrid), not binary B/C. Their thresholds are dynamically adjusted based on system load, which is irrelevant to your offline evaluation. And the paper does not publish their weight values (w_A, w_L, etc.).
+What You Can Do: The Structural Heuristic Component S_H(q)
+The sub-component you can replicate is S_H(q), which uses only the structural features — entity count and multi-hop indicators — with no attention values required. This is the part of κ(q) that maps to your existing features. Combined with L(q) (query length), this gives you a threshold-based complexity score using exactly the features from your Iteration 6 probe.
+This is implementable as a training-free Gate 2 that mirrors SymRAG's structural heuristic.
 
 ---
 
-### 2. Raw Integer Values (No Binning, No Normalization)
+Having read the full paper, I need to correct several things in my prompt. Here are the key findings from the paper:
 
-**Verdict: ⚠️ Suboptimal — should be discussed, possibly changed**
+**What the paper actually specifies (Appendix A.1.1, page 12):**
 
-This is the most substantive methodological concern. `[LEN:7]` and `[LEN:42]` produce entirely different subword sequences. T5 has no built-in understanding that 42 > 7 — it must learn the ordinal relationship between every observed integer from the training data. With only ~3,200 training samples, many integer values will appear rarely or never, fragmenting the signal.
+1. **A(q)** uses `prajjwal1/bert-tiny` (not the main LLM) — this is a tiny 4.4M parameter model, not an expensive forward pass
+2. **Published weights:** w_A = 1.0, w_L = 1.0, w_sh1 = 0.05, w_sh2 = 0.1
+3. **L(q)** is normalized by max query length in the dataset
+4. **S_H(q)** normalizes by query length: S_H(q) = w_sh1 · N_ents(q)/|q| + w_sh2 · N_hops(q)/|q|
+5. **N_hops(q)** counts multi-hop keywords (their equivalent of your bridge_flag, but as a count not binary)
+6. **Initial thresholds:** T_low_κ = 0.4, T_high_κ = 0.8 (Table 7, page 23)
 
-**What the literature suggests:**
-- **Thawani et al. (2021)** — "Representing Numbers in NLP: A Survey and a Vision" — documents that transformer language models struggle with numerical reasoning from raw digit tokens. Discretizing numbers into categorical bins significantly improves performance on tasks requiring numerical understanding.
-- **Wallace et al. (2019)** — show that BERT-family models fail to generalize numerically; binning or verbalizing numbers is recommended for classification tasks.
+This changes the feasibility picture. Since bert-tiny is a 4.4M parameter model, computing A(q) is cheap — it doesn't require your main LLM. You could include it. But for your thesis, I'd recommend **omitting A(q)** and using only the structural heuristic S_H(q) + L(q), for two reasons: (a) you don't need to introduce a new model dependency, and (b) it gives you a clean "structural features only" comparison against your T5-Large Clf2.
 
-**Binning would produce:**
-
-| Feature | Raw | Binned (example) |
-|---|---|---|
-| `[LEN:7]` | 7 | `[LEN:short]` |
-| `[LEN:14]` | 14 | `[LEN:medium]` |
-| `[LEN:28]` | 28 | `[LEN:long]` |
-| `[ENT:0]` | 0 | `[ENT:none]` |
-| `[ENT:1]` | 1 | `[ENT:one]` |
-| `[ENT:3]` | 3 | `[ENT:many]` |
-
-This reduces the number of unique prefix token sequences from dozens to a handful, making each pattern appear frequently enough in training for T5 to learn a robust association.
-
-However — and this is the critical counterpoint — **Iteration 7's end-to-end result is +0.1–0.2pp across all three models**, which is within noise. The question is whether binning would change this conclusion. Given that the Iteration 6 probe showed AUC=0.676 (weak signal to begin with) and that the ~2.4pp recoverable ceiling is small, it is plausible that even perfect feature injection would yield only marginal gains. Binning might help, but it is unlikely to transform a null result into a significant one.
-
-**Recommendation:** Acknowledge the raw-integer limitation in your thesis and propose binning as a potential refinement. Whether you re-run is a judgment call — see my assessment at the end.
+Here is the corrected prompt:
 
 ---
 
-### 3. Feature Set: Same as Iteration 6
+```
+Create a new script `classifier/postprocess/predict_complexity_kappa.py` that 
+implements the structural heuristic component of SymRAG's κ(q) complexity 
+score (Hakim et al., 2025) for the Gate 2 (B vs C) decision, as a 
+training-free alternative to the T5-Large Clf2 classifier.
 
-**Verdict: ✅ Methodologically correct**
+REFERENCE: SymRAG (Hakim et al., 2025, Definition 1, Appendix A.1.1):
+  κ(q) = (w_A · A(q) + w_L · L(q)) · (1 + S_H(q))
+  where S_H(q) = w_sh1 · N_ents(q)/|q| + w_sh2 · N_hops(q)/|q|
 
-Using the exact same three features (token_len, entity_count, bridge_flag) that were validated in the diagnostic probe ensures consistency between the go/no-go decision and the full experiment. If you changed the features between iterations, the probe's AUC would no longer justify the experiment.
+We omit the attention-based A(q) term (which requires a bert-tiny forward 
+pass) and use only the structural components L(q) and S_H(q). This gives:
+  κ(q) = w_L · L(q) · (1 + S_H(q))
 
----
+With SymRAG's published weights: w_L = 1.0, w_sh1 = 0.05, w_sh2 = 0.1.
 
-### 4. GPT Epoch Range Mismatch
+The script should:
 
-**Verdict: ❌ Confound — needs acknowledgment or re-run**
+1. ACCEPT THESE ARGUMENTS:
+   - model_name (choices: flan_t5_xl, flan_t5_xxl, gpt)
+   - --clf1_pred_file (path to Gate 1 predictions, OR:)
+   - --use_agreement_gate (flag: if set, compute agreement gate internally 
+     using the same logic as predict_complexity_agreement.py)
+   - --clf2_pred_file (path to a T5-Large Clf2 predictions file — used ONLY 
+     as a comparison baseline, not for routing)
+   - --predict_file (default: the standard predict.json path)
+   - --output_path (required)
+   - --kappa_threshold (float, default: 0.5)
+   - --tune_threshold (flag: if set, tune threshold on validation data)
+   - --valid_file (path to Clf2 validation JSON with "answer" field 
+     containing B/C labels — used only when --tune_threshold is set)
 
-The standard GPT Clf2 uses epochs `{35, 40}`. The feature-augmented script uses `{15, 20, 25, 30, 35}` for all models. This means:
+2. FEATURE EXTRACTION:
+   Reuse the same feature extraction logic from clf2_feature_probe.py:
+   - token_len: len(question.split()) — whitespace word count
+   - entity_count: len(doc.ents) via spaCy en_core_web_sm with only NER 
+     enabled (disable parser, lemmatizer)
+   - hop_indicator_count: count of how many of the 7 BRIDGE_PATTERNS match 
+     the question (NOT binary — count all matching patterns). This maps to 
+     SymRAG's N_hops(q), which counts multi-hop keyword indicators.
+   
+   Copy the BRIDGE_PATTERNS list from clf2_feature_probe.py (the 7 regex 
+   patterns for relative clauses, double possessives, temporal 
+   subordination, demonstrative back-references, both/and, between/and, 
+   nested wh-questions).
+   
+   Process all questions via nlp.pipe(questions, batch_size=256).
 
-- The GPT epoch-40 checkpoint (the standard best) is never produced for the feature-augmented variant
-- You cannot do a controlled comparison between standard Clf2 (epoch 40) and feature-augmented Clf2 (epoch 40) for GPT
-- The feature-augmented GPT trains at epochs 15–25 that were never tested for standard GPT Clf2, introducing an additional variable
+3. COMPLEXITY SCORE κ(q) — following SymRAG's formula exactly 
+   (minus A(q)):
+   
+   # Normalize query length by max in dataset
+   L(q) = token_len / max_token_len_in_dataset
+   
+   # Structural heuristic (SymRAG Appendix A.1.1)
+   # Note: SymRAG normalizes by query length |q| (in tokens)
+   S_H(q) = 0.05 * (entity_count / token_len) + 0.10 * (hop_count / token_len)
+   
+   # Final score (with w_L = 1.0, omitting w_A * A(q))
+   kappa(q) = L(q) * (1 + S_H(q))
 
-**This is a confound.** If feature-augmented GPT Clf2 underperforms at epoch 35, you cannot tell whether it's because features hurt or because GPT needed epoch 40.
+4. THRESHOLD TUNING (when --tune_threshold is set):
+   - Load --valid_file (the Clf2 silver validation JSON)
+   - Filter to entries with label in {"B", "C"} only
+   - Compute κ(q) for each validation question
+   - Search thresholds from the 5th to 95th percentile of κ values, 
+     in 100 steps
+   - For each threshold: if κ(q) >= threshold → predict C, else → predict B
+   - Select the threshold that maximizes accuracy on the validation set
+   - Log: "Tuned threshold: {t:.4f}, validation accuracy: {acc:.4f}, 
+     val B-acc: {b_acc:.4f}, val C-acc: {c_acc:.4f}"
+   - Use this threshold for prediction (overrides --kappa_threshold)
+   - Also report: best F1 (macro), and the threshold that maximizes 
+     macro-F1 (note if different from accuracy-optimal)
 
-**Recommendation:** Either re-run with `{35, 40}` for GPT to match the baseline, or acknowledge this mismatch explicitly and note that the epoch-35 comparison is valid (both variants produce an epoch-35 checkpoint).
+5. ROUTING LOGIC for each question in predict.json:
+   a. Determine Gate 1 decision:
+      - If --use_agreement_gate: compute agreement between nor_qa and 
+        oner_qa using the same logic as predict_complexity_agreement.py 
+        (normalize_answer, answer_extractor, exact string match)
+      - Else: load --clf1_pred_file and use its predictions
+   b. If Gate 1 = A (agree / no retrieval) → use nor_qa answer
+   c. If Gate 1 = R (disagree / needs retrieval):
+      - Compute κ(q)
+      - If κ(q) >= threshold → route C (use ircot_qa answer)
+      - If κ(q) < threshold → route B (use oner_qa answer)
 
----
+6. PREDICTION FILE LOADING:
+   Use the same file paths and BM25 retrieval counts as 
+   predict_complexity_agreement.py:
+   
+   DATASETS = ["musique", "hotpotqa", "2wikimultihopqa", "nq", "trivia", "squad"]
+   
+   ONER_BM25 = {"flan_t5_xl": 15, "flan_t5_xxl": 15, "gpt": 6}
+   IRCOT_BM25 = {"flan_t5_xl": 6, "flan_t5_xxl": 6, "gpt": 3}
+   
+   Load nor_qa, oner_qa, ircot_qa predictions from:
+   predictions/test/{strategy}_{model}_{dataset}____prompt_set_1.../prediction__*.json
 
-### 5. Training Code Path: Manual Loop (Same as Iteration 1)
+7. OUTPUT FORMAT (same as predict_complexity_agreement.py):
+   - {dataset}/{dataset}.json — routed QA predictions
+   - {dataset}/{dataset}_option.json — predictions with routing labels 
+     and step counts
+   - routing_stats.json containing:
+     {
+       "method": "symrag_kappa_structural",
+       "threshold_used": ...,
+       "threshold_tuned": true/false,
+       "kappa_stats": {"mean": ..., "std": ..., "min": ..., "max": ...},
+       "routing_counts": {"A": ..., "B": ..., "C": ...},
+       "per_dataset": { ... },
+       "symrag_weights": {"w_L": 1.0, "w_sh1": 0.05, "w_sh2": 0.10},
+       "note": "A(q) attention term omitted; structural heuristic only"
+     }
 
-**Verdict: ✅ Consistent with Iteration 1 Clf2 baseline**
+8. Use the same answer_extractor() and normalize_answer() functions as 
+   predict_complexity_agreement.py. Import or copy them.
 
-Unlike Iterations 3–4 (which used FocalLossTrainer / HF Trainer), Iteration 7 uses the same manual training loop as Iteration 1. This means the Iteration 1 Clf2 → Iteration 7 Clf2 comparison is clean: same optimizer construction, same scheduler, same gradient handling. The only difference is the input data (feature-prefixed vs. plain). This is the correct controlled comparison.
-
----
-
-### 6. Feature Prefix Token Overhead
-
-**Verdict: ✅ Negligible risk**
-
-A prefix like `[LEN:14] [ENT:2] [BRIDGE:1] ` adds approximately 15–20 subword tokens. With `max_seq_length=384` and typical question lengths well under 100 tokens, truncation is extremely unlikely. No issue.
-
----
-
-### 7. No Normalization or Standardization of Features
-
-**Verdict: ✅ Not applicable**
-
-Unlike the logistic regression probe (where feature scaling matters), the T5 encoder processes features as text tokens. There is no numeric feature space to normalize. The relevant concern is binning (covered above), not standardization.
-
----
-
-### 8. Seed Not Set
-
-**Verdict: ⚠️ Same as Iteration 1 — you said you fixed this**
-
-The documentation says `--seed` is not passed and defaults to `None`. If you've fixed the seed to 42 across all scripts (as you mentioned after Iteration 1), ensure the feature-augmented script also passes `--seed 42`. Otherwise this is a regression.
-
----
-
-### Summary Table
-
-| Parameter / Decision | Value | SOTA? | Justification Source |
-|---|---|---|---|
-| Feature injection: text prefix | `[LEN:X] [ENT:Y] [BRIDGE:Z] question` | ✅ | Raffel et al. (2020); Schick & Schütze (2021) |
-| Raw integer values (no binning) | `[LEN:14]` not `[LEN:medium]` | ⚠️ | Thawani et al. (2021); Wallace et al. (2019) suggest binning |
-| Feature set | Same 3 features as Iteration 6 probe | ✅ | Consistent with go/no-go decision |
-| GPT epoch range | {15,20,25,30,35} vs baseline {35,40} | ❌ | Confound; epoch 40 missing |
-| Training code path | Manual loop (same as Iteration 1) | ✅ | Clean controlled comparison |
-| Token overhead | ~15–20 tokens on 384 budget | ✅ | Negligible |
-| Architecture | Unmodified T5-Large | ✅ | Zero-change injection |
-| Loss | Standard CE (no focal/weighting) | ✅ | Matches Iteration 1 Clf2 baseline |
-| Seed | Not passed (should be 42) | ⚠️ | Verify consistency with other scripts |
-
----
-
-### Should You Change Anything?
-
-Given that Iteration 7 is a **null result** (+0.1–0.2pp, within noise), the strategic question is whether fixes would change the conclusion:
-
-**GPT epoch mismatch — Yes, fix this.** It's a simple shell script edit (change the epoch loop to `35 40` for GPT) and removes a confound from your reporting. Even if the result stays null, a reviewer cannot question the comparison.
-
-**Binning — No, discuss instead.** The null result is interpretable either way: the features carry weak signal (AUC 0.676) that does not transfer to end-to-end F1 regardless of injection method. Binning *might* help marginally, but the ~2.4pp recoverable ceiling means even a perfect Gate 2 improvement is bounded. Proposing binning as future work is cleaner than re-running an experiment that is likely to remain null.
-
-**Seed — Yes, add `--seed 42`.** One-line fix in the shell script.
-
----
-
-### Key References to Cite
-
-- **Raffel et al. (2020)** — T5; prefix-conditioning paradigm for seq2seq models
-- **Schick & Schütze (2021)** — PET; structured textual patterns for classification
-- **Thawani et al. (2021)** — "Representing Numbers in NLP" — numerical reasoning limitations of transformers; binning recommendation
-- **Wallace et al. (2019)** — numerical generalization failures in pre-trained LMs
-- **Dong et al. (2025)** — surface features vs. fine-tuned encoders for complexity (46.6% vs. 85.9%)
-
----
-
-### Thesis-Level Framing for the Null Result
-
-The Iteration 7 null result is actually one of your thesis's more valuable findings. Frame it as:
-
-"Structural query features that pass the discriminative feasibility threshold in isolation (AUC 0.676, Iteration 6) do not transfer to end-to-end QA F1 improvement when injected as text prefixes into the T5-Large classifier (+0.1–0.2pp across all three model variants, within noise). This result is consistent with Dong et al. (2025), who find that surface-level structural features achieve only 46.6% accuracy on complexity classification compared to 85.9% for fine-tuned encoders, suggesting that the B/C decision requires deeper semantic representations of reasoning structure that shallow features cannot capture. The ~2.4pp recoverable ceiling (Section 4.8.4) further bounds the maximum achievable gain, implying that even substantially better Gate 2 features would yield modest end-to-end improvements."
----
-
-### The Core Question: Would More Features Change the Conclusion?
-
-Your Iteration 7 null result (+0.1–0.2pp) exists within a **hard ceiling of ~2.4pp recoverable F1** from a perfect Clf2. This ceiling is computed from your oracle gap analysis (Iteration 5, Section 4.8.4) and is independent of feature quality. Even if you found features that perfectly separated B from C, the maximum end-to-end gain is 2.4pp — and realistically, any improvement would be a fraction of that.
-
-Adding more features to the probe could raise the AUC from 0.676 to, say, 0.72 or 0.75. But Iteration 7 already showed that the existing signal (AUC 0.676) does not transfer to end-to-end gain. A higher AUC on the probe does not guarantee transfer, and the ceiling limits the payoff even if it does transfer.
-
----
-
-### What More Features Would Cost You
-
-1. **Scope expansion in a Bachelor's thesis.** You have 7 iterations with a clean narrative arc. Adding a new feature engineering cycle means re-running the probe, potentially re-running Iteration 7 with the new features, and writing up the analysis. This is at least several days of work.
-
-2. **Risk of inconclusive results.** If the expanded probe shows AUC 0.73 but end-to-end F1 stays at +0.2pp, you have the same null result with more complexity. If it shows AUC 0.68, you've spent time confirming what you already know.
-
-3. **Narrative coherence.** Your current arc is: "shallow structural features pass feasibility but don't transfer → semantic-depth representations needed as future work." This is a clean conclusion. Adding more shallow features and getting the same null result makes the story longer, not stronger.
-
----
-
-### What You Should Do Instead
-
-Use the concept matrix features as **future work recommendations**, not as additional experiments. Your thesis already has the Dong et al. (2025) result showing that surface features achieve 46.6% accuracy vs. 85.9% for fine-tuned encoders. This directly supports your conclusion that the B/C boundary requires deeper representations.
-
-In your discussion section, you could write something like:
-
-"The concept matrix (Section 2.4) identifies additional feature families for Gate 2 that were not tested in this work: embedding-based semantic similarity, decomposition-based complexity scores, and LLM-annotated reasoning depth labels. These represent progressively richer representations that could close the gap between the shallow structural features tested here (AUC 0.676) and the fine-tuned encoder ceiling reported by Dong et al. (2025). However, the ~2.4pp recoverable ceiling (Section 4.8.4) suggests that even substantial Gate 2 improvements would yield modest end-to-end gains in the current evaluation setup, and that the primary source of remaining error lies in the irreducible portion of the oracle gap (~5.3pp) where no routing strategy succeeds."
+IMPORTANT CONSTRAINTS:
+- Do NOT import or use torch, transformers, or any model loading
+- The script should be fully training-free (only spaCy for NER)
+- Use the same output directory structure conventions as other iterations
+- The script must work for all three model variants
+```
 
 ---
 
-### The One Exception
+The key corrections from the original prompt:
 
-If your concept matrix contains a feature that is **qualitatively different** from the three you tested — specifically, something that accesses semantic depth rather than surface structure — then testing it could strengthen your thesis by showing a clear contrast between surface and semantic features. For example, if you could compute an LLM-based decomposition score (e.g., prompting the LLM to decompose the question and counting sub-questions), that would be a genuinely different signal class. But that crosses into Iteration 8 territory and is almost certainly out of scope for a Bachelor's thesis.
-
-**My recommendation: do not add more features to the probe. Your current 7-iteration structure is complete and the null result is well-explained by the literature. Use the concept matrix features as future work.**
+- **S_H(q) normalizes by query length |q|**, not raw counts — this is explicitly in Appendix A.1.1
+- **hop_count should be a count**, not binary — SymRAG's N_hops(q) counts multi-hop keywords, so I changed bridge_flag from binary to a count of how many patterns match
+- **The multiplicative structure** κ = L(q) · (1 + S_H(q)) is preserved, not an additive weighted sum as I had before
+- **Published weights** (w_sh1=0.05, w_sh2=0.1) are used directly instead of arbitrary tuneable weights
+- **Threshold search range** uses percentiles of actual κ values rather than arbitrary 0.1–0.9 range
