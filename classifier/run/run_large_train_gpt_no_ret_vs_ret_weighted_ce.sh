@@ -8,14 +8,14 @@ GPU=${GPU:-0}
 
 # Weighted CE via FocalLossTrainer with gamma=0.
 FOCAL_GAMMA=${FOCAL_GAMMA:-0.0}
-FOCAL_ALPHA=${FOCAL_ALPHA:-0.71}
+# FOCAL_ALPHA removed: --auto_class_weights computes weights from training data
 
 for EPOCH in 35 40
 do
 	TRAIN_OUTPUT_DIR=./outputs/${DATASET_NAME}/model/${MODEL}/${LLM_NAME}/no_ret_vs_ret_weighted_ce/epoch/${EPOCH}/${DATE}
 	mkdir -p ${TRAIN_OUTPUT_DIR}
 
-	echo "[TRAIN] ${LLM_NAME} epoch=${EPOCH} gamma=${FOCAL_GAMMA} alpha=${FOCAL_ALPHA}"
+	echo "[TRAIN] ${LLM_NAME} epoch=${EPOCH} gamma=${FOCAL_GAMMA} auto_class_weights"
 	CUDA_VISIBLE_DEVICES=${GPU} python run_classifier.py \
 		--model_name_or_path ${MODEL} \
 		--train_file ./data/${DATASET_NAME}/${LLM_NAME}/silver/no_retrieval_vs_retrieval/train.json \
@@ -34,7 +34,7 @@ do
 		--num_train_epochs ${EPOCH} \
 		--use_focal_loss \
 		--focal_gamma ${FOCAL_GAMMA} \
-		--focal_alpha ${FOCAL_ALPHA}
+		--auto_class_weights
 
 	CKPT_PATH=$(ls -d ${TRAIN_OUTPUT_DIR}/checkpoint-* 2>/dev/null | sort -V | tail -n 1)
 	if [[ -z "${CKPT_PATH}" ]]; then

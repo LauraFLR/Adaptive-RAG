@@ -415,6 +415,15 @@ def parse_args():
             "Example: --focal_alpha 0.75 gives weights [0.25, 0.75]."
         ),
     )
+    parser.add_argument(
+        "--auto_class_weights",
+        action="store_true",
+        default=False,
+        help=(
+            "Compute class weights from training data using inverse-frequency "
+            "weighting (w_c = N_total / (K * N_c)). Overrides --focal_alpha when set."
+        ),
+    )
     parser.add_argument("--push_to_hub", action="store_true", help="Whether or not to push the model to the Hub.")
     parser.add_argument(
         "--hub_model_id", type=str, help="The name of the repository to keep in sync with the local `output_dir`."
@@ -666,7 +675,17 @@ def main():
     # Train!
     if args.do_train and args.use_focal_loss:
         # ── Focal-Loss training via FocalLossTrainer (HF Trainer subclass) ──────
-        if args.focal_alpha is not None:
+        if args.auto_class_weights:
+            from collections import Counter
+            label_counts = Counter(raw_datasets[args.train_column]["answer"])
+            labels_list = args.labels
+            n_total = sum(label_counts[l] for l in labels_list)
+            n_classes = len(labels_list)
+            weights = [n_total / (n_classes * label_counts[l]) for l in labels_list]
+            _alpha_tensor = torch.tensor(weights, dtype=torch.float)
+            logger.info(f"Auto class weights: {dict(zip(labels_list, weights))}")
+            logger.info(f"Label counts: {dict((l, label_counts[l]) for l in labels_list)}")
+        elif args.focal_alpha is not None:
             _alpha_tensor = torch.tensor(
                 [1.0 - args.focal_alpha, args.focal_alpha], dtype=torch.float
             )
