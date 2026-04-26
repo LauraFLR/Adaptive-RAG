@@ -27,7 +27,13 @@ GPU=0
 
 echo "=== Iter 3b: Feature-augmented Clf2 for ${LLM_NAME} ==="
 
-for EPOCH in 15 20 25 30 35
+if [ "$LLM_NAME" = "gpt" ]; then
+    EPOCHS="35 40"
+else
+    EPOCHS="15 20 25 30 35"
+fi
+
+for EPOCH in ${EPOCHS}
 do
     echo ""
     echo "--- Epoch ${EPOCH} ---"
