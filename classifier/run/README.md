@@ -104,7 +104,7 @@ These pass `--use_focal_loss` with a nonzero gamma.
 
 #### Weighted cross-entropy runs
 
-These use the focal-loss implementation with `gamma=0`, which reduces focal loss to class-weighted cross-entropy.
+These use the focal-loss implementation with `gamma=0`, which reduces focal loss to class-weighted cross-entropy. Instead of a manually set `--focal_alpha`, they pass `--auto_class_weights` to compute class weights automatically from the training data distribution.
 
 | Script | Main difference |
 |---|---|
