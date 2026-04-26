@@ -1,0 +1,45 @@
+{
+    "description": "Iteration 5 consolidated results. Training-free agreement Gate 1, Clf2 unchanged from IT1. All classifier checkpoints from April 25, 2026 runs.",
+    "generated": "2026-04-26",
+    "models": {
+        "flan_t5_xl": {
+            "clf2_epoch": 30,
+            "clf2_run": "2026_04_25/11_24_20",
+            "clf2_valid_acc": 70.47,
+            "it1_clf1_epoch": 30,
+            "it1_clf1_run": "2026_04_25/17_19_13",
+            "it1_clf1_valid_acc": 73.19,
+            "it5_avg_f1": 0.4859,
+            "it1_avg_f1": 0.4611,
+            "delta_f1": 0.0248,
+            "retrieval_rate": 0.8063,
+            "agreement_rate": 0.1937
+        },
+        "flan_t5_xxl": {
+            "clf2_epoch": 25,
+            "clf2_run": "2026_04_25/22_53_14",
+            "clf2_valid_acc": 68.30,
+            "it1_clf1_epoch": 20,
+            "it1_clf1_run": "2026_04_25/18_11_34",
+            "it1_clf1_valid_acc": 66.93,
+            "it5_avg_f1": 0.5063,
+            "it1_avg_f1": 0.4745,
+            "delta_f1": 0.0318,
+            "retrieval_rate": 0.7903,
+            "agreement_rate": 0.2097
+        },
+        "gpt": {
+            "clf2_epoch": 40,
+            "clf2_run": "2026_04_25/23_52_21",
+            "clf2_valid_acc": 54.20,
+            "it1_clf1_epoch": 40,
+            "it1_clf1_run": "2026_04_25/21_20_56",
+            "it1_clf1_valid_acc": 73.10,
+            "it5_avg_f1": 0.5050,
+            "it1_avg_f1": 0.5146,
+            "delta_f1": -0.0096,
+            "retrieval_rate": 0.6310,
+            "agreement_rate": 0.3690
+        }
+    }
+}

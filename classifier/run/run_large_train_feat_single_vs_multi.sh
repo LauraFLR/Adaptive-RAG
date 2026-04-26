@@ -13,6 +13,7 @@
 #   bash classifier/run/run_large_train_feat_single_vs_multi.sh gpt
 
 set -e
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
 
 LLM_NAME=$1
 if [ -z "$LLM_NAME" ]; then

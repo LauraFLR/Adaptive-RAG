@@ -7,6 +7,7 @@
 #   Silver-only: silver/single_vs_multi/train.json         (~868 samples, prediction-derived only)
 
 set -e
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
 
 DATE=silver_only
 MODEL=t5-large

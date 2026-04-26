@@ -1,0 +1,22 @@
+{
+    "model_name": "gpt",
+    "total_questions": 3000,
+    "silver_A_count": 1521,
+    "silver_R_count": 1479,
+    "predicted_A_count": 1107,
+    "predicted_notA_count": 1893,
+    "confusion_matrix": {
+        "TP": 900,
+        "FP": 207,
+        "FN": 621,
+        "TN": 1272
+    },
+    "accuracy": 0.724,
+    "A_precision": 0.813,
+    "A_recall": 0.5917,
+    "A_f1": 0.6849,
+    "R_precision": 0.6719,
+    "R_recall": 0.86,
+    "R_f1": 0.7544,
+    "retrieval_rate": 0.631
+}

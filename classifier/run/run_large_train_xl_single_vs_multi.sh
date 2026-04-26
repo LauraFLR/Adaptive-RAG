@@ -1,3 +1,4 @@
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
 DATE=$(date +%Y_%m_%d)/$(date +%H_%M_%S)
 MODEL=t5-large
 LLM_NAME=flan_t5_xl

@@ -1,0 +1,81 @@
+{
+    "model_name": "flan_t5_xxl",
+    "per_dataset": {
+        "musique": {
+            "f1": 0.291,
+            "em": 0.212,
+            "acc": 0.238
+        },
+        "hotpotqa": {
+            "f1": 0.55637,
+            "em": 0.442,
+            "acc": 0.47
+        },
+        "2wikimultihopqa": {
+            "f1": 0.6366,
+            "em": 0.538,
+            "acc": 0.598
+        },
+        "nq": {
+            "f1": 0.512,
+            "em": 0.414,
+            "acc": 0.476
+        },
+        "trivia": {
+            "f1": 0.641,
+            "em": 0.554,
+            "acc": 0.612
+        },
+        "squad": {
+            "f1": 0.401,
+            "em": 0.28,
+            "acc": 0.342
+        }
+    },
+    "average_f1": 0.5063,
+    "routing": {
+        "total_A": 629,
+        "total_B": 1382,
+        "total_C": 989,
+        "agreement_rate": 0.20966666666666667,
+        "total_steps": 3464,
+        "per_dataset": {
+            "2wikimultihopqa": {
+                "A": 166,
+                "B": 62,
+                "C": 272,
+                "steps": 645
+            },
+            "hotpotqa": {
+                "A": 131,
+                "B": 115,
+                "C": 254,
+                "steps": 639
+            },
+            "musique": {
+                "A": 37,
+                "B": 69,
+                "C": 394,
+                "steps": 896
+            },
+            "nq": {
+                "A": 91,
+                "B": 409,
+                "C": 0,
+                "steps": 409
+            },
+            "squad": {
+                "A": 51,
+                "B": 403,
+                "C": 46,
+                "steps": 503
+            },
+            "trivia": {
+                "A": 153,
+                "B": 324,
+                "C": 23,
+                "steps": 372
+            }
+        }
+    }
+}

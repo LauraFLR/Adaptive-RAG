@@ -1,0 +1,22 @@
+{
+    "model_name": "flan_t5_xl",
+    "total_questions": 3000,
+    "silver_A_count": 651,
+    "silver_R_count": 2349,
+    "predicted_A_count": 581,
+    "predicted_notA_count": 2419,
+    "confusion_matrix": {
+        "TP": 368,
+        "FP": 213,
+        "FN": 283,
+        "TN": 2136
+    },
+    "accuracy": 0.8347,
+    "A_precision": 0.6334,
+    "A_recall": 0.5653,
+    "A_f1": 0.5974,
+    "R_precision": 0.883,
+    "R_recall": 0.9093,
+    "R_f1": 0.896,
+    "retrieval_rate": 0.8063
+}

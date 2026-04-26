@@ -1,0 +1,81 @@
+{
+    "model_name": "gpt",
+    "per_dataset": {
+        "musique": {
+            "f1": 0.331,
+            "em": 0.232,
+            "acc": 0.314
+        },
+        "hotpotqa": {
+            "f1": 0.58547,
+            "em": 0.462,
+            "acc": 0.524
+        },
+        "2wikimultihopqa": {
+            "f1": 0.6488,
+            "em": 0.514,
+            "acc": 0.606
+        },
+        "nq": {
+            "f1": 0.468,
+            "em": 0.326,
+            "acc": 0.546
+        },
+        "trivia": {
+            "f1": 0.663,
+            "em": 0.546,
+            "acc": 0.662
+        },
+        "squad": {
+            "f1": 0.334,
+            "em": 0.176,
+            "acc": 0.288
+        }
+    },
+    "average_f1": 0.505,
+    "routing": {
+        "total_A": 1107,
+        "total_B": 1004,
+        "total_C": 889,
+        "agreement_rate": 0.369,
+        "total_steps": 3730,
+        "per_dataset": {
+            "2wikimultihopqa": {
+                "A": 235,
+                "B": 36,
+                "C": 229,
+                "steps": 730
+            },
+            "hotpotqa": {
+                "A": 208,
+                "B": 57,
+                "C": 235,
+                "steps": 711
+            },
+            "musique": {
+                "A": 102,
+                "B": 54,
+                "C": 344,
+                "steps": 1246
+            },
+            "nq": {
+                "A": 192,
+                "B": 305,
+                "C": 3,
+                "steps": 312
+            },
+            "squad": {
+                "A": 80,
+                "B": 372,
+                "C": 48,
+                "steps": 483
+            },
+            "trivia": {
+                "A": 290,
+                "B": 180,
+                "C": 30,
+                "steps": 248
+            }
+        }
+    }
+}
