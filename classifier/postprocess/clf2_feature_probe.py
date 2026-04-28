@@ -33,6 +33,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
+    f1_score,
     roc_auc_score,
 )
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
@@ -172,14 +173,14 @@ def _evaluate_dataset(
     feature_names = ["token_len", "entity_count", "bridge_flag"]
 
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    fold_aucs, fold_accs, fold_coefs = [], [], []
+    fold_aucs, fold_accs, fold_f1s, fold_coefs = [], [], [], []
     last_fold_y_test = last_fold_y_pred = None
 
     for fold_idx, (train_idx, test_idx) in enumerate(skf.split(X, y), 1):
         X_train, X_test = X[train_idx], X[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
 
-        clf = LogisticRegression(max_iter=1000, random_state=42)
+        clf = LogisticRegression(max_iter=1000, random_state=42, class_weight='balanced')
         clf.fit(X_train, y_train)
 
         y_prob = clf.predict_proba(X_test)[:, 1]
@@ -187,6 +188,7 @@ def _evaluate_dataset(
 
         fold_aucs.append(roc_auc_score(y_test, y_prob))
         fold_accs.append(accuracy_score(y_test, y_pred))
+        fold_f1s.append(f1_score(y_test, y_pred, average='macro', zero_division=0))
         fold_coefs.append(clf.coef_[0].copy())
 
         last_fold_y_test = y_test
@@ -194,14 +196,18 @@ def _evaluate_dataset(
 
     fold_aucs = np.array(fold_aucs)
     fold_accs = np.array(fold_accs)
+    fold_f1s = np.array(fold_f1s)
     fold_coefs = np.array(fold_coefs)
 
     mean_auc = fold_aucs.mean()
     std_auc = fold_aucs.std()
     mean_acc = fold_accs.mean()
     std_acc = fold_accs.std()
+    mean_f1 = fold_f1s.mean()
+    std_f1 = fold_f1s.std()
 
     print("\n========== RESULTS (5-fold stratified CV) ==========")
+    print(f"Macro-F1: {mean_f1:.4f} ± {std_f1:.4f}")
     print(f"ROC-AUC:  {mean_auc:.4f} ± {std_auc:.4f}")
     print(f"Accuracy: {mean_acc:.4f} ± {std_acc:.4f}")
     print()
@@ -252,6 +258,8 @@ def _evaluate_dataset(
         "n_c": n_c,
         "mean_auc": mean_auc,
         "std_auc": std_auc,
+        "mean_f1": mean_f1,
+        "std_f1": std_f1,
         "mean_acc": mean_acc,
         "std_acc": std_acc,
         "mean_coefficients": mean_coef_dict,
@@ -264,19 +272,19 @@ def run_probe(model: str, data_path: str | None, output_dir: str, nlp) -> dict:
 
     When *data_path* is ``None`` (auto-detect), evaluates on both the merged
     (silver + inductive-bias) and silver-only data files if both exist.
-    The go/no-go verdict is based on the silver-only AUC (the stricter
-    evaluation); the merged AUC is reported for comparison.
+    The go/no-go verdict is based on the silver-only macro-F1 (the stricter
+    evaluation); the merged results are reported for comparison.
 
     Returns a dict with keys: model, merged, silver_only, verdict,
-    verdict_auc, verdict_std.
+    verdict_f1, verdict_std.
     """
     sub_results: dict[str, dict | None] = {"merged": None, "silver-only": None}
 
     if data_path is not None:
         # Explicit override — single evaluation, no dual-source logic
         res = _evaluate_dataset(data_path, "override", model, output_dir, nlp)
-        verdict_auc = res["mean_auc"]
-        verdict_std = res["std_auc"]
+        verdict_f1 = res["mean_f1"]
+        verdict_std = res["std_f1"]
         sub_results["override"] = res
     else:
         sources = detect_data_paths(model)
@@ -292,21 +300,21 @@ def run_probe(model: str, data_path: str | None, output_dir: str, nlp) -> dict:
             res = _evaluate_dataset(path, tag, model, output_dir, nlp)
             sub_results[tag] = res
 
-        # Verdict based on silver-only AUC; fall back to merged
+        # Verdict based on silver-only macro-F1; fall back to merged
         if sub_results["silver-only"] is not None:
-            verdict_auc = sub_results["silver-only"]["mean_auc"]
-            verdict_std = sub_results["silver-only"]["std_auc"]
+            verdict_f1 = sub_results["silver-only"]["mean_f1"]
+            verdict_std = sub_results["silver-only"]["std_f1"]
         else:
-            verdict_auc = sub_results["merged"]["mean_auc"]
-            verdict_std = sub_results["merged"]["std_auc"]
+            verdict_f1 = sub_results["merged"]["mean_f1"]
+            verdict_std = sub_results["merged"]["std_f1"]
 
-    verdict = "GO" if verdict_auc >= 0.65 else "NO-GO"
+    verdict = "GO" if verdict_f1 >= 0.55 else "NO-GO"
 
     print()
     if verdict == "GO":
-        print(f">>> VERDICT:  {verdict}  (AUC {verdict_auc:.4f} >= 0.65)")
+        print(f">>> VERDICT:  {verdict}  (macro-F1 {verdict_f1:.4f} >= 0.55)")
     else:
-        print(f">>> VERDICT:  {verdict}  (AUC {verdict_auc:.4f} < 0.65)")
+        print(f">>> VERDICT:  {verdict}  (macro-F1 {verdict_f1:.4f} < 0.55)")
 
     return {
         "model": model,
@@ -314,7 +322,7 @@ def run_probe(model: str, data_path: str | None, output_dir: str, nlp) -> dict:
         "silver_only": sub_results.get("silver-only"),
         "override": sub_results.get("override"),
         "verdict": verdict,
-        "verdict_auc": verdict_auc,
+        "verdict_f1": verdict_f1,
         "verdict_std": verdict_std,
     }
 
@@ -382,6 +390,7 @@ def main():
         print("  SUMMARY")
         print(f"{'=' * 90}")
         header = (f"{'Model':<16s}| {'N(merged)':>9s} | {'N(silver)':>9s} "
+                  f"| {'Merged F1':>12s} | {'Silver F1':>12s} "
                   f"| {'Merged AUC':>12s} | {'Silver AUC':>12s} | Verdict")
         print(header)
         print("-" * len(header))
@@ -390,9 +399,12 @@ def main():
             s = r["silver_only"]
             n_merged = str(m["n_samples"]) if m else "-"
             n_silver = str(s["n_samples"]) if s else "-"
+            f1_merged = f"{m['mean_f1']:.4f}" if m else "-"
+            f1_silver = f"{s['mean_f1']:.4f}" if s else "-"
             auc_merged = f"{m['mean_auc']:.4f}" if m else "-"
             auc_silver = f"{s['mean_auc']:.4f}" if s else "-"
             print(f"{r['model']:<16s}| {n_merged:>9s} | {n_silver:>9s} "
+                  f"| {f1_merged:>12s} | {f1_silver:>12s} "
                   f"| {auc_merged:>12s} | {auc_silver:>12s} | {r['verdict']}")
         print()
 
@@ -405,6 +417,8 @@ def main():
             "class_counts": {"B": sub["n_b"], "C": sub["n_c"]},
             "mean_auc": sub["mean_auc"],
             "std_auc": sub["std_auc"],
+            "mean_macro_f1": sub["mean_f1"],
+            "std_macro_f1": sub["std_f1"],
             "mean_accuracy": sub["mean_acc"],
             "std_accuracy": sub["std_acc"],
             "mean_coefficients": sub["mean_coefficients"],
@@ -413,7 +427,8 @@ def main():
 
     json_out: dict = {
         "models": {},
-        "go_no_go_threshold": 0.65,
+        "go_no_go_metric": "macro_f1",
+        "go_no_go_threshold": 0.55,
         "n_folds": 5,
         "random_state": 42,
     }
@@ -421,11 +436,11 @@ def main():
         model_entry: dict = {}
         if r["merged"] is not None:
             merged_json = _sub_to_json(r["merged"])
-            merged_json["verdict"] = "GO" if r["merged"]["mean_auc"] >= 0.65 else "NO-GO"
+            merged_json["verdict"] = "GO" if r["merged"]["mean_f1"] >= 0.55 else "NO-GO"
             model_entry["merged"] = merged_json
         if r["silver_only"] is not None:
             silver_json = _sub_to_json(r["silver_only"])
-            silver_json["verdict"] = "GO" if r["silver_only"]["mean_auc"] >= 0.65 else "NO-GO"
+            silver_json["verdict"] = "GO" if r["silver_only"]["mean_f1"] >= 0.55 else "NO-GO"
             model_entry["silver_only"] = silver_json
         if r.get("override") is not None:
             override_json = _sub_to_json(r["override"])

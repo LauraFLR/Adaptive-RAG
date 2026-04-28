@@ -1,0 +1,440 @@
++ set -euo pipefail
++++ dirname run-all-iterations.sh
+++ cd .
+++ pwd
++ REPO_ROOT=/root/laura/Adaptive-RAG
++ CLF_DIR=/root/laura/Adaptive-RAG/classifier
++ DATASET=musique_hotpot_wiki2_nq_tqa_sqd
++ MODELS=(flan_t5_xl flan_t5_xxl gpt)
++ SAVED_ARGS=("$@")
++ source /root/laura/adaptiverag/bin/activate
+++ deactivate nondestructive
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
+++ '[' -n '' ']'
+++ unset VIRTUAL_ENV
+++ unset VIRTUAL_ENV_PROMPT
+++ '[' '!' nondestructive = nondestructive ']'
+++ '[' linux-gnu = cygwin ']'
+++ '[' linux-gnu = msys ']'
+++ export VIRTUAL_ENV=/root/laura/adaptiverag
+++ VIRTUAL_ENV=/root/laura/adaptiverag
+++ _OLD_VIRTUAL_PATH=/usr/local/cuda-13.1/bin:/root/laura/adaptiverag/bin:/root/laura/adaptiverag/bin:/usr/local/cuda-13.1/bin:/root/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand:/root/.vscode-server/data/User/globalStorage/github.copilot-chat/copilotCli:/root/.vscode-server/cli/servers/Stable-10c8e557c8b9f9ed0a87f61f1c9a44bde731c409/server/bin/remote-cli:/usr/local/cuda-13.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+++ PATH=/root/laura/adaptiverag/bin:/usr/local/cuda-13.1/bin:/root/laura/adaptiverag/bin:/root/laura/adaptiverag/bin:/usr/local/cuda-13.1/bin:/root/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand:/root/.vscode-server/data/User/globalStorage/github.copilot-chat/copilotCli:/root/.vscode-server/cli/servers/Stable-10c8e557c8b9f9ed0a87f61f1c9a44bde731c409/server/bin/remote-cli:/usr/local/cuda-13.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+++ export PATH
+++ '[' -n '' ']'
+++ '[' -z '' ']'
+++ _OLD_VIRTUAL_PS1=
+++ PS1='(adaptiverag) '
+++ export PS1
+++ VIRTUAL_ENV_PROMPT='(adaptiverag) '
+++ export VIRTUAL_ENV_PROMPT
+++ hash -r
++ cd /root/laura/Adaptive-RAG
++ [[ 1 -gt 0 ]]
++ ITERATIONS=("${SAVED_ARGS[@]}")
++ SKIP_PHASE0=true
++ declare -A BEST_CLF1_STD BEST_CLF2_STD
++ needs_std=false
++ for i in 1 2 3 4 5 6 7
++ should_run 1
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \1 ]]
++ return 1
++ for i in 1 2 3 4 5 6 7
++ should_run 2
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \2 ]]
++ return 1
++ for i in 1 2 3 4 5 6 7
++ should_run 3
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \3 ]]
++ return 1
++ for i in 1 2 3 4 5 6 7
++ should_run 4
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \4 ]]
++ return 1
++ for i in 1 2 3 4 5 6 7
++ should_run 5
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \5 ]]
++ return 1
++ for i in 1 2 3 4 5 6 7
++ should_run 6
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \6 ]]
++ return 0
++ needs_std=true
++ for i in 1 2 3 4 5 6 7
++ should_run 7
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \7 ]]
++ return 1
++ true
++ true
++ echo ''
+
++ echo =================================================================
+=================================================================
++ echo '  PHASE 0: Skipping training (SKIP_PHASE0=true)'
+  PHASE 0: Skipping training (SKIP_PHASE0=true)
++ echo =================================================================
+=================================================================
++ echo ''
+
++ echo '--- Selecting best epochs for standard classifiers ---'
+--- Selecting best epochs for standard classifiers ---
++ for m in "${MODELS[@]}"
+++ find_best_epoch classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/no_ret_vs_ret/epoch classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xl/silver/no_retrieval_vs_retrieval/valid.json
+++ python - classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/no_ret_vs_ret/epoch classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xl/silver/no_retrieval_vs_retrieval/valid.json
+  Best epoch: 30/2026_04_25/17_19_13  (val acc 0.7319)
++ BEST_CLF1_STD[$m]=classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/no_ret_vs_ret/epoch/30/2026_04_25/17_19_13/predict/dict_id_pred_results.json
++ echo '  Clf1 flan_t5_xl: classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/no_ret_vs_ret/epoch/30/2026_04_25/17_19_13/predict/dict_id_pred_results.json'
+  Clf1 flan_t5_xl: classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/no_ret_vs_ret/epoch/30/2026_04_25/17_19_13/predict/dict_id_pred_results.json
+++ find_best_epoch classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/single_vs_multi/epoch classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xl/silver/single_vs_multi/valid.json
+++ python - classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/single_vs_multi/epoch classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xl/silver/single_vs_multi/valid.json
+  Best epoch: 35/2026_03_26/14_42_47  (val acc 0.7135)
++ BEST_CLF2_STD[$m]=classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/single_vs_multi/epoch/35/2026_03_26/14_42_47/predict/dict_id_pred_results.json
++ echo '  Clf2 flan_t5_xl: classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/single_vs_multi/epoch/35/2026_03_26/14_42_47/predict/dict_id_pred_results.json'
+  Clf2 flan_t5_xl: classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xl/single_vs_multi/epoch/35/2026_03_26/14_42_47/predict/dict_id_pred_results.json
++ for m in "${MODELS[@]}"
+++ find_best_epoch classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/no_ret_vs_ret/epoch classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xxl/silver/no_retrieval_vs_retrieval/valid.json
+++ python - classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/no_ret_vs_ret/epoch classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xxl/silver/no_retrieval_vs_retrieval/valid.json
+  Best epoch: 20/2026_04_25/18_11_34  (val acc 0.6693)
++ BEST_CLF1_STD[$m]=classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/no_ret_vs_ret/epoch/20/2026_04_25/18_11_34/predict/dict_id_pred_results.json
++ echo '  Clf1 flan_t5_xxl: classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/no_ret_vs_ret/epoch/20/2026_04_25/18_11_34/predict/dict_id_pred_results.json'
+  Clf1 flan_t5_xxl: classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/no_ret_vs_ret/epoch/20/2026_04_25/18_11_34/predict/dict_id_pred_results.json
+++ find_best_epoch classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/single_vs_multi/epoch classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xxl/silver/single_vs_multi/valid.json
+++ python - classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/single_vs_multi/epoch classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xxl/silver/single_vs_multi/valid.json
+  Best epoch: 30/2026_04_27/11_16_34  (val acc 0.6920)
++ BEST_CLF2_STD[$m]=classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/single_vs_multi/epoch/30/2026_04_27/11_16_34/predict/dict_id_pred_results.json
++ echo '  Clf2 flan_t5_xxl: classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/single_vs_multi/epoch/30/2026_04_27/11_16_34/predict/dict_id_pred_results.json'
+  Clf2 flan_t5_xxl: classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/flan_t5_xxl/single_vs_multi/epoch/30/2026_04_27/11_16_34/predict/dict_id_pred_results.json
++ for m in "${MODELS[@]}"
+++ find_best_epoch classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/gpt/no_ret_vs_ret/epoch classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/gpt/silver/no_retrieval_vs_retrieval/valid.json
+++ python - classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/gpt/no_ret_vs_ret/epoch classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/gpt/silver/no_retrieval_vs_retrieval/valid.json
+  Best epoch: 40/2026_04_25/21_20_56  (val acc 0.7310)
++ BEST_CLF1_STD[$m]=classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/gpt/no_ret_vs_ret/epoch/40/2026_04_25/21_20_56/predict/dict_id_pred_results.json
++ echo '  Clf1 gpt: classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/gpt/no_ret_vs_ret/epoch/40/2026_04_25/21_20_56/predict/dict_id_pred_results.json'
+  Clf1 gpt: classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/gpt/no_ret_vs_ret/epoch/40/2026_04_25/21_20_56/predict/dict_id_pred_results.json
+++ find_best_epoch classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/gpt/single_vs_multi/epoch classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/gpt/silver/single_vs_multi/valid.json
+++ python - classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/gpt/single_vs_multi/epoch classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/gpt/silver/single_vs_multi/valid.json
+  Best epoch: 40/2026_04_25/23_52_21  (val acc 0.5420)
++ BEST_CLF2_STD[$m]=classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/gpt/single_vs_multi/epoch/40/2026_04_25/23_52_21/predict/dict_id_pred_results.json
++ echo '  Clf2 gpt: classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/gpt/single_vs_multi/epoch/40/2026_04_25/23_52_21/predict/dict_id_pred_results.json'
+  Clf2 gpt: classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/gpt/single_vs_multi/epoch/40/2026_04_25/23_52_21/predict/dict_id_pred_results.json
++ should_run 1
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \1 ]]
++ return 1
++ should_run 2
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \2 ]]
++ return 1
++ should_run 3
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \3 ]]
++ return 1
++ should_run 4
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \4 ]]
++ return 1
++ should_run 5
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \5 ]]
++ return 1
++ should_run 6
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \6 ]]
++ return 0
++ echo ''
+
++ echo =================================================================
+=================================================================
++ echo '  IT6: Clf2 silver-only probing'
+  IT6: Clf2 silver-only probing
++ echo =================================================================
+=================================================================
++ echo '--- Running feature probe across all models ---'
+--- Running feature probe across all models ---
++ python classifier/postprocess/clf2_feature_probe.py --all_models --output_dir predictions/classifier/t5-large/iter6_probe
+/root/laura/adaptiverag/lib/python3.12/site-packages/sklearn/metrics/_classification.py:1833: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, f"{metric.capitalize()} is", result.shape[0])
+/root/laura/adaptiverag/lib/python3.12/site-packages/sklearn/metrics/_classification.py:1833: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, f"{metric.capitalize()} is", result.shape[0])
+/root/laura/adaptiverag/lib/python3.12/site-packages/sklearn/metrics/_classification.py:1833: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, f"{metric.capitalize()} is", result.shape[0])
+/root/laura/adaptiverag/lib/python3.12/site-packages/sklearn/metrics/_classification.py:1833: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, f"{metric.capitalize()} is", result.shape[0])
+/root/laura/adaptiverag/lib/python3.12/site-packages/sklearn/metrics/_classification.py:1833: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, f"{metric.capitalize()} is", result.shape[0])
+/root/laura/adaptiverag/lib/python3.12/site-packages/sklearn/metrics/_classification.py:1833: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, f"{metric.capitalize()} is", result.shape[0])
+[out]   predictions/classifier/t5-large/iter6_probe
+
+============================================================
+  MODEL: flan_t5_xl
+============================================================
+
+=== Data: merged (silver + inductive-bias) ===
+[data]  /root/laura/Adaptive-RAG/classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xl/binary_silver_single_vs_multi/train.json
+[data]  3268 B/C items  (B=1871, C=1397)
+[feat]  extracting features (spaCy NER + regex) ...
+
+--- Feature means by class ---
+       token_len  entity_count  bridge_flag
+label                                      
+B         11.869         1.511        0.169
+C         14.724         1.803        0.300
+
+[save]  predictions/classifier/t5-large/iter6_probe/clf2_feature_probe_data_flan_t5_xl_merged.csv
+
+========== RESULTS (5-fold stratified CV) ==========
+ROC-AUC:  0.6795 ± 0.0251
+Accuracy: 0.6392 ± 0.0228
+
+--- Classification report (last fold) ---
+              precision    recall  f1-score   support
+
+  B (single)       0.67      0.88      0.76       374
+   C (multi)       0.72      0.42      0.53       279
+
+    accuracy                           0.68       653
+   macro avg       0.69      0.65      0.64       653
+weighted avg       0.69      0.68      0.66       653
+
+--- Feature coefficients (positive → C), mean ± std across folds ---
+       token_len:  +0.1037 ± 0.0068
+    entity_count:  -0.0641 ± 0.0227
+     bridge_flag:  +0.6497 ± 0.0483
+       intercept:  -1.5652  (last fold)
+
+[save]  predictions/classifier/t5-large/iter6_probe/clf2_feature_probe_scatter_flan_t5_xl_merged.png
+
+=== Data: silver-only ===
+[data]  /root/laura/Adaptive-RAG/classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xl/silver/single_vs_multi/train.json
+[data]  868 B/C items  (B=671, C=197)
+[feat]  extracting features (spaCy NER + regex) ...
+
+--- Feature means by class ---
+       token_len  entity_count  bridge_flag
+label                                      
+B         13.703         1.754        0.198
+C         13.533         1.421        0.299
+
+[save]  predictions/classifier/t5-large/iter6_probe/clf2_feature_probe_data_flan_t5_xl_silver-only.csv
+
+========== RESULTS (5-fold stratified CV) ==========
+ROC-AUC:  0.6053 ± 0.0332
+Accuracy: 0.7730 ± 0.0024
+
+--- Classification report (last fold) ---
+              precision    recall  f1-score   support
+
+  B (single)       0.77      1.00      0.87       134
+   C (multi)       0.00      0.00      0.00        39
+
+    accuracy                           0.77       173
+   macro avg       0.39      0.50      0.44       173
+weighted avg       0.60      0.77      0.68       173
+
+--- Feature coefficients (positive → C), mean ± std across folds ---
+       token_len:  +0.0209 ± 0.0063
+    entity_count:  -0.2939 ± 0.0258
+     bridge_flag:  +0.5362 ± 0.0452
+       intercept:  -1.0828  (last fold)
+
+[save]  predictions/classifier/t5-large/iter6_probe/clf2_feature_probe_scatter_flan_t5_xl_silver-only.png
+
+>>> VERDICT:  NO-GO  (AUC 0.6053 < 0.65)
+
+============================================================
+  MODEL: flan_t5_xxl
+============================================================
+
+=== Data: merged (silver + inductive-bias) ===
+[data]  /root/laura/Adaptive-RAG/classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xxl/binary_silver_single_vs_multi/train.json
+[data]  3298 B/C items  (B=1903, C=1395)
+[feat]  extracting features (spaCy NER + regex) ...
+
+--- Feature means by class ---
+       token_len  entity_count  bridge_flag
+label                                      
+B         11.877         1.511        0.173
+C         14.718         1.804        0.311
+
+[save]  predictions/classifier/t5-large/iter6_probe/clf2_feature_probe_data_flan_t5_xxl_merged.csv
+
+========== RESULTS (5-fold stratified CV) ==========
+ROC-AUC:  0.6806 ± 0.0236
+Accuracy: 0.6407 ± 0.0182
+
+--- Classification report (last fold) ---
+              precision    recall  f1-score   support
+
+  B (single)       0.65      0.85      0.73       380
+   C (multi)       0.64      0.37      0.47       279
+
+    accuracy                           0.65       659
+   macro avg       0.65      0.61      0.60       659
+weighted avg       0.65      0.65      0.62       659
+
+--- Feature coefficients (positive → C), mean ± std across folds ---
+       token_len:  +0.1059 ± 0.0066
+    entity_count:  -0.0679 ± 0.0227
+     bridge_flag:  +0.6958 ± 0.0446
+       intercept:  -1.7135  (last fold)
+
+[save]  predictions/classifier/t5-large/iter6_probe/clf2_feature_probe_scatter_flan_t5_xxl_merged.png
+
+=== Data: silver-only ===
+[data]  /root/laura/Adaptive-RAG/classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xxl/silver/single_vs_multi/train.json
+[data]  898 B/C items  (B=703, C=195)
+[feat]  extracting features (spaCy NER + regex) ...
+
+--- Feature means by class ---
+       token_len  entity_count  bridge_flag
+label                                      
+B         13.640         1.743        0.208
+C         13.477         1.421        0.379
+
+[save]  predictions/classifier/t5-large/iter6_probe/clf2_feature_probe_data_flan_t5_xxl_silver-only.csv
+
+========== RESULTS (5-fold stratified CV) ==========
+ROC-AUC:  0.6281 ± 0.0350
+Accuracy: 0.7828 ± 0.0006
+
+--- Classification report (last fold) ---
+              precision    recall  f1-score   support
+
+  B (single)       0.78      1.00      0.88       140
+   C (multi)       0.00      0.00      0.00        39
+
+    accuracy                           0.78       179
+   macro avg       0.39      0.50      0.44       179
+weighted avg       0.61      0.78      0.69       179
+
+--- Feature coefficients (positive → C), mean ± std across folds ---
+       token_len:  +0.0215 ± 0.0049
+    entity_count:  -0.2811 ± 0.0213
+     bridge_flag:  +0.8364 ± 0.0578
+       intercept:  -1.3570  (last fold)
+
+[save]  predictions/classifier/t5-large/iter6_probe/clf2_feature_probe_scatter_flan_t5_xxl_silver-only.png
+
+>>> VERDICT:  NO-GO  (AUC 0.6281 < 0.65)
+
+============================================================
+  MODEL: gpt
+============================================================
+
+=== Data: merged (silver + inductive-bias) ===
+[data]  /root/laura/Adaptive-RAG/classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/gpt/binary_silver_single_vs_multi/train.json
+[data]  2804 B/C items  (B=1475, C=1329)
+[feat]  extracting features (spaCy NER + regex) ...
+
+--- Feature means by class ---
+       token_len  entity_count  bridge_flag
+label                                      
+B         11.332         1.435        0.180
+C         14.817         1.831        0.312
+
+[save]  predictions/classifier/t5-large/iter6_probe/clf2_feature_probe_data_gpt_merged.csv
+
+========== RESULTS (5-fold stratified CV) ==========
+ROC-AUC:  0.7124 ± 0.0141
+Accuracy: 0.6526 ± 0.0151
+
+--- Classification report (last fold) ---
+              precision    recall  f1-score   support
+
+  B (single)       0.63      0.76      0.69       295
+   C (multi)       0.65      0.51      0.58       265
+
+    accuracy                           0.64       560
+   macro avg       0.64      0.63      0.63       560
+weighted avg       0.64      0.64      0.64       560
+
+--- Feature coefficients (positive → C), mean ± std across folds ---
+       token_len:  +0.1458 ± 0.0066
+    entity_count:  -0.0294 ± 0.0311
+     bridge_flag:  +0.6438 ± 0.0591
+       intercept:  -2.1416  (last fold)
+
+[save]  predictions/classifier/t5-large/iter6_probe/clf2_feature_probe_scatter_gpt_merged.png
+
+=== Data: silver-only ===
+[data]  /root/laura/Adaptive-RAG/classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/gpt/silver/single_vs_multi/train.json
+[data]  404 B/C items  (B=275, C=129)
+[feat]  extracting features (spaCy NER + regex) ...
+
+--- Feature means by class ---
+       token_len  entity_count  bridge_flag
+label                                      
+B         13.462         1.691        0.295
+C         13.868         1.504        0.426
+
+[save]  predictions/classifier/t5-large/iter6_probe/clf2_feature_probe_data_gpt_silver-only.csv
+
+========== RESULTS (5-fold stratified CV) ==========
+ROC-AUC:  0.5850 ± 0.0490
+Accuracy: 0.6707 ± 0.0114
+
+--- Classification report (last fold) ---
+              precision    recall  f1-score   support
+
+  B (single)       0.68      0.93      0.78        55
+   C (multi)       0.20      0.04      0.07        25
+
+    accuracy                           0.65        80
+   macro avg       0.44      0.48      0.43        80
+weighted avg       0.53      0.65      0.56        80
+
+--- Feature coefficients (positive → C), mean ± std across folds ---
+       token_len:  +0.0299 ± 0.0131
+    entity_count:  -0.2336 ± 0.0388
+     bridge_flag:  +0.5532 ± 0.0900
+       intercept:  -1.1696  (last fold)
+
+[save]  predictions/classifier/t5-large/iter6_probe/clf2_feature_probe_scatter_gpt_silver-only.png
+
+>>> VERDICT:  NO-GO  (AUC 0.5850 < 0.65)
+
+
+==========================================================================================
+  SUMMARY
+==========================================================================================
+Model           | N(merged) | N(silver) |   Merged AUC |   Silver AUC | Verdict
+-------------------------------------------------------------------------------
+flan_t5_xl      |      3268 |       868 |       0.6795 |       0.6053 | NO-GO
+flan_t5_xxl     |      3298 |       898 |       0.6806 |       0.6281 | NO-GO
+gpt             |      2804 |       404 |       0.7124 |       0.5850 | NO-GO
+
+[save]  predictions/classifier/t5-large/iter6_probe/clf2_feature_probe_results.json
++ should_run 7
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \7 ]]
++ return 1
++ should_run 8
++ for i in "${ITERATIONS[@]}"
++ [[ 6 == \8 ]]
++ return 1
++ echo ''
+
++ echo =================================================================
+=================================================================
++ echo '  All requested iterations complete.'
+  All requested iterations complete.
++ echo =================================================================
+=================================================================
++ echo ''
+
++ echo 'Results under predictions/classifier/t5-large/{model}/iter*/'
+Results under predictions/classifier/t5-large/{model}/iter*/
++ echo 'Re-evaluate with:'
+Re-evaluate with:
++ echo '  python evaluate_final_acc.py --pred_path predictions/classifier/t5-large/<model>/iter<N>_<tag>/'
+  python evaluate_final_acc.py --pred_path predictions/classifier/t5-large/<model>/iter<N>_<tag>/

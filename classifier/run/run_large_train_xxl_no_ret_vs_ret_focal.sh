@@ -44,7 +44,7 @@ do
 		--focal_alpha ${FOCAL_ALPHA}
 
 	# FocalLossTrainer saves in checkpoint-* dirs; evaluate the latest checkpoint.
-	CKPT_PATH=$(ls -d ${TRAIN_OUTPUT_DIR}/checkpoint-* 2>/dev/null | sort -V | tail -n 1)
+	CKPT_PATH=$(ls -d ${TRAIN_OUTPUT_DIR}/checkpoint-* 2>/dev/null | sort -V | tail -n 1 || true)
 	if [[ -z "${CKPT_PATH}" ]]; then
 		CKPT_PATH=${TRAIN_OUTPUT_DIR}
 	fi
