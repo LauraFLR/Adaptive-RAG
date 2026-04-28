@@ -13,16 +13,23 @@
 
 | File | Role |
 |---|---|
-| `classifier/run/run_large_train_feat_single_vs_multi.sh` (99 lines) | **New.** Single shell script that trains, validates, and predicts for all three model variants. Parameterized by positional arg (`flan_t5_xl`, `flan_t5_xxl`, `gpt`). |
-| `classifier/data_utils/add_feature_prefix.py` (118 lines) | **New.** Offline preprocessing script that reads original Clf2 JSON files, computes features via spaCy + regex, prepends `[LEN:X] [ENT:Y] [BRIDGE:Z]` to each question, and writes new files. Run once before training. |
-| `classifier/postprocess/clf2_feature_probe.py` (443 lines) | **Reference only (IT6).** Defines the same three features and seven bridge-flag regex patterns. Not imported by the training pipeline. |
-| `classifier/run_classifier.py` (937 lines) | Shared — the manual Accelerate training loop (non-focal path) is the active code path. |
+| `classifier/run/run_large_train_feat_single_vs_multi.sh` (102 lines) | **New.** Single shell script that trains, validates, and predicts for all three model variants. Parameterized by positional arg (`flan_t5_xl`, `flan_t5_xxl`, `gpt`). |
+| `classifier/data_utils/add_feature_prefix.py` (120 lines) | **New.** Offline preprocessing script that reads original Clf2 JSON files, computes features via spaCy + regex, prepends `[LEN:X] [ENT:Y] [BRIDGE:Z]` to each question, and writes new files. Run once before training. |
+| `classifier/postprocess/clf2_feature_probe.py` (497 lines) | **Reference only (IT6).** Defines the same three features and seven bridge-flag regex patterns. Not imported by the training pipeline. |
+| `classifier/run_classifier.py` (940 lines) | Shared — the manual Accelerate training loop (non-focal path) is the active code path. |
 | `classifier/utils.py` (254 lines) | Shared — `preprocess_features_function()` tokenizes the (now-prefixed) question string. |
 | `classifier/postprocess/predict_complexity_split_classifiers.py` | Routing — merges Clf1 + Clf2 predictions into A/B/C, routes to QA strategy answers. **Identical to IT1.** |
 | `classifier/postprocess/predict_complexity_agreement.py` (251 lines) | Routing — IT5 agreement gate. Intended Gate 1 pairing for IT7. |
 | `evaluate_final_acc.py` (341 lines) | QA evaluation — **identical to IT1.** |
+| `run-all-iterations.sh` | Orchestrator — **does NOT call the feature-augmented Clf2 training** (see §1.1 note below). |
 
 **`run_classifier.py` and `utils.py` are NOT modified.** The feature injection happens entirely in the data files — the training script reads the pre-augmented JSON files and processes them through the same tokenization pipeline as IT1.
+
+### 1.1 Orchestrator mismatch
+
+`run-all-iterations.sh` labels its 7th iteration as **"UE kappa (fully training-free)"** (L325–335), which calls `route_kappa()` → `predict_complexity_kappa.py` — a SymRAG-inspired structural κ(q) score that requires **no model training**.  This is a **different experiment** from the feature-augmented Clf2 described in the rest of this document.
+
+The feature-augmented Clf2 pipeline (`add_feature_prefix.py` → `run_large_train_feat_single_vs_multi.sh` → routing) is **not wired into the orchestrator**.  It must be run as a standalone experiment outside `run-all-iterations.sh`.
 
 ---
 
@@ -34,7 +41,7 @@ The model is the same T5-Large (~770 M parameters) loaded via `AutoModelForSeq2S
 
 ### 2.2 How features are prepended
 
-Features are injected as a **plain-text prefix** before the original question string. The preprocessing script `add_feature_prefix.py` modifies the `"question"` field in each JSON item at [L65–68]:
+Features are injected as a **plain-text prefix** before the original question string. The preprocessing script `add_feature_prefix.py` modifies the `"question"` field in each JSON item at [L65–67]:
 
 ```python
 item["question"] = (
@@ -90,9 +97,9 @@ The model learns to attend to these prefix tokens during fine-tuning. No explici
 
 | Feature | Tag format | Extraction logic | Library | Source file |
 |---|---|---|---|---|
-| `token_len` | `[LEN:X]` | `len(question.split())` — whitespace-split word count | Built-in `str.split()` | `add_feature_prefix.py` [L65] |
-| `entity_count` | `[ENT:Y]` | `len(doc.ents)` — spaCy named-entity count | spaCy `en_core_web_sm` | `add_feature_prefix.py` [L66] |
-| `bridge_flag` | `[BRIDGE:Z]` | `1 if _BRIDGE_RE.search(question) else 0` — binary regex match | `re` stdlib | `add_feature_prefix.py` [L67] |
+| `token_len` | `[LEN:X]` | `len(question.split())` — whitespace-split word count | Built-in `str.split()` | `add_feature_prefix.py` [L62] |
+| `entity_count` | `[ENT:Y]` | `len(doc.ents)` — spaCy named-entity count | spaCy `en_core_web_sm` | `add_feature_prefix.py` [L63] |
+| `bridge_flag` | `[BRIDGE:Z]` | `1 if _BRIDGE_RE.search(question) else 0` — binary regex match | `re` stdlib | `add_feature_prefix.py` [L64] |
 
 ### 3.2 Feature set is identical to Iteration 6
 
@@ -101,7 +108,7 @@ The three features and their extraction logic are the same as in `clf2_feature_p
 | Pattern | `add_feature_prefix.py` lines | `clf2_feature_probe.py` lines |
 |---|---|---|
 | 7 regex patterns | [L30–37] | [L60–73] |
-| Compiled alternation | [L38] | [L74] |
+| Compiled alternation | [L38] | [L75] |
 
 Both files import `re`, define the same 7 patterns in the same order, and compile them with `re.IGNORECASE`.
 
@@ -154,9 +161,9 @@ The flag varies substantially across datasets — from 8.4 % (squad) to 37.0 % (
 | Loss | Standard CE (T5 built-in) | Standard CE | ✓ |
 | `--use_focal_loss` | **Not set** | Not set | ✓ |
 | `--auto_class_weights` | **Not set** | Not set | ✓ |
-| Optimizer | `torch.optim.AdamW` [run_classifier.py L640] | `torch.optim.AdamW` | ✓ |
+| Optimizer | `torch.optim.AdamW` [run_classifier.py L643] | `torch.optim.AdamW` | ✓ |
 | LR scheduler | `get_scheduler("linear")` | `get_scheduler("linear")` | ✓ |
-| Code path | Manual Accelerate loop [run_classifier.py L730–840] | Manual Accelerate loop | ✓ |
+| Code path | Manual Accelerate loop [run_classifier.py L731–842] | Manual Accelerate loop | ✓ |
 | **Training file** | **`binary_silver_feat_single_vs_multi/train.json`** | `binary_silver_single_vs_multi/train.json` | **Different (feature-prefixed)** |
 | **Validation file** | **`silver_feat_single_vs_multi/valid.json`** | `silver/single_vs_multi/valid.json` | **Different (feature-prefixed)** |
 | **Predict file** | **`feat_predict.json`** | `predict.json` | **Different (feature-prefixed)** |
@@ -166,7 +173,7 @@ The flag varies substantially across datasets — from 8.4 % (squad) to 37.0 % (
 
 ### 4.2 Epoch ranges match standard Clf2
 
-The script conditionally sets epoch ranges [run_large_train_feat_single_vs_multi.sh L30–34]:
+The script conditionally sets epoch ranges [run_large_train_feat_single_vs_multi.sh L31–35]:
 
 ```bash
 if [ "$LLM_NAME" = "gpt" ]; then
@@ -180,10 +187,10 @@ These are **identical** to the standard Clf2 scripts (`run_large_train_{xl,xxl}_
 
 ### 4.3 Code path: manual Accelerate training loop
 
-Since `--use_focal_loss` is not set, the training enters the manual Accelerate loop at [run_classifier.py L730–840]:
-- `torch.optim.AdamW` optimizer [L640]
-- `accelerator.prepare(model, optimizer)` [L650–651]
-- Standard `outputs = model(**batch)` → `loss = outputs.loss` [L785–786]
+Since `--use_focal_loss` is not set, the training enters the manual Accelerate loop at [run_classifier.py L731–842]:
+- `torch.optim.AdamW` optimizer [L643]
+- `accelerator.prepare(model, optimizer)` [L651–653]
+- Standard `outputs = model(**batch)` → `loss = outputs.loss` [L782–783]
 - T5's built-in full-vocabulary cross-entropy (not the 2-class softmax used in IT3/IT4)
 
 ---
@@ -208,7 +215,7 @@ No binning (e.g., "short"/"medium"/"long"), no min-max normalization, no z-score
 
 ### 5.3 The f-string format
 
-At [add_feature_prefix.py L65–68]:
+At [add_feature_prefix.py L65–67]:
 
 ```python
 item["question"] = (
@@ -236,13 +243,13 @@ With `max_seq_length=384` and a prefix overhead of 18 tokens, the effective capa
 
 ### 5.6 Batch NER processing
 
-The `augment_file()` function [add_feature_prefix.py L52–74] processes all questions in a single spaCy batch for efficiency [L58]:
+The `augment_file()` function [add_feature_prefix.py L50–73] processes all questions in a single spaCy batch for efficiency [L58]:
 
 ```python
 docs = list(nlp.pipe(questions, batch_size=512))
 ```
 
-The spaCy model is loaded once with `disable=["parser", "lemmatizer"]` [L80], keeping only the NER pipeline component.
+The spaCy model is loaded once with `disable=["parser", "lemmatizer"]` [L79], keeping only the NER pipeline component.
 
 ---
 
@@ -276,7 +283,7 @@ The sole difference from IT1's Clf2 is the `[LEN:X] [ENT:Y] [BRIDGE:Z]` prefix i
 
 ### 7.1 No Gate 1 training
 
-The shell script trains only Clf2 (B vs C). There is no Clf1 (A vs R) training in IT7. The `--labels B C` argument confirms this [run_large_train_feat_single_vs_multi.sh L49].
+The shell script trains only Clf2 (B vs C). There is no Clf1 (A vs R) training in IT7. The `--labels B C` argument confirms this [run_large_train_feat_single_vs_multi.sh L51].
 
 ### 7.2 Intended Gate 1 pairing
 
@@ -409,7 +416,7 @@ The directory names (`feat_single_vs_multi` vs `single_vs_multi`) are distinct. 
 
 | Issue | Detail |
 |---|---|
-| **What** | The predict file `feat_predict.json` is generated once (not per-model) at [add_feature_prefix.py L107–109]. All three model variants use the same file [run_large_train_feat_single_vs_multi.sh L84]. |
+| **What** | The predict file `feat_predict.json` is generated once (not per-model) at [add_feature_prefix.py L111–113]. All three model variants use the same file [run_large_train_feat_single_vs_multi.sh L87]. |
 | **Implication** | This is correct — predict.json contains the same 3 000 questions for all models. The features are question-intrinsic, so they don't depend on the model variant. However, training files are per-model because different models produce different silver labels (different B/C splits). |
 | **Risk** | None — this is intentional and correct. |
 
@@ -417,7 +424,7 @@ The directory names (`feat_single_vs_multi` vs `single_vs_multi`) are distinct. 
 
 | Issue | Detail |
 |---|---|
-| **What** | `add_feature_prefix.py` [L30–38] and `clf2_feature_probe.py` [L59–74] define identical `BRIDGE_PATTERNS` lists and `_BRIDGE_RE` compiled regex. The entity-count and token-length logic is also duplicated. Neither file imports from the other. |
+| **What** | `add_feature_prefix.py` [L30–38] and `clf2_feature_probe.py` [L59–75] define identical `BRIDGE_PATTERNS` lists and `_BRIDGE_RE` compiled regex. The entity-count and token-length logic is also duplicated. Neither file imports from the other. |
 | **Risk** | If one file's patterns are updated and the other is not, the features used in the diagnostic probe (IT6) and the training data (IT7) would diverge. |
 | **Status** | Currently identical. |
 

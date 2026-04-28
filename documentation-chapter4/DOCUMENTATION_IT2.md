@@ -18,6 +18,8 @@
 | `classifier/run/run_large_train_gpt_single_vs_multi.sh` | Gate 2 — **identical** to IT1 (B vs C, GPT, binary_silver training data). |
 | `classifier/postprocess/predict_complexity_split_classifiers.py` | Cascade routing — **identical** to IT1. |
 | `evaluate_final_acc.py` | QA evaluation — **identical** to IT1. |
+| `run-all-iterations.sh` | Top-level orchestrator — trains undersampled Clf1 (IT2 section), selects best epoch via `find_best_epoch()`, routes predictions via `route_split()`, and evaluates via `evaluate_final_acc.py`. |
+| `classifier/postprocess/postprocess_utils.py` | Shared helpers: `load_json()`, `save_json()`, `save_prediction_with_classified_label()`. |
 | `classifier/data/.../gpt/silver/no_retrieval_vs_retrieval/train.json` | Input to undersampling script (original 1 417-sample Clf1 training set). |
 | `classifier/data/.../gpt/silver/no_retrieval_vs_retrieval/train_undersampled.json` | Output of undersampling script (balanced 808-sample Clf1 training set). |
 | `classifier/data/.../gpt/silver/no_retrieval_vs_retrieval/valid.json` | Clf1 validation — **unchanged** from IT1. |
@@ -71,7 +73,7 @@
 
 ### 4.1 Overview
 
-Undersampling is performed **offline, before training starts**, as a static data preprocessing step. The shell script `run_large_train_gpt_no_ret_vs_ret_undersampled.sh` calls the undersampling script at line 11 before entering the `for EPOCH in ...` loop:
+Undersampling is performed **offline, before training starts**, as a static data preprocessing step. The shell script `run_large_train_gpt_no_ret_vs_ret_undersampled.sh` calls the undersampling script at line 12 before entering the `for EPOCH in ...` loop:
 
 ```bash
 python ./data_utils/make_no_ret_vs_ret_undersampled.py --model ${LLM_NAME}
@@ -83,16 +85,16 @@ This writes `train_undersampled.json` to disk; the training loop then reads that
 
 | Step | Code | Location |
 |---|---|---|
-| 1. Parse `--model gpt --seed 42` | `parse_args()` | [make_no_ret_vs_ret_undersampled.py L8–28] |
-| 2. Resolve input path to `.../gpt/silver/no_retrieval_vs_retrieval/train.json` and output to `train_undersampled.json` | `default_paths(model)` | [make_no_ret_vs_ret_undersampled.py L31–34] |
-| 3. Load full training data as a Python list of dicts | `json.load(f)` | [make_no_ret_vs_ret_undersampled.py L42–43] |
-| 4. Partition into `by_label["A"]` and `by_label["R"]` buckets | for-loop over items | [make_no_ret_vs_ret_undersampled.py L45–49] |
-| 5. Compute `minority_size = min(len(A), len(R))` | `min()` | [make_no_ret_vs_ret_undersampled.py L52] |
-| 6. Seed an independent RNG: `rng = random.Random(42)` | `random.Random(args.seed)` | [make_no_ret_vs_ret_undersampled.py L53] |
-| 7. Start balanced set with **all R samples** (full copy) | `balanced = list(by_label["R"])` | [make_no_ret_vs_ret_undersampled.py L55] |
-| 8. Sample `minority_size` A samples **without replacement** | `rng.sample(by_label["A"], minority_size)` | [make_no_ret_vs_ret_undersampled.py L56] |
-| 9. Shuffle the combined list | `rng.shuffle(balanced)` | [make_no_ret_vs_ret_undersampled.py L57] |
-| 10. Write to `train_undersampled.json` | `json.dump(balanced, f, indent=4)` | [make_no_ret_vs_ret_undersampled.py L59–60] |
+| 1. Parse `--model gpt --seed 42` | `parse_args()` | [make_no_ret_vs_ret_undersampled.py L8–26] |
+| 2. Resolve input path to `.../gpt/silver/no_retrieval_vs_retrieval/train.json` and output to `train_undersampled.json` | `default_paths(model)` | [make_no_ret_vs_ret_undersampled.py L29–32] |
+| 3. Load full training data as a Python list of dicts | `json.load(f)` | [make_no_ret_vs_ret_undersampled.py L43–44] |
+| 4. Partition into `by_label["A"]` and `by_label["R"]` buckets | for-loop over items | [make_no_ret_vs_ret_undersampled.py L46–51] |
+| 5. Compute `minority_size = min(len(A), len(R))` | `min()` | [make_no_ret_vs_ret_undersampled.py L53] |
+| 6. Seed an independent RNG: `rng = random.Random(42)` | `random.Random(args.seed)` | [make_no_ret_vs_ret_undersampled.py L54] |
+| 7. Start balanced set with **all R samples** (full copy) | `balanced = list(by_label["R"])` | [make_no_ret_vs_ret_undersampled.py L56] |
+| 8. Sample `minority_size` A samples **without replacement** | `rng.sample(by_label["A"], minority_size)` | [make_no_ret_vs_ret_undersampled.py L57] |
+| 9. Shuffle the combined list | `rng.shuffle(balanced)` | [make_no_ret_vs_ret_undersampled.py L58] |
+| 10. Write to `train_undersampled.json` | `json.dump(balanced, f, indent=4)` | [make_no_ret_vs_ret_undersampled.py L61–62] |
 
 ### 4.3 Target ratio
 
@@ -118,13 +120,13 @@ This writes `train_undersampled.json` to disk; the training loop then reads that
 
 | Seed aspect | Value | Notes |
 |---|---|---|
-| Undersampling seed | `42` | Default value of `--seed` [make_no_ret_vs_ret_undersampled.py L14]. Passed to `random.Random(42)` — an **independent** RNG instance, not the global `random` module state. |
+| Undersampling seed | `42` | Default value of `--seed` [make_no_ret_vs_ret_undersampled.py L13]. Passed to `random.Random(42)` — an **independent** RNG instance, not the global `random` module state. |
 | Training seed | `42` | Passed as `--seed 42` in the shell script. Applied via `accelerate.utils.set_seed(42)` inside `run_classifier.py`. |
 | Relationship | **Independent** | The undersampling RNG is created and consumed in a separate Python process that exits before training begins. The two seeds happen to share the same value `42` but are applied to different RNGs in different processes. |
 
 ### 4.6 Implicit assumption in the code
 
-The algorithm at line 55 starts with `balanced = list(by_label["R"])` (all R samples), then samples from A. This **assumes R is the minority class**. For GPT data this is correct (R = 404 < A = 1 013). However, for `flan_t5_xl` and `flan_t5_xxl` where R is the **majority** class, the code would still work correctly: `minority_size = min(A, R)` would be A's count, `balanced` would start with all R, then sample `minority_size` from A — but then R would still be unsampled at full size while A is fully included. The resulting set would be `(all R) + (all A)` = original data, since both A and R contribute their full counts when A ≤ R. Actually: `balanced = list(by_label["R"])` takes all 868 R, then `rng.sample(by_label["A"], 424)` takes all 424 A → total 1 292 = original size. So for XL the script would produce the full dataset unmodified, because the minority class (A = 424) gets fully sampled and the majority class (R = 868) is taken in full. This is a latent defect: R should also be downsampled to `minority_size`. In practice it doesn't matter because no XL/XXL undersampling shell script exists.
+The algorithm at line 56 starts with `balanced = list(by_label["R"])` (all R samples), then samples from A. This **assumes R is the minority class**. For GPT data this is correct (R = 404 < A = 1 013). However, for `flan_t5_xl` and `flan_t5_xxl` where R is the **majority** class, the code would still work correctly: `minority_size = min(A, R)` would be A's count, `balanced` would start with all R, then sample `minority_size` from A — but then R would still be unsampled at full size while A is fully included. The resulting set would be `(all R) + (all A)` = original data, since both A and R contribute their full counts when A ≤ R. Actually: `balanced = list(by_label["R"])` takes all 868 R, then `rng.sample(by_label["A"], 424)` takes all 424 A → total 1 292 = original size. So for XL the script would produce the full dataset unmodified, because the minority class (A = 424) gets fully sampled and the majority class (R = 868) is taken in full. This is a latent defect: R should also be downsampled to `minority_size`. In practice it doesn't matter because no XL/XXL undersampling shell script exists.
 
 ---
 
@@ -192,8 +194,8 @@ The routing script and evaluation pipeline are identical to IT1. The only operat
 | Per-epoch prediction | `run_classifier.py --do_eval` on `predict.json` → classification labels | No |
 | Cascade routing | `predict_complexity_split_classifiers.py` merging Clf1 + Clf2 predictions | No |
 | QA evaluation | `evaluate_final_acc.py --pred_path ...` computing EM/F1/acc per dataset | No |
-| Accuracy function | `calculate_accuracy()` [utils.py L237] | No |
-| Per-class accuracy | `calculate_accuracy_perClass()` [utils.py L244] | No |
+| Accuracy function | `calculate_accuracy()` [utils.py L231] | No |
+| Per-class accuracy | `calculate_accuracy_perClass()` [utils.py L240] | No |
 | Official evaluators | HotpotQA, 2WikiMultiHop, MuSiQue | No |
 | SquadAnswerEmF1 | nq, trivia, squad | No |
 
@@ -246,7 +248,7 @@ classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/
 
 | File | Location | Overwrites on re-run? |
 |---|---|---|
-| `train_undersampled.json` | `classifier/data/.../gpt/silver/no_retrieval_vs_retrieval/train_undersampled.json` | **Yes** — the shell script calls the undersampling script unconditionally before every training run [run_large_train_gpt_no_ret_vs_ret_undersampled.sh L11]. The file is silently overwritten. |
+| `train_undersampled.json` | `classifier/data/.../gpt/silver/no_retrieval_vs_retrieval/train_undersampled.json` | **Yes** — the shell script calls the undersampling script unconditionally before every training run [run_large_train_gpt_no_ret_vs_ret_undersampled.sh L12]. The file is silently overwritten. |
 
 ---
 
@@ -258,7 +260,7 @@ classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/
 |---|---|
 | **What** | 609 of 1 417 samples (43.0 %) are discarded from Clf1 training. |
 | **Risk** | The model sees only 808 training samples. With batch size 32, that is just 26 steps per epoch. Information from 60 % of the A-class samples is permanently lost. |
-| **File** | [make_no_ret_vs_ret_undersampled.py L52–57] |
+| **File** | [make_no_ret_vs_ret_undersampled.py L53–58] |
 | **Mitigation** | None — no oversampling, SMOTE, or weighted loss is combined with the undersampling. |
 
 ### 9.2 High epoch count on small dataset
@@ -266,16 +268,16 @@ classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/
 | Issue | Detail |
 |---|---|
 | **What** | 35–40 epochs on 808 samples (26 steps/epoch). The model sees every training sample ~35–40 times. |
-| **Risk** | Severe overfitting risk. With no early stopping, no validation-based selection, and the model overwrite-per-epoch behaviour (§8.1 of DOCUMENTATION_IT1.md), the saved model is always the epoch-40 model regardless of when peak performance occurred. |
-| **File** | [run_large_train_gpt_no_ret_vs_ret_undersampled.sh L13: `for EPOCH in 35 40`] |
+| **Risk** | Overfitting risk. No early stopping or intermediate checkpointing is used within a single training run — only epochs 35 and 40 are checkpointed. `run-all-iterations.sh` selects the better of these two via `find_best_epoch()`, providing coarse validation-based selection, but intermediate epochs (e.g. 20, 25, 30) are not evaluated. |
+| **File** | [run_large_train_gpt_no_ret_vs_ret_undersampled.sh L14: `for EPOCH in 35 40`] |
 
 ### 9.3 Undersampling re-run behaviour
 
 | Issue | Detail |
 |---|---|
-| **What** | The undersampling script is called **every time** the shell script runs [L11], unconditionally. It overwrites `train_undersampled.json` on disk. |
+| **What** | The undersampling script is called **every time** the shell script runs [L12], unconditionally. It overwrites `train_undersampled.json` on disk. |
 | **Risk** | Since the undersampling seed is fixed at `42` and the input file is deterministic, the output is reproducible across re-runs. However, if someone manually edits `train.json` or the undersampling script between runs, the generated file changes silently. There is no checksum or staleness check. |
-| **File** | [run_large_train_gpt_no_ret_vs_ret_undersampled.sh L11] |
+| **File** | [run_large_train_gpt_no_ret_vs_ret_undersampled.sh L12] |
 
 ### 9.4 GPT-only scope
 
@@ -293,13 +295,13 @@ classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/
 | **Risk** | For XL data (A=424, R=868): `minority_size = 424`, `balanced` = all 868 R + 424 sampled A = 1 292. This equals the original dataset — no undersampling occurs. For XXL (A=511, R=898): same issue — result would be 898 R + 511 A = 1 409 = original. The script silently produces the full dataset when R > A. |
 | **Correct fix** | Should be: undersample whichever class is larger to `minority_size`, keeping the smaller class intact. |
 | **Impact on IT2** | **None** — the script is only invoked for GPT where R (404) < A (1 013), so the defect is not triggered. |
-| **File** | [make_no_ret_vs_ret_undersampled.py L55–56] |
+| **File** | [make_no_ret_vs_ret_undersampled.py L56–57] |
 
 ### 9.6 Shell strictness difference from IT1
 
 | Issue | Detail |
 |---|---|
-| **What** | The IT2 script uses `set -euo pipefail` [L2] and `GPU=${GPU:-0}` [L8]. The IT1 GPT Clf1 script has neither. |
+| **What** | The IT2 script uses `set -euo pipefail` [L2] and `GPU=${GPU:-0}` [L9]. The IT1 GPT Clf1 script has neither. |
 | **Risk** | `set -euo pipefail` means any non-zero exit code (including from the undersampling script or `mkdir -p`) will abort the entire run. IT1 would silently continue past failures. This is **safer** behaviour in IT2 but means the two scripts have different failure semantics. |
 | **File** | [run_large_train_gpt_no_ret_vs_ret_undersampled.sh L2] vs [run_large_train_gpt_no_ret_vs_ret.sh — no equivalent line] |
 

@@ -20,6 +20,7 @@
 | `classifier/run/run_large_train_{xl,xxl,gpt}_single_vs_multi.sh` | Gate 2 — **identical** to IT1. |
 | `classifier/postprocess/predict_complexity_split_classifiers.py` | Cascade routing — **identical** to IT1. |
 | `evaluate_final_acc.py` | QA evaluation — **identical** to IT1. |
+| `run-all-iterations.sh` | Top-level orchestrator — trains focal Clf1 (IT4 block), selects best epoch via `find_best_epoch()`, routes via `route_split "iter4_focal"`, and evaluates. |
 
 ---
 
@@ -64,9 +65,9 @@
 
 | Model | `--focal_alpha` | Source |
 |---|---|---|
-| `flan_t5_xl` | `0.33` | [run_large_train_xl_no_ret_vs_ret_focal.sh L12: `FOCAL_ALPHA=${FOCAL_ALPHA:-0.33}`] |
-| `flan_t5_xxl` | `0.36` | [run_large_train_xxl_no_ret_vs_ret_focal.sh L12: `FOCAL_ALPHA=${FOCAL_ALPHA:-0.36}`] |
-| `gpt` | `0.71` | [run_large_train_gpt_no_ret_vs_ret_focal.sh L13: `FOCAL_ALPHA=${FOCAL_ALPHA:-0.71}`] |
+| `flan_t5_xl` | `0.33` | [run_large_train_xl_no_ret_vs_ret_focal.sh L13: `FOCAL_ALPHA=${FOCAL_ALPHA:-0.33}`] |
+| `flan_t5_xxl` | `0.36` | [run_large_train_xxl_no_ret_vs_ret_focal.sh L13: `FOCAL_ALPHA=${FOCAL_ALPHA:-0.36}`] |
+| `gpt` | `0.71` | [run_large_train_gpt_no_ret_vs_ret_focal.sh L14: `FOCAL_ALPHA=${FOCAL_ALPHA:-0.71}`] |
 
 ### Key differences from IT3
 
@@ -84,7 +85,7 @@
 
 ### 4.1 The focal loss formula
 
-`FocalLoss` is a **custom `torch.nn.Module`** defined at [run_classifier.py L69–113], not imported from any external library.
+`FocalLoss` is a **custom `torch.nn.Module`** defined at [run_classifier.py L69–114], not imported from any external library.
 
 The formula [run_classifier.py L69]:
 
@@ -106,17 +107,17 @@ This is **genuinely focal** (unlike IT3 where $\gamma = 0$ eliminated the focusi
 
 | Step | Code | Line |
 |---|---|---|
-| 1. Softmax + clamp | `probs = torch.softmax(logits, dim=-1).clamp(min=1e-8)` | [L105] |
-| 2. Select $p_t$ for ground-truth class | `p_t = probs[batch_idx, targets]` | [L107] |
-| 3. Focal weight | `focal_weight = (1.0 - p_t) ** self.gamma` | [L108] |
-| 4. Base CE | `loss = -focal_weight * torch.log(p_t)` | [L109] |
-| 5. Class weight (if alpha set) | `alpha_t = self.alpha.to(logits.device)[targets]` | [L111] |
-| 6. Apply class weight | `loss = alpha_t * loss` | [L112] |
-| 7. Batch mean | `return loss.mean()` | [L113] |
+| 1. Softmax + clamp | `probs = torch.softmax(logits, dim=-1).clamp(min=1e-8)` | [L106] |
+| 2. Select $p_t$ for ground-truth class | `p_t = probs[batch_idx, targets]` | [L108] |
+| 3. Focal weight | `focal_weight = (1.0 - p_t) ** self.gamma` | [L109] |
+| 4. Base CE | `loss = -focal_weight * torch.log(p_t)` | [L110] |
+| 5. Class weight (if alpha set) | `alpha_t = self.alpha.to(logits.device)[targets]` | [L112] |
+| 6. Apply class weight | `loss = alpha_t * loss` | [L113] |
+| 7. Batch mean | `return loss.mean()` | [L114] |
 
 ### 4.3 How scalar `--focal_alpha` is converted to per-class weights
 
-The `--focal_alpha` argument is a scalar float. In `main()` at [run_classifier.py L689–691]:
+The `--focal_alpha` argument is a scalar float. In `main()` at [run_classifier.py L692–694]:
 
 ```python
 _alpha_tensor = torch.tensor(
@@ -124,7 +125,7 @@ _alpha_tensor = torch.tensor(
 )
 ```
 
-This tensor is passed to `FocalLoss(gamma=..., alpha=_alpha_tensor)` at [L697]. Since it's already a tensor, it enters `FocalLoss.__init__` via the `isinstance(alpha, (list, torch.Tensor))` branch at [L89–93], which stores it as-is.
+This tensor is passed to `FocalLoss(gamma=..., alpha=_alpha_tensor)` at [L699]. Since it's already a tensor, it enters `FocalLoss.__init__` via the `isinstance(alpha, (list, torch.Tensor))` branch at [L89–93], which stores it as-is.
 
 ### 4.4 How weights map to label indices
 
@@ -135,9 +136,9 @@ This tensor is passed to `FocalLoss(gamma=..., alpha=_alpha_tensor)` at [L697]. 
 
 This mapping is established by:
 1. `args.labels = ["A", "R"]` (from `--labels A R`)
-2. `label_token_ids = [tokenizer("A").input_ids[0], tokenizer("R").input_ids[0]]` [L696]
-3. `class_indices` in `FocalLossTrainer.compute_loss()` maps token IDs to 0-based indices matching this order [L144–146]
-4. `self.alpha[targets]` indexes into `[1-α, α]` using these class indices [L111]
+2. `label_token_ids = [tokenizer("A").input_ids[0], tokenizer("R").input_ids[0]]` [L698]
+3. `class_indices` in `FocalLossTrainer.compute_loss()` maps token IDs to 0-based class indices matching this order [L144–146]
+4. `self.alpha[targets]` indexes into `[1-α, α]` using these class indices [L112]
 
 ### 4.5 Per-model weight table
 
@@ -167,10 +168,10 @@ which simplifies to the proportion of A samples (i.e. the minority proportion fo
 
 ### 4.7 `FocalLossTrainer.compute_loss()` — where the loss is applied
 
-`FocalLossTrainer` [run_classifier.py L118–148] is a subclass of HuggingFace's `Trainer` that overrides `compute_loss()`:
+`FocalLossTrainer` [run_classifier.py L117–148] is a subclass of HuggingFace's `Trainer` that overrides `compute_loss()`:
 
 1. Extract decoder logits at position 0: `logits = outputs.logits[:, 0, :]` [L138]
-2. Narrow to label columns: `label_logits = logits[:, tid]` where `tid` = label token IDs [L141]
+2. Narrow to label columns: `label_logits = logits[:, tid]` where `tid` = label token IDs [L142]
 3. Convert ground-truth vocab token IDs to 0-based class indices [L144–146]
 4. Call `self.focal_loss_fn(label_logits, class_indices)` [L148]
 
@@ -178,7 +179,7 @@ This is the same code path as IT3. The only difference is the `FocalLoss` instan
 
 ### 4.8 Confirmation: FocalLoss is a custom `nn.Module`
 
-`FocalLoss` is defined at [run_classifier.py L69–113] as a subclass of `torch.nn.Module`. It is not imported from any external library (no `focal_loss`, `torchvision`, or third-party dependency). The implementation is self-contained.
+`FocalLoss` is defined at [run_classifier.py L69–114] as a subclass of `torch.nn.Module`. It is not imported from any external library (no `focal_loss`, `torchvision`, or third-party dependency). The implementation is self-contained.
 
 ---
 
@@ -295,11 +296,11 @@ All four iterations use distinct directory names. Clf2 outputs share `.../single
 
 | Issue | Detail |
 |---|---|
-| **What** | `TrainingArguments(save_strategy="no")` [run_classifier.py L710] prevents the HF Trainer from creating `checkpoint-*` directories. Yet all three IT4 shell scripts contain an elaborate block that scans for `checkpoint-*`, selects the latest, and deletes older ones. |
+| **What** | `TrainingArguments(save_strategy="no")` [run_classifier.py L712] prevents the HF Trainer from creating `checkpoint-*` directories. Yet all three IT4 shell scripts contain an elaborate block that scans for `checkpoint-*`, selects the latest, and deletes older ones. |
 | **Shell comment** | The XL/XXL scripts include a misleading comment: `# FocalLossTrainer saves in checkpoint-* dirs; evaluate the latest checkpoint.` — This is **incorrect** with `save_strategy="no"`. |
 | **Behaviour** | `ls -d checkpoint-*` matches nothing (stderr suppressed), `CKPT_PATH` falls back to `${TRAIN_OUTPUT_DIR}`, and the cleanup loop is a no-op. Validation/prediction correctly use `${TRAIN_OUTPUT_DIR}` where `focal_trainer.save_model()` wrote the model. |
 | **Impact** | No functional problem. Dead code. |
-| **Files** | [run_large_train_xl_no_ret_vs_ret_focal.sh L48–56], same in XXL and GPT. |
+| **Files** | [run_large_train_xl_no_ret_vs_ret_focal.sh L46–57], same in XXL and GPT. |
 
 ### 10.2 Different training code path from IT1
 
@@ -308,7 +309,7 @@ All four iterations use distinct directory names. Clf2 outputs share `.../single
 | **What** | IT4 uses `FocalLossTrainer` (HF `Trainer` subclass) while IT1 uses a manual Accelerate training loop. Same difference as IT3. |
 | **Differences** | (a) HF Trainer's AdamW vs `torch.optim.AdamW`; (b) Loss computed on first decoder position only (2-class softmax) vs T5's built-in full-vocabulary CE; (c) Trainer handles gradient accumulation, scheduling internally. |
 | **Impact** | Results are not attributable solely to the focal loss — the training loop itself differs from IT1. However, IT4 is directly comparable to IT3 since both use the same `FocalLossTrainer` path (only γ and α differ). |
-| **Files** | IT4 path: [run_classifier.py L676–728]. IT1 path: [run_classifier.py L730–840]. |
+| **Files** | IT4 path: [run_classifier.py L679–729]. IT1 path: [run_classifier.py L731–840]. |
 
 ### 10.3 Manually set alpha values vs auto-computed (IT3)
 
@@ -322,16 +323,16 @@ All four iterations use distinct directory names. Clf2 outputs share `.../single
 
 | Issue | Detail |
 |---|---|
-| **What** | The GPT focal script appends `\|\| echo "[WARN] ..."` to validation and prediction commands [run_large_train_gpt_no_ret_vs_ret_focal.sh L73, L85], tolerating failures. The XL and XXL scripts do **not** — they have no `\|\|` fallback. |
+| **What** | The GPT focal script appends `\|\| echo "[WARN] ..."` to validation and prediction commands [run_large_train_gpt_no_ret_vs_ret_focal.sh L77, L96], tolerating failures. The XL and XXL scripts do **not** — they have no `\|\|` fallback. |
 | **Combined with** | All three scripts use `set -euo pipefail` [L2]. For XL/XXL, a validation or prediction failure aborts the entire run. For GPT, it prints a warning and continues to the next epoch. |
 | **Impact** | Inconsistent failure semantics across model variants. |
-| **Files** | GPT: [L73, L85]. XL: [L68, L78] — no fallback. XXL: same as XL. |
+| **Files** | GPT: [L77, L96]. XL: [L76, L95] — no fallback. XXL: same as XL. |
 
 ### 10.5 No early stopping
 
 | Issue | Detail |
 |---|---|
-| **What** | Same as IT1–IT3: no early stopping, no validation-based model selection. `eval_strategy="no"` [run_classifier.py L711] means the Trainer never evaluates during training. |
+| **What** | Same as IT1–IT3: no early stopping, no validation-based model selection. `eval_strategy="no"` [run_classifier.py L713] means the Trainer never evaluates during training. |
 | **Impact** | The saved model is always the final-epoch model. With γ=2.0 focal loss, the training dynamics differ from standard CE — the loss landscape may have different convergence properties, making the lack of early stopping potentially more impactful. |
 
 ### 10.6 Fresh-from-scratch training per epoch value

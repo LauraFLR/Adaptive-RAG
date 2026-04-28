@@ -94,7 +94,7 @@ This is exactly **class-weighted cross-entropy**: the standard cross-entropy los
 
 ### 4.2 How class weights are constructed
 
-The `--auto_class_weights` flag triggers the inverse-frequency weight computation [run_classifier.py L678–686]:
+The `--auto_class_weights` flag triggers the inverse-frequency weight computation [run_classifier.py L681–688]:
 
 ```python
 label_counts = Counter(raw_datasets[args.train_column]["answer"])
@@ -113,9 +113,9 @@ where $N_{\text{total}}$ is total samples, $K = 2$ (number of classes), and $N_c
 
 ### 4.3 How `_alpha_tensor` enters `FocalLoss`
 
-`_alpha_tensor` is a `torch.Tensor` with shape `(2,)` containing `[w_A, w_R]`. It is passed to `FocalLoss(gamma=0.0, alpha=_alpha_tensor)` [run_classifier.py L697].
+`_alpha_tensor` is a `torch.Tensor` with shape `(2,)` containing `[w_A, w_R]`. It is passed to `FocalLoss(gamma=0.0, alpha=_alpha_tensor)` [run_classifier.py L699].
 
-In `FocalLoss.__init__`, this hits the `isinstance(alpha, (list, torch.Tensor))` branch [run_classifier.py L89–93], which stores the tensor directly as `self.alpha` — **no** `[1-alpha, alpha]` transformation is applied (that transformation only occurs when `alpha` is a scalar `float`).
+In `FocalLoss.__init__`, this hits the `isinstance(alpha, (list, torch.Tensor))` branch [run_classifier.py L88–93], which stores the tensor directly as `self.alpha` — **no** `[1-alpha, alpha]` transformation is applied (that transformation only occurs when `alpha` is a scalar `float`).
 
 ### 4.4 How weights map to label indices
 
@@ -124,7 +124,7 @@ In `FocalLoss.__init__`, this hits the `isinstance(alpha, (list, torch.Tensor))`
 | 0 | A | `args.labels[0]` = `"A"` |
 | 1 | R | `args.labels[1]` = `"R"` |
 
-In `FocalLoss.forward()` [run_classifier.py L107–112]:
+In `FocalLoss.forward()` [run_classifier.py L106–114]:
 
 ```python
 alpha_t = self.alpha.to(logits.device)[targets]   # targets are 0-based class indices
@@ -133,7 +133,7 @@ loss = alpha_t * loss
 
 So `self.alpha[0]` (= $w_A$) is applied to all A-labelled samples, and `self.alpha[1]` (= $w_R$) is applied to all R-labelled samples.
 
-The `class_indices` are computed in `FocalLossTrainer.compute_loss()` [run_classifier.py L144–146]:
+The `class_indices` are computed in `FocalLossTrainer.compute_loss()` [run_classifier.py L141–146]:
 
 ```python
 tid = torch.tensor(self.label_token_ids, dtype=torch.long, device=logits.device)
@@ -141,7 +141,7 @@ token_ids = labels[:, 0]
 class_indices = (token_ids.unsqueeze(1) == tid.unsqueeze(0)).long().argmax(dim=1)
 ```
 
-`label_token_ids` is built as `[tokenizer("A").input_ids[0], tokenizer("R").input_ids[0]]` [run_classifier.py L696], matching the `args.labels` order. A sample with ground-truth token "A" gets class index 0; "R" gets class index 1.
+`label_token_ids` is built as `[tokenizer("A").input_ids[0], tokenizer("R").input_ids[0]]` [run_classifier.py L698], matching the `args.labels` order. A sample with ground-truth token "A" gets class index 0; "R" gets class index 1.
 
 ### 4.5 Per-model weights
 
@@ -160,14 +160,14 @@ With `--auto_class_weights`, the inverse-frequency formula correctly assigns hig
 For a single training sample with ground-truth class $c$ (0 = A or 1 = R):
 
 1. **Decoder logits** extracted at position 0: `outputs.logits[:, 0, :]` — shape `(batch, vocab_size)` [run_classifier.py L138]
-2. **Narrow** to label columns: `label_logits = logits[:, tid]` — shape `(batch, 2)` [run_classifier.py L141]
-3. **Softmax**: `probs = softmax(label_logits, dim=-1)` [run_classifier.py L105]
-4. **Select** $p_t = \text{probs}[c]$ [run_classifier.py L107]
-5. **Focal weight**: $(1 - p_t)^{0.0} = 1.0$ [run_classifier.py L108]
-6. **Base loss**: $-1.0 \cdot \log(p_t) = -\log(p_t)$ [run_classifier.py L109]
-7. **Class weight**: $\alpha_t = w_c$ from the weight tensor [run_classifier.py L111]
-8. **Final**: $\text{loss} = w_c \cdot (-\log(p_t))$ [run_classifier.py L112]
-9. **Batch mean**: `loss.mean()` [run_classifier.py L113]
+2. **Narrow** to label columns: `label_logits = logits[:, tid]` — shape `(batch, 2)` [run_classifier.py L142]
+3. **Softmax**: `probs = softmax(label_logits, dim=-1)` [run_classifier.py L106]
+4. **Select** $p_t = \text{probs}[c]$ [run_classifier.py L108]
+5. **Focal weight**: $(1 - p_t)^{0.0} = 1.0$ [run_classifier.py L109]
+6. **Base loss**: $-1.0 \cdot \log(p_t) = -\log(p_t)$ [run_classifier.py L110]
+7. **Class weight**: $\alpha_t = w_c$ from the weight tensor [run_classifier.py L112]
+8. **Final**: $\text{loss} = w_c \cdot (-\log(p_t))$ [run_classifier.py L113]
+9. **Batch mean**: `loss.mean()` [run_classifier.py L114]
 
 ---
 
@@ -266,7 +266,7 @@ classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/
 ### 8.3 Notable output differences from IT1
 
 - `training_args.bin` is written by HF Trainer's `save_model()` (absent in IT1's manual save).
-- No `logs.log` in the training output root (HF Trainer uses its own logging; the manual `logging.basicConfig(filename=...)` call at [run_classifier.py L522] is only reached but the log file may not contain training-step details from the Trainer).
+- No `logs.log` in the training output root (HF Trainer uses its own logging; the manual `logging.basicConfig(filename=...)` call at [run_classifier.py L505] is only reached but the log file may not contain training-step details from the Trainer).
 - No `checkpoint-*` subdirectories (because `save_strategy="no"`).
 
 ---
@@ -279,7 +279,7 @@ classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/
 |---|---|
 | **What** | IT1/IT2 use a manual training loop with `Accelerator`, `torch.optim.AdamW`, and `get_scheduler()`. IT3 uses `FocalLossTrainer` (subclass of HF `Trainer`) with `TrainingArguments`. |
 | **Risk** | Subtle behavioural differences between the two paths: (a) HF Trainer uses its own AdamW which may differ in epsilon, beta, or weight-decay implementation; (b) Trainer handles gradient accumulation, mixed precision, and learning-rate warmup internally; (c) The loss computation operates on the first decoder position only (IT1's CE is computed over the full sequence by T5's internal `lm_head`). |
-| **Files** | IT3 path: [run_classifier.py L698–728]. IT1 path: [run_classifier.py L730–840]. |
+| **Files** | IT3 path: [run_classifier.py L679–729]. IT1 path: [run_classifier.py L731–845]. |
 | **Impact** | Results are not attributable solely to the loss weighting — the training loop itself changed. |
 
 ### 9.2 Loss computed on position 0 only vs full-sequence CE
@@ -288,16 +288,16 @@ classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/
 |---|---|
 | **What** | `FocalLossTrainer.compute_loss()` extracts logits at `[:, 0, :]` (first decoder position) and computes loss only on that position [run_classifier.py L138]. IT1's standard path uses `outputs.loss`, which is the T5 model's built-in cross-entropy over **all** decoder positions (though for single-token labels the subsequent positions are padding with `-100`). |
 | **Risk** | For single-token targets (A, R), the practical difference is minimal — subsequent positions contribute zero loss due to `-100` masking. However, the softmax normalisation is different: IT3 applies softmax over only the 2 label token IDs, while IT1 applies softmax over the full ~32 000-token vocabulary. This means IT3 effectively ignores probability mass on non-label tokens, which could change the gradient signal. |
-| **Files** | [run_classifier.py L138–141] vs T5's internal CE. |
+| **Files** | [run_classifier.py L138–142] vs T5's internal CE. |
 
 ### 9.3 `save_strategy="no"` and checkpoint-finding shell logic
 
 | Issue | Detail |
 |---|---|
-| **What** | `TrainingArguments(save_strategy="no")` [run_classifier.py L710] means no `checkpoint-*` directories are created during training. Yet the shell scripts contain a `CKPT_PATH=$(ls -d ${TRAIN_OUTPUT_DIR}/checkpoint-* ...)` block that searches for them. |
+| **What** | `TrainingArguments(save_strategy="no")` [run_classifier.py L712] means no `checkpoint-*` directories are created during training. Yet the shell scripts contain a `CKPT_PATH=$(ls -d ${TRAIN_OUTPUT_DIR}/checkpoint-* ...)` block that searches for them. |
 | **Behaviour** | `ls -d ...checkpoint-*` will find no matches and produce an empty string (stderr suppressed by `2>/dev/null`). The `if [[ -z "${CKPT_PATH}" ]]` fallback sets `CKPT_PATH=${TRAIN_OUTPUT_DIR}`, which is correct — `focal_trainer.save_model(args.output_dir)` writes the model to `${TRAIN_OUTPUT_DIR}`. The cleanup loop `for ckpt in ...checkpoint-*` also matches nothing and is harmless. |
 | **Impact** | No functional problem. The checkpoint-finding code is dead but benign. |
-| **Files** | Shell scripts L42–49 (all three variants). |
+| **Files** | Shell scripts L40–50 (all three variants). |
 
 ### 9.4 Tolerant error handling (`|| echo "[WARN]"`)
 
@@ -306,7 +306,7 @@ classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/
 | **What** | All three IT3 scripts append `|| echo "[WARN] Validation failed for epoch ${EPOCH}"` and `|| echo "[WARN] Prediction failed for epoch ${EPOCH}"` to the validation and prediction commands. |
 | **Risk** | If validation or prediction crashes (e.g., OOM, corrupt model file, missing data), the script prints a warning and **continues to the next epoch**. In IT1 (no error handling) or IT2 (`set -euo pipefail`), such a crash would abort the entire script. |
 | **Note** | The IT3 scripts do **not** use `set -euo pipefail` — they have no shell-level strictness at all (the `#!/usr/bin/env bash` shebang does not imply `set -e`). Only the training step runs without a `||` fallback; a training failure would exit the script. |
-| **Files** | [run_large_train_xl_no_ret_vs_ret_weighted_ce.sh L67, L77] and equivalents. |
+| **Files** | [run_large_train_xl_no_ret_vs_ret_weighted_ce.sh L67, L84] and equivalents. |
 
 ### 9.5 XL epoch 15 skip
 
@@ -314,7 +314,7 @@ classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/
 |---|---|
 | **What** | The XL weighted-CE script sweeps `for EPOCH in 20 25 30 35`, omitting epoch 15. The XXL script includes `15 20 25 30 35`. |
 | **Risk** | The XL IT1 baseline uses `15 20 25 30 35`. Comparisons at epoch 15 between IT1 and IT3 for XL are impossible. |
-| **File** | [run_large_train_xl_no_ret_vs_ret_weighted_ce.sh L13] |
+| **File** | [run_large_train_xl_no_ret_vs_ret_weighted_ce.sh L14] |
 
 ### 9.6 No `set -euo pipefail` in XL and XXL scripts
 
@@ -328,7 +328,7 @@ classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/
 
 | Issue | Detail |
 |---|---|
-| **What** | `TrainingArguments(eval_strategy="no")` [run_classifier.py L711] means the HF Trainer never runs validation during training. Validation is done by a **separate** `run_classifier.py --do_eval` invocation after training completes. |
+| **What** | `TrainingArguments(eval_strategy="no")` [run_classifier.py L713] means the HF Trainer never runs validation during training. Validation is done by a **separate** `run_classifier.py --do_eval` invocation after training completes. |
 | **Risk** | No training-time metrics are available for early stopping or best-model selection. The model saved at the end of all epochs is the only model. Combined with the per-epoch-value loop (each epoch budget is a fresh run from `t5-large`), this means each epoch value produces exactly one model with no internal validation signal. |
 | **File** | [run_classifier.py L711] |
 

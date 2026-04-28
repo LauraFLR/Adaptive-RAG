@@ -13,14 +13,15 @@
 
 | File | Role |
 |---|---|
-| `classifier/postprocess/predict_complexity_agreement.py` (251 lines) | **The ONLY new script.** Implements the full agreement-based Gate 1 replacement. Loads pre-existing prediction files, computes answer agreement, merges with Clf2 predictions, writes routed output. **No shell wrapper exists** — invoked directly via `python`. |
+| `classifier/postprocess/predict_complexity_agreement.py` (251 lines) | **The ONLY new script.** Implements the full agreement-based Gate 1 replacement. Loads pre-existing prediction files, computes answer agreement, merges with Clf2 predictions, writes routed output. |
 | `classifier/postprocess/postprocess_utils.py` | Shared — provides `load_json()` and `save_json()` helpers. **Identical to IT1.** |
 | `evaluate_final_acc.py` (341 lines) | QA evaluation — **identical to IT1.** |
 | `commaqa/models/llm_client_generator.py` | LLM client — documents `do_sample=False` default (greedy decoding). Not imported by the agreement script; relevant only for understanding how prediction files were originally generated. |
 | `llm_server/serve.py` | LLM server — documents `output_scores=False` and `do_sample=False` default. Same relevance as above. |
 | `classifier/run/run_large_train_{xl,xxl,gpt}_single_vs_multi.sh` | Gate 2 — **identical to IT1.** Clf2 checkpoints are consumed as-is. |
+| `run-all-iterations.sh` | Top-level orchestrator. Invokes IT5 via the `route_agreement()` helper, which calls `predict_complexity_agreement.py` with the standard Clf2 predictions from PHASE 0, then runs `evaluate_final_acc.py`. |
 
-**Emphasis:** This iteration introduces exactly one new file. There is no training script, no shell launcher, no configuration file. The entire Gate 1 decision is implemented in `predict_complexity_agreement.py`.
+**Emphasis:** This iteration introduces exactly one new Python file. There is no training script, no configuration file. The entire Gate 1 decision is implemented in `predict_complexity_agreement.py`. The `route_agreement()` function in `run-all-iterations.sh` serves as the shell-level entry point.
 
 ---
 
@@ -83,7 +84,7 @@ When `do_sample=False`, HuggingFace's `model.generate()` uses **argmax (greedy) 
 
 ### 3.4 Aggregation logic: `compute_agreement()`
 
-The `compute_agreement()` function [predict_complexity_agreement.py L80–109] implements the full comparison pipeline. Here is the step-by-step algorithm:
+The `compute_agreement()` function [predict_complexity_agreement.py L80–108] implements the full comparison pipeline. Here is the step-by-step algorithm:
 
 | Step | Code | Line(s) | Description |
 |---|---|---|---|
@@ -93,8 +94,8 @@ The `compute_agreement()` function [predict_complexity_agreement.py L80–109] i
 | 4. Cast to string | `nor_raw = str(nor_raw)` / `oner_raw = str(oner_raw)` | [L93–94] | Ensure string type for downstream processing |
 | 5. Extract answer from CoT | `nor_extracted = answer_extractor(nor_raw)` | [L96–97] | Strip chain-of-thought reasoning via regex `".* answer is:? (.*)\.?"` [L53]; if no match, return raw string [L58] |
 | 6. Normalize | `nor_norm = normalize_answer(nor_extracted)` | [L99–100] | Lower-case → remove punctuation → remove articles (a/an/the) → collapse whitespace [L34–46] |
-| 7. Compare | `agree = bool(nor_norm and oner_norm and nor_norm == oner_norm)` | [L103] | **Exact string match** after normalization. Both must be non-empty. |
-| 8. Store result | `results[qid] = {"agree": agree, "nor_answer": nor_raw, "oner_answer": oner_raw}` | [L104–108] | Preserve raw answers for debugging |
+| 7. Compare | `agree = bool(nor_norm and oner_norm and nor_norm == oner_norm)` | [L102] | **Exact string match** after normalization. Both must be non-empty. |
+| 8. Store result | `results[qid] = {"agree": agree, "nor_answer": nor_raw, "oner_answer": oner_raw}` | [L103–107] | Preserve raw answers for debugging |
 
 ### 3.5 `answer_extractor()` details
 
@@ -105,24 +106,24 @@ Defined at [predict_complexity_agreement.py L48–60]:
 3. If match: extract capture group 1, strip trailing period [L54–57]
 4. If no match: return the input unchanged [L58–59]
 
-This is the **same** `answer_extractor()` logic used in `evaluate_final_acc.py` [L48–64].
+This is the **same** `answer_extractor()` logic used in `evaluate_final_acc.py` [L48–66].
 
 ### 3.6 `normalize_answer()` details
 
-Defined at [predict_complexity_agreement.py L34–46]:
+Defined at [predict_complexity_agreement.py L34–45]:
 
 1. `lower(s)` — convert to lowercase [L43–44]
 2. `remove_punc(text)` — remove all `string.punctuation` characters [L40–42]
-3. `remove_articles(text)` — regex-remove "a", "an", "the" as whole words [L36–38]
+3. `remove_articles(text)` — regex-remove "a", "an", "the" as whole words [L36–37]
 4. `white_space_fix(text)` — collapse whitespace to single spaces [L38–39]
 
-Applied in order: lower → remove_punc → remove_articles → white_space_fix (via function composition in `return` at [L46]).
+Applied in order: lower → remove_punc → remove_articles → white_space_fix (via function composition in `return` at [L45]).
 
-This is the **same** `normalize_answer()` logic used in `evaluate_final_acc.py` [L30–47].
+This is the **same** `normalize_answer()` logic used in `evaluate_final_acc.py` [L29–46].
 
 ### 3.7 Routing logic in `main()`
 
-After `compute_agreement()` returns, the routing decision is at [predict_complexity_agreement.py L133–142]:
+After `compute_agreement()` returns, the routing decision is at [predict_complexity_agreement.py L140–151]:
 
 ```python
 for qid in all_qids:
@@ -141,7 +142,7 @@ for qid in all_qids:
 
 **There is NO tunable threshold.** The decision is a hard binary: exact string match after normalization.
 
-The critical line is [predict_complexity_agreement.py L103]:
+The critical line is [predict_complexity_agreement.py L102]:
 
 ```python
 agree = bool(nor_norm and oner_norm and nor_norm == oner_norm)
@@ -247,7 +248,7 @@ All prediction files (`prediction__*.json`) are JSON objects mapping question ID
 ]
 ```
 
-The script extracts only `id` and `dataset_name` [predict_complexity_agreement.py L117–118]:
+The script extracts only `id` and `dataset_name` [predict_complexity_agreement.py L122–123]:
 ```python
 qid_to_dataset = {item["id"]: item["dataset_name"] for item in predict_data}
 ```
@@ -268,7 +269,7 @@ The BM25 counts are **not** hyperparameters of IT5; they are inherited from the 
 
 ### 6.6 Prediction file path patterns
 
-Loaded by `load_strategy_predictions()` [L63–78] and `main()` [L154–165]:
+Loaded by `load_strategy_predictions()` [L63–78] and `main()` [L175–187]:
 
 | Strategy | Pattern | Example (XL, nq) |
 |---|---|---|
@@ -284,7 +285,7 @@ Gate 2 (Clf2: B vs C) is **consumed as-is** from a previously trained checkpoint
 
 ### 7.1 The `--clf2_pred_file` argument
 
-Defined at [predict_complexity_agreement.py L113]:
+Defined at [predict_complexity_agreement.py L114]:
 
 ```python
 parser.add_argument("--clf2_pred_file", type=str, required=True)
@@ -304,7 +305,7 @@ This argument points to a `dict_id_pred_results.json` file from a trained Clf2 c
 
 ### 7.2 How Clf2 predictions are used
 
-When the agreement gate decides "disagree" (not A), the merged prediction takes Clf2's label directly [predict_complexity_agreement.py L140–142]:
+When the agreement gate decides "disagree" (not A), the merged prediction takes Clf2's label directly [predict_complexity_agreement.py L148–151]:
 
 ```python
 merged[qid] = {
@@ -328,7 +329,7 @@ The Clf2 training scripts are the same `run_large_train_{xl,xxl,gpt}_single_vs_m
 
 ## 8. Evaluation Setup
 
-**Identical to Iteration 1.** The script's final print statement [predict_complexity_agreement.py L248] indicates the invocation:
+**Identical to Iteration 1.** The script's final print statement [predict_complexity_agreement.py L247] indicates the invocation:
 
 ```
 Run evaluation with: python evaluate_final_acc.py --pred_path {output_path}
@@ -349,6 +350,18 @@ The output directory structure produced by `predict_complexity_agreement.py` is 
 ## 9. Output Artifacts
 
 ### 9.1 Directory tree
+
+```
+predictions/classifier/t5-large/{model}/split_agreement/{run_label}/
+```
+
+When invoked manually. When invoked via `run-all-iterations.sh`, the `route_agreement()` helper uses:
+
+```
+predictions/classifier/t5-large/{model}/iter5_agreement/
+```
+
+The directory tree (using manual convention as example):
 
 ```
 predictions/classifier/t5-large/{model}/split_agreement/{run_label}/
@@ -381,7 +394,7 @@ predictions/classifier/t5-large/flan_t5_xl/split_agreement/nor_oner_clf2ep35/
 
 ### 9.2 `routing_stats.json`
 
-A **new** artifact not present in IT1–IT4. Saved at [predict_complexity_agreement.py L227–241]:
+A **new** artifact not present in IT1–IT4. Saved at [predict_complexity_agreement.py L231–244]:
 
 ```json
 {
@@ -432,9 +445,9 @@ This provides a full audit trail of the routing decision, including agreement ra
 | IT2 | Trained Clf1 (undersampled) | `.../split/no_ret_undersampled_ep{N}_single_ep{M}/` |
 | IT3 | Trained Clf1 (weighted CE) | `.../split/no_ret_weighted_ce_ep{N}_single_ep{M}/` |
 | IT4 | Trained Clf1 (focal loss) | `.../split/no_ret_focal_ep{N}_single_ep{M}/` |
-| **IT5** | **Agreement gate (no training)** | **`.../split_agreement/{run_label}/`** |
+| **IT5** | **Agreement gate (no training)** | **`.../split_agreement/{run_label}/`** (manual) or **`.../iter5_agreement/`** (`run-all-iterations.sh`) |
 
-IT5 uses `split_agreement/` rather than `split/`, making it immediately distinguishable.
+IT5 uses `split_agreement/` (manual) or `iter5_agreement/` (`run-all-iterations.sh`) rather than `split/`, making it immediately distinguishable.
 
 ---
 
@@ -499,17 +512,17 @@ IT5 uses `split_agreement/` rather than `split/`, making it immediately distingu
 
 | Issue | Detail |
 |---|---|
-| **What** | The script attempts to load a consolidated `stepNum.json` from `predictions/test/ircot_qa_{model}/total/stepNum.json` [predict_complexity_agreement.py L148–150]. If this file does not exist, it falls back to loading per-dataset `stepNum.json` files [L152–158]. |
-| **Risk** | If neither the consolidated nor the per-dataset files exist, `total_step_num` remains an empty dict. Questions routed to C would get `stepNum=0` via `.get(qid, 0)` [predict_complexity_agreement.py L172], which is technically incorrect (C should have stepNum ≥ 1). However, stepNum is only used for cost accounting, not for answer selection. |
+| **What** | The script attempts to load a consolidated `stepNum.json` from `predictions/test/ircot_qa_{model}/total/stepNum.json` [predict_complexity_agreement.py L158–161]. If this file does not exist, it falls back to loading per-dataset `stepNum.json` files [L162–170]. |
+| **Risk** | If neither the consolidated nor the per-dataset files exist, `total_step_num` remains an empty dict. Questions routed to C would get `stepNum=0` via `.get(qid, 0)` [predict_complexity_agreement.py L204], which is technically incorrect (C should have stepNum ≥ 1). However, stepNum is only used for cost accounting, not for answer selection. |
 
 ### 10.9 Prediction files are loaded redundantly per dataset
 
 | Issue | Detail |
 |---|---|
-| **What** | In the per-dataset loop [predict_complexity_agreement.py L167–199], `load_json(dataName_to_files[data_name][option])` is called once per question (inside the inner loop over `merged.items()`). This re-reads the same JSON file from disk for every question in that dataset. |
+| **What** | In the per-dataset loop [predict_complexity_agreement.py L193–228], `load_json(dataName_to_files[data_name][option])` is called once per question (inside the inner loop over `merged.items()`). This re-reads the same JSON file from disk for every question in that dataset. |
 | **Performance** | For 500 questions per dataset, this means 500 `load_json()` calls per strategy per dataset, each re-reading and re-parsing the same file. With 6 datasets and up to 3 strategies, this could be up to ~9 000 redundant file reads. |
 | **Impact** | Correctness is not affected — the output is identical. Runtime is slower than necessary but acceptable for 3 000 questions with small JSON files. |
-| **Contrast with IT1** | The IT1 routing script (`predict_complexity_split_classifiers.py`) has the same pattern in `save_prediction_with_classified_label()` [postprocess_utils.py L30], where `load_json()` is also called per-question inside the loop. |
+| **Contrast with IT1** | The IT1 routing script (`predict_complexity_split_classifiers.py`) has the same pattern in `save_prediction_with_classified_label()` [postprocess_utils.py L40], where `load_json()` is also called per-question inside the loop. |
 
 ### 10.10 The `answer_extractor()` and `normalize_answer()` are duplicated
 

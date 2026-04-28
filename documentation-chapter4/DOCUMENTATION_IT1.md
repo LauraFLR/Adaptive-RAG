@@ -22,6 +22,7 @@
 | `classifier/postprocess/predict_complexity_on_classification_results.py` | Original single-classifier routing script (used for the 3-class baseline; not used in IT1 split pipeline). |
 | `classifier/postprocess/postprocess_utils.py` | Shared helpers: `load_json()`, `save_json()`, `save_prediction_with_classified_label()`. |
 | `evaluate_final_acc.py` | End-to-end QA evaluation: computes EM, F1, accuracy per dataset using official evaluation scripts for multi-hop datasets and `SquadAnswerEmF1Metric` for single-hop. |
+| `run-all-iterations.sh` | Top-level orchestrator — trains standard Clf1 + Clf2 (PHASE 0), selects best epoch via `find_best_epoch()`, routes predictions via `route_split()`, and evaluates via `evaluate_final_acc.py`. |
 | `classifier/data/.../silver/no_retrieval_vs_retrieval/{train,valid}.json` | Clf1 silver-labelled data (A / R). |
 | `classifier/data/.../binary_silver_single_vs_multi/train.json` | Clf2 training data (B / C) — silver + inductive-bias binary labels merged. |
 | `classifier/data/.../silver/single_vs_multi/valid.json` | Clf2 validation data (B / C) — silver labels only. |
@@ -38,16 +39,16 @@
 | Model name | `t5-large` |
 | Architecture | Encoder–decoder (seq2seq) transformer |
 | Parameter count | ~770 M |
-| HuggingFace class | `AutoModelForSeq2SeqLM` [run_classifier.py L47, utils.py L48] |
-| Loaded via | `utils.load_model()` → `AutoConfig.from_pretrained()` + `AutoTokenizer.from_pretrained()` + `AutoModelForSeq2SeqLM.from_pretrained()` [utils.py L20–52] |
+| HuggingFace class | `AutoModelForSeq2SeqLM` [run_classifier.py L52, utils.py L43] |
+| Loaded via | `utils.load_model()` → `AutoConfig.from_pretrained()` + `AutoTokenizer.from_pretrained()` + `AutoModelForSeq2SeqLM.from_pretrained()` [utils.py L20–53] |
 
 ### Classification mechanism
 
 Classification is implemented as **generative decoding** constrained to label tokens, not as a traditional classification head:
 
-1. **Training:** The model is fine-tuned as a seq2seq task where the input is the question text and the target is a single label token (e.g. `"A"`, `"R"`, `"B"`, `"C"`). Standard teacher-forced cross-entropy loss on the decoder output is used (unless `--use_focal_loss` is passed, which is **not** the case in Iteration 1). [run_classifier.py L739–808]
+1. **Training:** The model is fine-tuned as a seq2seq task where the input is the question text and the target is a single label token (e.g. `"A"`, `"R"`, `"B"`, `"C"`). Standard teacher-forced cross-entropy loss on the decoder output is used (unless `--use_focal_loss` is passed, which is **not** the case in Iteration 1). [run_classifier.py L733–808]
 
-2. **Inference:** `model.generate()` is called with `return_dict_in_generate=True, output_scores=True`. The raw logits at the first decoder position (`scores[0]`) are extracted. For each label in `args.labels`, the score at that label's token ID is gathered. Softmax is applied across those label-specific columns, and `argmax` selects the predicted class. [run_classifier.py L862–880]
+2. **Inference:** `model.generate()` is called with `return_dict_in_generate=True, output_scores=True`. The raw logits at the first decoder position (`scores[0]`) are extracted. For each label in `args.labels`, the score at that label's token ID is gathered. Softmax is applied across those label-specific columns, and `argmax` selects the predicted class. [run_classifier.py L867–884]
 
    ```
    scores = model.generate(...).scores[0]          # (batch, vocab_size)
@@ -62,7 +63,7 @@ Classification is implemented as **generative decoding** constrained to label to
 | Clf1 (Gate 1) | `A R` | A = no retrieval needed; R = retrieval needed (merges original B + C) |
 | Clf2 (Gate 2) | `B C` | B = single-step retrieval; C = multi-step retrieval |
 
-Labels are passed via `--labels A R` or `--labels B C` in each shell script. The `label_to_option` mapping is built dynamically at [run_classifier.py L490]: `label_to_option = {i: label for i, label in enumerate(args.labels)}`.
+Labels are passed via `--labels A R` or `--labels B C` in each shell script. The `label_to_option` mapping is built dynamically at [run_classifier.py L477]: `label_to_option = {i: label for i, label in enumerate(args.labels)}`.
 
 ---
 
@@ -72,25 +73,25 @@ Labels are passed via `--labels A R` or `--labels B C` in each shell script. The
 
 | Parameter | Value | Source | Default or explicit? |
 |---|---|---|---|
-| **Learning rate** | `3e-5` | Shell scripts `--learning_rate 3e-5` | Explicit (argparse default is `5e-5` [run_classifier.py L369]) |
-| **Per-device train batch size** | `32` | Shell scripts `--per_device_train_batch_size 32` | Explicit (default `8` [run_classifier.py L358]) |
-| **Per-device eval batch size** | `100` | Shell scripts `--per_device_eval_batch_size 100` | Explicit (default `8` [run_classifier.py L363]) |
-| **Max sequence length** | `384` | Shell scripts `--max_seq_length 384` | Explicit (matches default [run_classifier.py L201]) |
-| **Doc stride** | `128` | Shell scripts `--doc_stride 128` | Explicit (matches default [run_classifier.py L463]) |
-| **Weight decay** | `0.0` | argparse default [run_classifier.py L371] | Default — never overridden by any IT1 shell script |
-| **Gradient accumulation steps** | `1` | argparse default [run_classifier.py L378] | Default — never overridden |
-| **Num warmup steps** | `0` | argparse default [run_classifier.py L390] | Default — never overridden |
+| **Learning rate** | `3e-5` | Shell scripts `--learning_rate 3e-5` | Explicit (argparse default is `5e-5` [run_classifier.py L351]) |
+| **Per-device train batch size** | `32` | Shell scripts `--per_device_train_batch_size 32` | Explicit (default `8` [run_classifier.py L339]) |
+| **Per-device eval batch size** | `100` | Shell scripts `--per_device_eval_batch_size 100` | Explicit (default `8` [run_classifier.py L345]) |
+| **Max sequence length** | `384` | Shell scripts `--max_seq_length 384` | Explicit (matches default [run_classifier.py L202]) |
+| **Doc stride** | `128` | Shell scripts `--doc_stride 128` | Explicit (matches default [run_classifier.py L460]) |
+| **Weight decay** | `0.0` | argparse default [run_classifier.py L356] | Default — never overridden by any IT1 shell script |
+| **Gradient accumulation steps** | `1` | argparse default [run_classifier.py L366] | Default — never overridden |
+| **Num warmup steps** | `0` | argparse default [run_classifier.py L379] | Default — never overridden |
 | **Optimizer** | `AdamW` | Hardcoded [run_classifier.py L643] | Hardcoded — `torch.optim.AdamW` |
-| **LR scheduler** | `linear` | argparse default [run_classifier.py L384] | Default — `SchedulerType("linear")` via `get_scheduler()` [utils.py L213] |
-| **Seed** | `42` | Shell scripts `--seed 42` | Explicit (default `None` [run_classifier.py L392]) |
-| **Max train steps** | `None` | argparse default [run_classifier.py L374] | Default — computed from `num_train_epochs × steps_per_epoch` in `prepare_scheduler()` [utils.py L207–210] |
+| **LR scheduler** | `linear` | argparse default [run_classifier.py L372] | Default — `SchedulerType("linear")` via `get_scheduler()` [utils.py L199] |
+| **Seed** | `42` | Shell scripts `--seed 42` | Explicit (default `None` [run_classifier.py L382]) |
+| **Max train steps** | `None` | argparse default [run_classifier.py L359] | Default — computed from `num_train_epochs × steps_per_epoch` in `prepare_scheduler()` [utils.py L195–196] |
 | **Epochs (XL / XXL)** | `15, 20, 25, 30, 35` | Shell scripts `for EPOCH in 15 20 25 30 35` | Explicit |
 | **Epochs (GPT)** | `35, 40` | Shell scripts `for EPOCH in 35 40` | Explicit |
 | **Early stopping** | **None** | Not implemented anywhere | N/A |
-| **Checkpointing** | End-of-training only | `--checkpointing_steps` never passed; model saved after all epochs via `unwrapped_model.save_pretrained()` [run_classifier.py L832–840] | Default (no intermediate checkpoints) |
-| **Max answer length** | `30` | argparse default [run_classifier.py L261] | Default — never overridden |
-| **Pad to max length** | `False` | argparse default (store_true, not passed) [run_classifier.py L306] | Default — dynamic padding used |
-| **Ignore pad token for loss** | `True` | argparse default [run_classifier.py L193] | Default |
+| **Checkpointing** | End-of-training only | `--checkpointing_steps` never passed; model saved after all epochs via `unwrapped_model.save_pretrained()` [run_classifier.py L833–840] | Default (no intermediate checkpoints) |
+| **Max answer length** | `30` | argparse default [run_classifier.py L250] | Default — never overridden |
+| **Pad to max length** | `False` | argparse default (store_true, not passed) [run_classifier.py L298] | Default — dynamic padding used |
+| **Ignore pad token for loss** | `True` | argparse default [run_classifier.py L196] | Default |
 | **Mixed precision** | None (fp32) | Accelerator default | Default — no `--mixed_precision` passed |
 
 ### 3.2 Loss function
@@ -99,12 +100,12 @@ Labels are passed via `--labels A R` or `--labels B C` in each shell script. The
 
 ```python
 outputs = model(**batch)
-loss = outputs.loss        # [run_classifier.py L785]
+loss = outputs.loss        # [run_classifier.py L783]
 ```
 
-This is the standard `CrossEntropyLoss` on the decoder logits, applied by T5's internal `lm_head` [run_classifier.py L785–788].
+This is the standard `CrossEntropyLoss` on the decoder logits, applied by T5's internal `lm_head` [run_classifier.py L783–788].
 
-**Focal-loss path (NOT active in IT1):** Enabled only when `--use_focal_loss` is passed. Uses `FocalLossTrainer` (subclass of HF `Trainer`) with a `FocalLoss` module [run_classifier.py L64–142]. In IT1, this code path is dead.
+**Focal-loss path (NOT active in IT1):** Enabled only when `--use_focal_loss` is passed. Uses `FocalLossTrainer` (subclass of HF `Trainer`) with a `FocalLoss` module [run_classifier.py L69–150]. In IT1, this code path is dead.
 
 ### 3.3 Epoch sweep behaviour
 
@@ -197,23 +198,23 @@ Each epoch value in the `for EPOCH in ...` loop launches a **completely fresh tr
 
 Step-by-step, for both training and evaluation:
 
-1. **File loading** — `load_dataset("json", data_files={split: path})` creates an HF `DatasetDict`. The shell script passes `--train_file` and/or `--validation_file`; `run_classifier.py` maps them into `data_files` dict keyed by `"train"` / `"validation"`. [run_classifier.py L544–555]
+1. **File loading** — `load_dataset("json", data_files={split: path})` creates an HF `DatasetDict`. The shell script passes `--train_file` and/or `--validation_file`; `run_classifier.py` maps them into `data_files` dict keyed by `"train"` / `"validation"`. [run_classifier.py L533–548]
 
-2. **Column identification** — `preprocess_dataset()` reads `question_column` and `answer_column` from args, validates they exist in the dataset columns. [utils.py L57–76]
+2. **Column identification** — `preprocess_dataset()` reads `question_column` and `answer_column` from args, validates they exist in the dataset columns. [utils.py L55–76]
 
-3. **Question whitespace strip** — Leading/trailing whitespace is stripped from every question string. [utils.py L89]
+3. **Question whitespace strip** — Leading/trailing whitespace is stripped from every question string. [utils.py L93]
 
-4. **Input tokenisation** — `tokenizer(examples[question_column], truncation=True, max_length=min(384, model_max_length), stride=128, return_overflowing_tokens=True, return_offsets_mapping=True, padding=False)`. Dynamic padding is used (no `--pad_to_max_length`). Overflow stride is configured but rarely triggers on short questions. [utils.py L95–103]
+4. **Input tokenisation** — `tokenizer(examples[question_column], truncation=True, max_length=min(384, model_max_length), stride=128, return_overflowing_tokens=True, return_offsets_mapping=True, padding=False)`. Dynamic padding is used (no `--pad_to_max_length`). Overflow stride is configured but rarely triggers on short questions. [utils.py L98–108]
 
-5. **Target tokenisation** — `tokenizer(text_target=targets, max_length=30, padding=False, truncation=True)`. For classification, targets are single label tokens (`"A"`, `"R"`, `"B"`, `"C"`), so max_length 30 is never hit. [utils.py L107]
+5. **Target tokenisation** — `tokenizer(text_target=targets, max_length=30, padding=False, truncation=True)`. For classification, targets are single label tokens (`"A"`, `"R"`, `"B"`, `"C"`), so max_length 30 is never hit. [utils.py L112]
 
-6. **Pad-token masking** — If `pad_to_max_length` and `ignore_pad_token_for_loss`, pad tokens in labels are replaced with `-100`. In practice, this branch is not entered in IT1 (dynamic padding is used). [utils.py L111–114]
+6. **Pad-token masking** — If `pad_to_max_length` and `ignore_pad_token_for_loss`, pad tokens in labels are replaced with `-100`. In practice, this branch is not entered in IT1 (dynamic padding is used). [utils.py L116–119]
 
-7. **Overflow sample mapping** — `overflow_to_sample_mapping` maps tokenised features back to original examples. `example_id` and `labels` are aligned to the mapped features. [utils.py L118–127]
+7. **Overflow sample mapping** — `overflow_to_sample_mapping` maps tokenised features back to original examples. `example_id` and `labels` are aligned to the mapped features. [utils.py L123–133]
 
-8. **Dataset `.map()` call** — `train_dataset.map(preprocess_features_function, fn_kwargs={...}, batched=True, remove_columns=...)`. [run_classifier.py L573–581]
+8. **Dataset `.map()` call** — `train_dataset.map(preprocess_features_function, fn_kwargs={...}, batched=True, remove_columns=...)`. [run_classifier.py L570–580]
 
-9. **DataLoader creation** — `DataLoader(dataset, shuffle=True, collate_fn=DataCollatorForSeq2Seq(tokenizer, model, label_pad_token_id=-100), batch_size=32)`. The collator pads each batch to the longest sequence in that batch. [run_classifier.py L614–619]
+9. **DataLoader creation** — `DataLoader(dataset, shuffle=True, collate_fn=DataCollatorForSeq2Seq(tokenizer, model, label_pad_token_id=-100), batch_size=32)`. The collator pads each batch to the longest sequence in that batch. [run_classifier.py L619–621]
 
 ---
 
@@ -228,7 +229,7 @@ Step-by-step, for both training and evaluation:
 | Oversampling | **No** | No oversampling code exists in `run_classifier.py` |
 | Undersampling | **No** | `make_no_ret_vs_ret_undersampled.py` exists but is not called by IT1 scripts |
 | Cost-sensitive loss | **No** | Only available via focal-loss path |
-| Stratified batching | **No** | `DataLoader(shuffle=True)` does uniform random shuffling [run_classifier.py L617] |
+| Stratified batching | **No** | `DataLoader(shuffle=True)` does uniform random shuffling [run_classifier.py L620] |
 
 **Class imbalance present in IT1 data:**
 
@@ -267,9 +268,9 @@ Each step runs `python run_classifier.py` as a separate process. Validation and 
 
 ### 6.3 Accuracy computation
 
-- **Overall accuracy** — `calculate_accuracy(gold_answers, predictions)` [utils.py L237–242]: simple exact-match ratio `(# correct) / (# total) × 100`.
-- **Per-class accuracy** — `calculate_accuracy_perClass(gold_answers, predictions, labels)` [utils.py L244–254]: for each label, computes `correct[l] / gold_num[l] × 100` and reports `pred_num` and `gold_num` counts.
-- Both are called at [run_classifier.py L907–912, L915–922].
+- **Overall accuracy** — `calculate_accuracy(gold_answers, predictions)` [utils.py L231–237]: simple exact-match ratio `(# correct) / (# total) × 100`.
+- **Per-class accuracy** — `calculate_accuracy_perClass(gold_answers, predictions, labels)` [utils.py L240–254]: for each label, computes `correct[l] / gold_num[l] × 100` and reports `pred_num` and `gold_num` counts.
+- Both are called at [run_classifier.py L915, L925].
 
 ### 6.4 End-to-end QA evaluation
 
@@ -277,7 +278,7 @@ Each step runs `python run_classifier.py` as a separate process. Validation and 
 
 1. Loads Clf1 predictions from `no_ret_vs_ret/.../predict/dict_id_pred_results.json`.
 2. Loads Clf2 predictions from `single_vs_multi/.../predict/dict_id_pred_results.json`.
-3. Merges: if Clf1 predicted `A` → final label `A`; if Clf1 predicted `R` → final label = Clf2's prediction (`B` or `C`). [predict_complexity_split_classifiers.py L41–50]
+3. Merges: if Clf1 predicted `A` → final label `A`; if Clf1 predicted `R` → final label = Clf2's prediction (`B` or `C`). [predict_complexity_split_classifiers.py L37–48]
 4. For each question, loads the pre-computed QA answer from the strategy corresponding to its final label:
    - `A` → `nor_qa` (no retrieval) answer
    - `B` → `oner_qa` (one-step retrieval) answer
@@ -286,11 +287,11 @@ Each step runs `python run_classifier.py` as a separate process. Validation and 
 
 **Step 2: QA metric evaluation** — `evaluate_final_acc.py`:
 
-- For **single-hop** datasets (nq, trivia, squad): uses `SquadAnswerEmF1Metric` + custom `calculate_acc` (normalised substring match). [evaluate_final_acc.py L90–108]
+- For **single-hop** datasets (nq, trivia, squad): uses `SquadAnswerEmF1Metric` + custom `calculate_acc` (normalised substring match). [evaluate_final_acc.py L99–127]
 - For **multi-hop** datasets (musique, hotpotqa, 2wikimultihopqa): calls the official evaluation scripts via subprocess:
-  - `hotpot_evaluate_v1.py` [evaluate_final_acc.py L128–179]
-  - `2wikimultihop_evaluate_v1.1.py` [evaluate_final_acc.py L181–232]
-  - `evaluate_v1.0.py` (MuSiQue) [evaluate_final_acc.py L234–279]
+  - `hotpot_evaluate_v1.py` [evaluate_final_acc.py L130–200]
+  - `2wikimultihop_evaluate_v1.1.py` [evaluate_final_acc.py L202–267]
+  - `evaluate_v1.0.py` (MuSiQue) [evaluate_final_acc.py L269–335]
 - Reports: **EM** (exact match), **F1**, **accuracy**, **precision**, **recall**, **count** per dataset.
 - Results saved to `eval_metic_result_acc.json` per dataset subdirectory.
 
@@ -298,9 +299,9 @@ Each step runs `python run_classifier.py` as a separate process. Validation and 
 
 | Model | `oner_qa` BM25 count | `ircot_qa` BM25 count | Source |
 |---|---|---|---|
-| `flan_t5_xl` | 15 | 6 | [predict_complexity_split_classifiers.py L17–18] |
-| `flan_t5_xxl` | 15 | 6 | [predict_complexity_split_classifiers.py L17–18] |
-| `gpt` | 6 | 3 | [predict_complexity_split_classifiers.py L17–18] |
+| `flan_t5_xl` | 15 | 6 | [predict_complexity_split_classifiers.py L18–19] |
+| `flan_t5_xxl` | 15 | 6 | [predict_complexity_split_classifiers.py L18–19] |
+| `gpt` | 6 | 3 | [predict_complexity_split_classifiers.py L18–19] |
 
 ### 6.6 Datasets evaluated
 
@@ -363,23 +364,24 @@ classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/
 ```
 predictions/classifier/t5-large/
   {model}/
-    split/                                          # or whatever --output_path is
-      {routing_run_name}/
-        musique/
-          musique.json                              # qid → answer string
-          musique_option.json                       # qid → {prediction, option, stepNum}
-        hotpotqa/
-          hotpotqa.json
-          hotpotqa_option.json
-        2wikimultihopqa/
-          ...
-        nq/
-          ...
-        trivia/
-          ...
-        squad/
-          ...
+    {iter_tag}/                                     # --output_path, e.g. iter1_standard
+      musique/
+        musique.json                                # qid → answer string
+        musique_option.json                         # qid → {prediction, option, stepNum}
+      hotpotqa/
+        hotpotqa.json
+        hotpotqa_option.json
+      2wikimultihopqa/
+        ...
+      nq/
+        ...
+      trivia/
+        ...
+      squad/
+        ...
 ```
+
+When invoked via `run-all-iterations.sh`, IT1 uses `iter1_standard` as the tag.
 
 ### 7.4 Evaluation results (after `evaluate_final_acc.py`)
 
@@ -396,7 +398,7 @@ Each dataset subdirectory within the routed predictions gets:
 
 ### 8.1 Model overwriting within epoch loop
 
-**File:** `run_classifier.py` L832–840  
+**File:** `run_classifier.py` L833–840  
 **Issue:** At the end of every training epoch, `unwrapped_model.save_pretrained(args.output_dir)` overwrites the model in the output directory. This means only the **final epoch's weights** survive — there is no best-epoch selection or epoch-indexed saving. If training degrades in later epochs (overfitting), the saved model may be suboptimal.  
 **Impact:** Medium. No early stopping exists to protect against this.
 
@@ -411,8 +413,8 @@ if args.output_dir is not None:
 
 ### 8.2 Silent training cap via `max_train_steps`
 
-**File:** `run_classifier.py` L805–806, `utils.py` L207–222  
-**Issue:** `prepare_scheduler()` computes `max_train_steps = num_train_epochs × num_update_steps_per_epoch`. The training loop then breaks at `if completed_steps >= args.max_train_steps: break` [run_classifier.py L805–806]. Due to integer rounding in `math.ceil(len(dataloader) / gradient_accumulation_steps)`, the actual number of steps may differ from the expected count by ±1 step per epoch. Not a practical problem given batch sizes involved, but worth noting.  
+**File:** `run_classifier.py` L808, `utils.py` L195–216  
+**Issue:** `prepare_scheduler()` computes `max_train_steps = num_train_epochs × num_update_steps_per_epoch`. The training loop then breaks at `if completed_steps >= args.max_train_steps: break` [run_classifier.py L808]. Due to integer rounding in `math.ceil(len(dataloader) / gradient_accumulation_steps)`, the actual number of steps may differ from the expected count by ±1 step per epoch. Not a practical problem given batch sizes involved, but worth noting.  
 **Impact:** Negligible.
 
 ### 8.3 Each epoch value trains from scratch
@@ -435,13 +437,13 @@ if args.output_dir is not None:
 
 ### 8.6 predict.json accuracy scores are meaningless
 
-**File:** `run_classifier.py` L905–922  
+**File:** `run_classifier.py` L915–925  
 **Issue:** When running `--do_eval` on `predict.json`, the code computes `calculate_accuracy(gold_answers, predictions)` where `gold_answers` are all empty strings (`""`). Since no prediction will be `""`, accuracy will always be 0 %. The code writes this to `final_eval_results.json` in the predict directory, which could be mistaken for actual evaluation results.  
 **Impact:** Confusion risk. The predict-directory accuracy files should be ignored.
 
 ### 8.7 `TRANSFORMERS_CACHE` set relative to CWD
 
-**File:** `run_classifier.py` L27  
+**File:** `run_classifier.py` L26  
 **Issue:** `os.environ['TRANSFORMERS_CACHE'] = os.path.dirname(os.getcwd()) + '/cache'`. This resolves to `dirname(classifier/) + '/cache'` = `Adaptive-RAG/cache` when run from the `classifier/` directory as instructed. If run from a different directory, the cache location changes.  
 **Impact:** Low. Correct when following the documented working-directory convention.
 
@@ -463,19 +465,19 @@ The inductive-bias binary labels in the training set add approximately 2 400 ext
 
 ### 8.10 `DataLoader` shuffle without worker seeding
 
-**File:** `run_classifier.py` L617  
-**Issue:** `DataLoader(train_dataset_for_model, shuffle=True, ...)` — while `set_seed(42)` is called globally at [run_classifier.py L538], PyTorch DataLoader worker processes may not be seeded unless `worker_init_fn` is provided. In this case, `num_workers` defaults to 0 (main-process loading), so this is not a practical issue.  
+**File:** `run_classifier.py` L620  
+**Issue:** `DataLoader(train_dataset_for_model, shuffle=True, ...)` — while `set_seed(42)` is called globally at [run_classifier.py L525], PyTorch DataLoader worker processes may not be seeded unless `worker_init_fn` is provided. In this case, `num_workers` defaults to 0 (main-process loading), so this is not a practical issue.  
 **Impact:** Negligible.
 
 ### 8.11 Routing script loads QA prediction file once per question
 
 **File:** `postprocess_utils.py` L32 (`save_prediction_with_classified_label`)  
 **Issue:** For every question where `predicted_option == 'C'`, the function calls `load_json(stepNum_result_file)` inside the loop — re-reading the file on every iteration. Similarly, `load_json(dataName_to_multi_one_zero_file[dataset_name][predicted_option])` is called per question.  
-**Impact:** Performance only — `predict_complexity_split_classifiers.py` avoids this by loading files upfront. `predict_complexity_on_classification_results.py` (the older single-classifier script) still has this issue but is not used in the split pipeline.
+**Impact:** Performance only — both `predict_complexity_split_classifiers.py` (L111) and the older `predict_complexity_on_classification_results.py` (which delegates to `save_prediction_with_classified_label`) exhibit this per-question file-loading pattern. The split-pipeline script loads the QA prediction file inside its inner routing loop rather than caching it upfront.
 
 ### 8.12 `predict_complexity_on_classification_results.py` has a hardcoded classification result path
 
-**File:** `predict_complexity_on_classification_results.py` L11  
+**File:** `predict_complexity_on_classification_results.py` L18  
 **Issue:** `classification_result_file = './classifier/outputs/.../epoch/25/2024_04_19/01_53_50/predict/dict_id_pred_results.json'` — a fully hardcoded path to one specific run. This script is the **old** single-classifier router and is not used in the IT1 split pipeline (which uses `predict_complexity_split_classifiers.py` with CLI arguments instead).  
 **Impact on IT1:** None — this file is unused in the split pipeline.
 
@@ -484,3 +486,5 @@ The inductive-bias binary labels in the training set add approximately 2 400 ext
 **File:** All 6 IT1 shell scripts  
 **Issue:** The scripts train 5 (or 2) independent models at different epoch budgets but perform no automated comparison to select the best epoch. The user must manually inspect `final_eval_results.json` files across epoch directories and pick the best one for routing.  
 **Impact:** Operational — requires manual intervention to determine which epoch's predictions to pass to the routing script.
+
+**Mitigation (added later):** `run-all-iterations.sh` automates best-epoch selection via its `find_best_epoch()` helper, which compares validation predictions against ground truth across all epoch runs and returns the predict path for the epoch with the highest validation accuracy.
