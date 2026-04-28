@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-all-iterations.sh — Run all 8 Adaptive-RAG cascade iterations.
+# run-all-iterations.sh — Run all 7 Adaptive-RAG cascade iterations.
 #
 # Iterations:
 #   1: Normal cascade (standard Clf1 + standard Clf2)
@@ -7,14 +7,13 @@
 #   3: Cascade w/ Clf1 weighted CE
 #   4: Cascade w/ Clf1 focal loss
 #   5: Cascade w/ Clf1 UE agreement gate
-#   6: Cascade w/ Clf2 silver-only probing
-#   7: Cascade w/ Clf2 structural features
-#   8: Cascade w/ UE kappa (fully training-free)
+#   6: Cascade w/ Clf2 κ(q) feature probing
+#   7: Cascade w/ UE kappa (fully training-free)
 #
 # Usage:
 #   cd /root/laura/Adaptive-RAG
 #   bash run-all-iterations.sh           # run everything
-#   bash run-all-iterations.sh 5 6 8     # run only IT5, IT6, IT8
+#   bash run-all-iterations.sh 5 6 7     # run only IT5, IT6, IT7
 
 set -euo pipefail
 
@@ -32,7 +31,7 @@ cd "${REPO_ROOT}"
 if [[ ${#SAVED_ARGS[@]} -gt 0 ]]; then
     ITERATIONS=("${SAVED_ARGS[@]}")
 else
-    ITERATIONS=(1 2 3 4 5 6 7 8)
+    ITERATIONS=(1 2 3 4 5 6 7)
 fi
 
 SKIP_PHASE0=${SKIP_PHASE0:-false}   # <-- ADD THIS LINE
@@ -166,7 +165,7 @@ declare -A BEST_CLF1_STD BEST_CLF2_STD
 # =========================================================================
 
 needs_std=false
-for i in 1 2 3 4 5 6 7; do should_run "$i" && needs_std=true; done
+for i in 1 2 3 4 5; do should_run "$i" && needs_std=true; done
 
 if $needs_std; then
     if ! $SKIP_PHASE0; then
@@ -309,58 +308,29 @@ if should_run 5; then
 fi
 
 # =========================================================================
-#  IT6: Clf2 silver-only probing (analysis only, no training/routing)
+#  IT6: Clf2 κ(q) feature probing (analysis only, no training/routing)
 # =========================================================================
 if should_run 6; then
     echo ""
     echo "================================================================="
-    echo "  IT6: Clf2 silver-only probing"
+    echo "  IT6: Clf2 κ(q) feature probing"
     echo "================================================================="
 
-    echo "--- Running feature probe across all models ---"
-    python classifier/postprocess/clf2_feature_probe.py --all_models \
-        --output_dir "predictions/classifier/t5-large/iter6_probe"
+    echo "--- Running κ(q) feature probe across all models ---"
+    python classifier/postprocess/clf2_kappa_feature_probe.py --all_models \
+        --output_dir "predictions/classifier/t5-large/iter6_kappa_probe"
 fi
 
 # =========================================================================
-#  IT7: Clf2 structural features
+#  IT7: UE kappa (fully training-free)
 # =========================================================================
 if should_run 7; then
     echo ""
     echo "================================================================="
-    echo "  IT7: Clf2 structural features"
-    echo "================================================================="
-
-    echo "--- Generating feature-prefixed data files ---"
-    python classifier/data_utils/add_feature_prefix.py
-
-    cd "${CLF_DIR}"
-    for m in "${MODELS[@]}"; do
-        echo "--- Training feature Clf2 for ${m} ---"
-        bash "run/run_large_train_feat_single_vs_multi.sh" "${m}"
-    done
-    cd "${REPO_ROOT}"
-
-    for m in "${MODELS[@]}"; do
-        BEST_CLF2_FEAT=$(find_best_epoch \
-            "classifier/outputs/${DATASET}/model/t5-large/${m}/feat_single_vs_multi/epoch" \
-            "classifier/data/${DATASET}/${m}/silver_feat_single_vs_multi/valid.json" \
-            "feat")
-        echo "  Feature Clf2 (${m}): ${BEST_CLF2_FEAT}"
-        route_agreement "iter7_features" "$m" "${BEST_CLF2_FEAT}"
-    done
-fi
-
-# =========================================================================
-#  IT8: UE kappa (fully training-free)
-# =========================================================================
-if should_run 8; then
-    echo ""
-    echo "================================================================="
-    echo "  IT8: UE kappa (fully training-free)"
+    echo "  IT7: UE kappa (fully training-free)"
     echo "================================================================="
     for m in "${MODELS[@]}"; do
-        route_kappa "iter8_kappa" "$m"
+        route_kappa "iter7_kappa" "$m"
     done
 fi
 

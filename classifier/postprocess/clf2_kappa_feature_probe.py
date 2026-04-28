@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 """
-Iteration 3b feasibility check: can simple structural query features
+IT8-aligned feasibility check: can the SymRAG κ(q) structural features
 separate B (single-step) from C (multi-step) better than chance?
 
-Extracts three features per question:
-  - token_len:    whitespace-split token count
-  - entity_count: named-entity count (spaCy en_core_web_sm)
-  - bridge_flag:  regex match for multi-hop bridging phrases
+Uses the same features as predict_complexity_kappa.py (IT8):
+  - token_len_norm:  whitespace-split token count / max token count
+  - entity_density:  entity_count / token_len
+  - hop_density:     hop_indicator_count / token_len
+  - kappa:           composite κ(q) = w_L · L(q) · (1 + S_H(q))
 
 Trains a logistic regression under 5-fold stratified cross-validation and
 reports mean ROC-AUC ± std, mean accuracy ± std, mean per-feature
 coefficients ± std, and a classification report from the last fold.
 
 Usage:
-    python classifier/postprocess/clf2_feature_probe.py
-    python classifier/postprocess/clf2_feature_probe.py --data_path path/to/train.json
-    python classifier/postprocess/clf2_feature_probe.py --model flan_t5_xxl
-    python classifier/postprocess/clf2_feature_probe.py --all_models
+    python classifier/postprocess/clf2_kappa_feature_probe.py
+    python classifier/postprocess/clf2_kappa_feature_probe.py --data_path path/to/train.json
+    python classifier/postprocess/clf2_kappa_feature_probe.py --model flan_t5_xxl
+    python classifier/postprocess/clf2_kappa_feature_probe.py --all_models
 """
 
 import argparse
@@ -25,6 +26,7 @@ import os
 import re
 import sys
 
+import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -36,26 +38,17 @@ from sklearn.metrics import (
     f1_score,
     roc_auc_score,
 )
-from sklearn.model_selection import StratifiedKFold, cross_val_predict
+from sklearn.model_selection import StratifiedKFold
 
 # ---------------------------------------------------------------------------
-# Bridging-phrase patterns
+# SymRAG published weights (same as predict_complexity_kappa.py)
 # ---------------------------------------------------------------------------
-# These regex patterns target syntactic structures common in multi-hop
-# questions that chain two information needs together.  Each pattern is
-# case-insensitive and matches anywhere in the question string.
-#
-#   1. Relative clauses linking two entities:
-#        "the person who founded …"
-#        "the city where … was born"
-#   2. Possessive chains:
-#        "X's Y's Z"  (two possessives ⇒ likely two hops)
-#   3. Temporal/causal subordination across entities:
-#        "before/after/when X did Y, what …"
-#   4. Demonstrative reference to a prior fact:
-#        "that country/person/team" preceded by a wh-clause
-#   5. Explicit comparison bridging two look-ups:
-#        "both X and Y", "between X and Y"
+W_L = 1.0
+W_SH1 = 0.05   # entity density weight
+W_SH2 = 0.10   # hop indicator density weight
+
+# ---------------------------------------------------------------------------
+# Bridging-phrase patterns (identical to predict_complexity_kappa.py)
 # ---------------------------------------------------------------------------
 BRIDGE_PATTERNS = [
     # Relative-clause bridges (who/where/which/that + verb)
@@ -72,16 +65,11 @@ BRIDGE_PATTERNS = [
     # Nested wh-questions  ("What is the X of the Y that …")
     r"\bof\s+the\s+\w+\s+(?:who|that|which|where)\b",
 ]
-_BRIDGE_RE = re.compile("|".join(BRIDGE_PATTERNS), re.IGNORECASE)
+_BRIDGE_RES = [re.compile(p, re.IGNORECASE) for p in BRIDGE_PATTERNS]
 
 
 def detect_data_paths(model: str) -> list[tuple[str, str]]:
-    """Return available Clf2 data files as ``(tag, path)`` pairs.
-
-    Checks for both the merged (silver + inductive-bias) file and the
-    silver-only file.  Returns all that exist, in order:
-      ("merged", ...), ("silver-only", ...)
-    """
+    """Return available Clf2 data files as ``(tag, path)`` pairs."""
     repo_root = os.path.abspath(
         os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
     )
@@ -127,63 +115,87 @@ def load_bc_data_ib_only(merged_path: str, silver_path: str) -> list[dict]:
 
 
 def extract_features(questions: list[str], nlp) -> pd.DataFrame:
-    """Extract token_len, entity_count, bridge_flag for each question."""
+    """Extract IT8's κ(q) features for each question.
+
+    Raw features (per question):
+      - token_len:       whitespace-split token count
+      - entity_count:    spaCy NER entity count
+      - hop_count:       number of bridging patterns that fire
+
+    Derived features (matching predict_complexity_kappa.py exactly):
+      - token_len_norm:  token_len / max(token_len)
+      - entity_density:  entity_count / token_len
+      - hop_density:     hop_count / token_len
+      - kappa:           W_L * token_len_norm * (1 + W_SH1 * entity_density + W_SH2 * hop_density)
+    """
     token_lens = []
     entity_counts = []
-    bridge_flags = []
+    hop_counts = []
 
-    # Process in batches via spaCy pipe for speed
     for doc in nlp.pipe(questions, batch_size=256):
-        token_lens.append(len(doc.text.split()))
+        text = doc.text
+        token_lens.append(len(text.split()))
         entity_counts.append(len(doc.ents))
-        bridge_flags.append(1 if _BRIDGE_RE.search(doc.text) else 0)
+        hop_counts.append(sum(1 for pat in _BRIDGE_RES if pat.search(text)))
+
+    token_lens = np.array(token_lens, dtype=float)
+    entity_counts = np.array(entity_counts, dtype=float)
+    hop_counts = np.array(hop_counts, dtype=float)
+
+    max_len = token_lens.max() if token_lens.max() > 0 else 1.0
+    token_len_norm = token_lens / max_len
+
+    safe_lens = np.where(token_lens > 0, token_lens, 1.0)
+    entity_density = entity_counts / safe_lens
+    hop_density = hop_counts / safe_lens
+
+    kappa = W_L * token_len_norm * (1.0 + W_SH1 * entity_density + W_SH2 * hop_density)
 
     return pd.DataFrame({
-        "token_len": token_lens,
-        "entity_count": entity_counts,
-        "bridge_flag": bridge_flags,
+        "token_len": token_lens.astype(int),
+        "entity_count": entity_counts.astype(int),
+        "hop_count": hop_counts.astype(int),
+        "token_len_norm": token_len_norm,
+        "entity_density": entity_density,
+        "hop_density": hop_density,
+        "kappa": kappa,
     })
 
 
-def _evaluate_dataset(
-    data_path: str, tag: str, model: str, output_dir: str, nlp,
+# Feature columns used in the logistic regression probe
+FEATURE_COLS = ["token_len_norm", "entity_density", "hop_density", "kappa"]
+
+
+def _evaluate_items(
+    bc_data: list[dict], tag: str, model: str, output_dir: str, nlp,
 ) -> dict:
-    """Run feature extraction + 5-fold CV on a single data file.
-
-    Returns a dict with keys: tag, n_samples, n_b, n_c, mean_auc,
-    std_auc, mean_acc, std_acc, feat_df.
-    """
-    import numpy as np
-
-    print(f"[data]  {data_path}")
-
-    bc_data = load_bc_data(data_path)
+    """Run feature extraction + 5-fold CV on a list of B/C items."""
+    if not bc_data:
+        return None
     questions = [item["question"] for item in bc_data]
     labels = [item["answer"] for item in bc_data]
     n_b = labels.count("B")
     n_c = labels.count("C")
     print(f"[data]  {len(bc_data)} B/C items  (B={n_b}, C={n_c})")
 
-    print("[feat]  extracting features (spaCy NER + regex) ...")
+    print("[feat]  extracting κ(q) features (spaCy NER + regex) ...")
     feat_df = extract_features(questions, nlp)
     feat_df["label"] = labels
     feat_df["question"] = questions
     feat_df["id"] = [item["id"] for item in bc_data]
 
     print("\n--- Feature means by class ---")
-    print(feat_df.groupby("label")[["token_len", "entity_count", "bridge_flag"]].mean()
-          .round(3).to_string())
+    print(feat_df.groupby("label")[FEATURE_COLS].mean().round(4).to_string())
     print()
 
     safe_tag = tag.replace(" ", "_").replace("+", "_")
-    csv_path = os.path.join(output_dir, f"clf2_feature_probe_data_{model}_{safe_tag}.csv")
+    csv_path = os.path.join(output_dir, f"clf2_kappa_probe_data_{model}_{safe_tag}.csv")
     feat_df.to_csv(csv_path, index=False)
     print(f"[save]  {csv_path}")
 
     # --- 5-fold stratified CV -----------------------------------------
-    X = feat_df[["token_len", "entity_count", "bridge_flag"]].values
+    X = feat_df[FEATURE_COLS].values
     y = (feat_df["label"] == "C").astype(int).values
-    feature_names = ["token_len", "entity_count", "bridge_flag"]
 
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     fold_aucs, fold_accs, fold_f1s, fold_coefs = [], [], [], []
@@ -232,34 +244,46 @@ def _evaluate_dataset(
 
     mean_coefs = fold_coefs.mean(axis=0)
     std_coefs = fold_coefs.std(axis=0)
-    mean_coef_dict = {name: float(mc) for name, mc in zip(feature_names, mean_coefs)}
+    mean_coef_dict = {name: float(mc) for name, mc in zip(FEATURE_COLS, mean_coefs)}
     last_intercept = float(clf.intercept_[0])
     print("--- Feature coefficients (positive → C), mean ± std across folds ---")
-    for name, mc, sc in zip(feature_names, mean_coefs, std_coefs):
-        print(f"  {name:>14s}:  {mc:+.4f} ± {sc:.4f}")
-    print(f"  {'intercept':>14s}:  {last_intercept:+.4f}  (last fold)")
+    for name, mc, sc in zip(FEATURE_COLS, mean_coefs, std_coefs):
+        print(f"  {name:>18s}:  {mc:+.4f} ± {sc:.4f}")
+    print(f"  {'intercept':>18s}:  {last_intercept:+.4f}  (last fold)")
 
-    # --- Scatter plot --------------------------------------------------
-    fig, ax = plt.subplots(figsize=(8, 6))
+    # --- κ distribution plot -------------------------------------------
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # Left: κ histogram by class
+    ax = axes[0]
     b_mask = feat_df["label"] == "B"
     c_mask = feat_df["label"] == "C"
+    ax.hist(feat_df.loc[b_mask, "kappa"], bins=40, alpha=0.6, label="B (single)", color="tab:blue")
+    ax.hist(feat_df.loc[c_mask, "kappa"], bins=40, alpha=0.6, label="C (multi)", color="tab:red")
+    ax.set_xlabel("κ(q)")
+    ax.set_ylabel("Count")
+    ax.set_title(f"κ(q) distribution ({model}, {tag})")
+    ax.legend()
+
+    # Right: entity_density vs hop_density scatter
+    ax = axes[1]
     ax.scatter(
-        feat_df.loc[b_mask, "token_len"],
-        feat_df.loc[b_mask, "entity_count"],
+        feat_df.loc[b_mask, "entity_density"],
+        feat_df.loc[b_mask, "hop_density"],
         c="tab:blue", alpha=0.4, s=18, label="B (single-step)",
     )
     ax.scatter(
-        feat_df.loc[c_mask, "token_len"],
-        feat_df.loc[c_mask, "entity_count"],
+        feat_df.loc[c_mask, "entity_density"],
+        feat_df.loc[c_mask, "hop_density"],
         c="tab:red", alpha=0.4, s=18, label="C (multi-step)",
     )
-    ax.set_xlabel("token_len (whitespace-split)")
-    ax.set_ylabel("entity_count (spaCy NER)")
-    ax.set_title(f"Clf2 Probe ({model}, {tag})  —  B vs C  (AUC={mean_auc:.3f})")
+    ax.set_xlabel("entity_density")
+    ax.set_ylabel("hop_density")
+    ax.set_title(f"κ(q) components ({model}, {tag})  —  AUC={mean_auc:.3f}")
     ax.legend()
-    fig.tight_layout()
 
-    plot_path = os.path.join(output_dir, f"clf2_feature_probe_scatter_{model}_{safe_tag}.png")
+    fig.tight_layout()
+    plot_path = os.path.join(output_dir, f"clf2_kappa_probe_{model}_{safe_tag}.png")
     fig.savefig(plot_path, dpi=150)
     plt.close(fig)
     print(f"\n[save]  {plot_path}")
@@ -280,13 +304,65 @@ def _evaluate_dataset(
     }
 
 
+def _evaluate_dataset(
+    data_path: str, tag: str, model: str, output_dir: str, nlp,
+) -> dict:
+    """Run feature extraction + 5-fold CV on a single data file."""
+    print(f"[data]  {data_path}")
+    bc_data = load_bc_data(data_path)
+    return _evaluate_items(bc_data, tag, model, output_dir, nlp)
+
+
+DATASET_NAMES = ["musique", "hotpotqa", "2wikimultihopqa", "nq", "trivia", "squad"]
+
+
+def run_per_dataset_probe(
+    model: str, output_dir: str, nlp,
+) -> list[dict]:
+    """Run probe per source dataset across merged, silver, and IB splits."""
+    sources = detect_data_paths(model)
+    merged_path = next((p for t, p in sources if t == "merged"), None)
+    silver_path = next((p for t, p in sources if t == "silver-only"), None)
+
+    # Load all items once
+    merged_items = load_bc_data(merged_path) if merged_path else []
+    with open(silver_path) as f:
+        silver_ids = {item["id"] for item in json.load(f)} if silver_path else set()
+    silver_items = [x for x in load_bc_data(silver_path)] if silver_path else []
+    ib_items = [x for x in merged_items if x["id"] not in silver_ids]
+
+    rows = []
+    for ds in DATASET_NAMES:
+        ds_merged = [x for x in merged_items if x.get("dataset_name") == ds]
+        ds_silver = [x for x in silver_items if x.get("dataset_name") == ds]
+        ds_ib = [x for x in ib_items if x.get("dataset_name") == ds]
+
+        row = {"dataset": ds, "model": model,
+               "merged": None, "silver": None, "ib": None}
+
+        for split_tag, items in [("merged", ds_merged),
+                                  ("silver", ds_silver),
+                                  ("ib", ds_ib)]:
+            bc = [x for x in items if x.get("answer") in ("B", "C")]
+            n_b = sum(1 for x in bc if x["answer"] == "B")
+            n_c = sum(1 for x in bc if x["answer"] == "C")
+            if n_b < 5 or n_c < 5:
+                print(f"  [{ds}/{split_tag}] skipped (B={n_b}, C={n_c} — too few)")
+                continue
+            print(f"\n--- {ds} / {split_tag} (B={n_b}, C={n_c}) ---")
+            res = _evaluate_items(
+                bc, f"{ds}_{split_tag}", model, output_dir, nlp,
+            )
+            if res:
+                row[split_tag] = res
+
+        rows.append(row)
+
+    return rows
+
+
 def run_probe(model: str, data_path: str | None, output_dir: str, nlp) -> dict:
     """Run the full feature probe for one model variant.
-
-    When *data_path* is ``None`` (auto-detect), evaluates on both the merged
-    (silver + inductive-bias) and silver-only data files if both exist.
-    The go/no-go verdict is based on the silver-only macro-F1 (the stricter
-    evaluation); the merged results are reported for comparison.
 
     Returns a dict with keys: model, merged, silver_only, verdict,
     verdict_f1, verdict_std.
@@ -296,7 +372,6 @@ def run_probe(model: str, data_path: str | None, output_dir: str, nlp) -> dict:
     }
 
     if data_path is not None:
-        # Explicit override — single evaluation, no dual-source logic
         res = _evaluate_dataset(data_path, "override", model, output_dir, nlp)
         verdict_f1 = res["mean_f1"]
         verdict_std = res["std_f1"]
@@ -322,6 +397,7 @@ def run_probe(model: str, data_path: str | None, output_dir: str, nlp) -> dict:
             silver_path = next(p for t, p in sources if t == "silver-only")
             ib_items = load_bc_data_ib_only(merged_path, silver_path)
             if ib_items:
+                import tempfile
                 ib_tmp = os.path.join(output_dir, f".ib_only_{model}.json")
                 with open(ib_tmp, "w") as f:
                     json.dump(ib_items, f)
@@ -330,7 +406,6 @@ def run_probe(model: str, data_path: str | None, output_dir: str, nlp) -> dict:
                 sub_results["ib-only"] = res
                 os.remove(ib_tmp)
 
-        # Verdict based on silver-only macro-F1; fall back to merged
         if sub_results["silver-only"] is not None:
             verdict_f1 = sub_results["silver-only"]["mean_f1"]
             verdict_std = sub_results["silver-only"]["std_f1"]
@@ -360,11 +435,11 @@ def run_probe(model: str, data_path: str | None, output_dir: str, nlp) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Clf2 feature probe: can structural features separate B vs C?"
+        description="κ(q) feature probe: can IT8's structural features separate B vs C?"
     )
     parser.add_argument(
         "--data_path", type=str, default=None,
-        help="Override path to Clf2 training JSON (must contain 'question' and 'answer' fields).",
+        help="Override path to Clf2 training JSON.",
     )
     parser.add_argument(
         "--model", type=str, default="flan_t5_xl",
@@ -373,11 +448,15 @@ def main():
     )
     parser.add_argument(
         "--all_models", action="store_true", default=False,
-        help="Run probe for all model variants (flan_t5_xl, flan_t5_xxl, gpt) and print summary table.",
+        help="Run probe for all model variants and print summary table.",
+    )
+    parser.add_argument(
+        "--per_dataset", action="store_true", default=False,
+        help="Break down evaluation by source dataset.",
     )
     parser.add_argument(
         "--output_dir", type=str, default=None,
-        help="Directory for outputs (scatter plot + CSV). Default: same dir as this script.",
+        help="Directory for outputs (plots + CSV). Default: same dir as this script.",
     )
     args = parser.parse_args()
 
@@ -385,7 +464,6 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     print(f"[out]   {output_dir}")
 
-    # --- Load spaCy ----------------------------------------------------
     try:
         import spacy
         nlp = spacy.load("en_core_web_sm", disable=["parser", "lemmatizer"])
@@ -395,12 +473,73 @@ def main():
             "Install with:  python -m spacy download en_core_web_sm"
         )
 
-    # --- Determine models to probe ------------------------------------
     if args.all_models:
         models = ["flan_t5_xl", "flan_t5_xxl", "gpt"]
     else:
         models = [args.model]
 
+    # --- Per-dataset mode ---------------------------------------------
+    if args.per_dataset:
+        all_ds_rows = []
+        for model in models:
+            print(f"\n{'=' * 60}")
+            print(f"  MODEL: {model}  (per-dataset)")
+            print(f"{'=' * 60}")
+            rows = run_per_dataset_probe(model, output_dir, nlp)
+            all_ds_rows.extend(rows)
+
+        # Summary table
+        print(f"\n\n{'=' * 120}")
+        print("  PER-DATASET SUMMARY")
+        print(f"{'=' * 120}")
+        header = (f"{'Model':<14s}| {'Dataset':<20s}"
+                  f"| {'N_m':>4s} {'F1_m':>7s} {'AUC_m':>7s}"
+                  f"| {'N_s':>4s} {'F1_s':>7s} {'AUC_s':>7s}"
+                  f"| {'N_ib':>4s} {'F1_ib':>7s} {'AUC_ib':>7s}")
+        print(header)
+        print("-" * len(header))
+        for row in all_ds_rows:
+            m = row["merged"]
+            s = row["silver"]
+            ib = row["ib"]
+            nm = str(m["n_samples"]) if m else "-"
+            f1m = f"{m['mean_f1']:.4f}" if m else "-"
+            am = f"{m['mean_auc']:.4f}" if m else "-"
+            ns = str(s["n_samples"]) if s else "-"
+            f1s = f"{s['mean_f1']:.4f}" if s else "-"
+            aus = f"{s['mean_auc']:.4f}" if s else "-"
+            nib = str(ib["n_samples"]) if ib else "-"
+            f1ib = f"{ib['mean_f1']:.4f}" if ib else "-"
+            aib = f"{ib['mean_auc']:.4f}" if ib else "-"
+            print(f"{row['model']:<14s}| {row['dataset']:<20s}"
+                  f"| {nm:>4s} {f1m:>7s} {am:>7s}"
+                  f"| {ns:>4s} {f1s:>7s} {aus:>7s}"
+                  f"| {nib:>4s} {f1ib:>7s} {aib:>7s}")
+        print()
+
+        # Persist
+        json_path = os.path.join(output_dir, "clf2_kappa_probe_per_dataset.json")
+        def _row_to_json(sub):
+            if sub is None:
+                return None
+            return {
+                "n_samples": sub["n_samples"],
+                "class_counts": {"B": sub["n_b"], "C": sub["n_c"]},
+                "mean_auc": sub["mean_auc"],
+                "mean_macro_f1": sub["mean_f1"],
+                "mean_accuracy": sub["mean_acc"],
+            }
+        json_out = [{"model": r["model"], "dataset": r["dataset"],
+                     "merged": _row_to_json(r["merged"]),
+                     "silver": _row_to_json(r["silver"]),
+                     "ib": _row_to_json(r["ib"])}
+                    for r in all_ds_rows]
+        with open(json_path, "w") as f:
+            json.dump(json_out, f, indent=2)
+        print(f"[save]  {json_path}")
+        return
+
+    # --- Standard (aggregate) mode ------------------------------------
     results = []
     for model in models:
         if len(models) > 1:
@@ -415,7 +554,6 @@ def main():
         )
         results.append(result)
 
-    # --- Summary table (when multiple models) -------------------------
     if len(results) > 1:
         print(f"\n\n{'=' * 90}")
         print("  SUMMARY")
@@ -443,7 +581,7 @@ def main():
                   f"| {auc_merged:>12s} | {auc_silver:>12s} | {auc_ib:>12s} | {r['verdict']}")
         print()
 
-    # --- Persist all results to JSON ----------------------------------
+    # --- Persist results to JSON --------------------------------------
     def _sub_to_json(sub: dict | None) -> dict | None:
         if sub is None:
             return None
@@ -461,6 +599,8 @@ def main():
         }
 
     json_out: dict = {
+        "features": FEATURE_COLS,
+        "kappa_weights": {"W_L": W_L, "W_SH1": W_SH1, "W_SH2": W_SH2},
         "models": {},
         "go_no_go_metric": "macro_f1",
         "go_no_go_threshold": 0.55,
@@ -487,7 +627,7 @@ def main():
             model_entry["override"] = override_json
         json_out["models"][r["model"]] = model_entry
 
-    json_path = os.path.join(output_dir, "clf2_feature_probe_results.json")
+    json_path = os.path.join(output_dir, "clf2_kappa_probe_results.json")
     with open(json_path, "w") as f:
         json.dump(json_out, f, indent=2)
     print(f"[save]  {json_path}")

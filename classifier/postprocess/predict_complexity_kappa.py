@@ -258,9 +258,11 @@ def tune_threshold(valid_path, nlp):
     best_preds = (kappa >= best_acc_t).astype(int)
     b_acc = (best_preds[b_mask] == labels[b_mask]).mean() if b_mask.any() else 0.0
     c_acc = (best_preds[c_mask] == labels[c_mask]).mean() if c_mask.any() else 0.0
+    f1_at_acc_t = f1_score(labels, best_preds, average="macro", zero_division=0)
 
     print(f"Tuned threshold: {best_acc_t:.4f}, validation accuracy: {best_acc:.4f}, "
-          f"val B-acc: {b_acc:.4f}, val C-acc: {c_acc:.4f}")
+          f"val B-acc: {b_acc:.4f}, val C-acc: {c_acc:.4f}, "
+          f"macro-F1 at this threshold: {f1_at_acc_t:.4f}")
     print(f"Best macro-F1: {best_f1:.4f} at threshold {best_f1_t:.4f}"
           + (" (same as accuracy-optimal)" if abs(best_f1_t - best_acc_t) < 1e-9
              else f" (differs from accuracy-optimal {best_acc_t:.4f})"))
@@ -268,6 +270,7 @@ def tune_threshold(valid_path, nlp):
     stats = {
         "best_acc_threshold": best_acc_t,
         "best_accuracy": float(best_acc),
+        "macro_f1_at_used_threshold": float(f1_at_acc_t),
         "val_B_accuracy": float(b_acc),
         "val_C_accuracy": float(c_acc),
         "best_f1_threshold": best_f1_t,
