@@ -1,11 +1,12 @@
-# Iteration 7 — Feature-Augmented Gate 2 Classifier
+# Iteration 7 — Fully Training-Free SymRAG κ(q) Cascade (Agreement Gate + Structural Heuristic)
 
-> **Design Science Research Artifact:** Retrain the Gate 2 (Clf2: B vs C)
-> classifier with three structural features — token length, named-entity
-> count, and bridging-phrase flag — prepended as a plain-text prefix to the
-> question string before T5 tokenization.  The T5-Large model architecture is
-> completely unmodified; the features are injected purely through the input
-> text.  Gate 1 is not retrained.
+> **Design Science Research Artifact:** Replace **both** trained classifiers
+> with training-free heuristics: Gate 1 uses the IT5 cross-strategy answer
+> agreement gate (nor_qa vs oner_qa), and Gate 2 uses a SymRAG-inspired
+> structural complexity score κ(q) with threshold tuning on validation data.
+> No model is trained, no checkpoint is loaded, no GPU is required for
+> routing decisions. The only external dependency beyond stdlib is spaCy
+> `en_core_web_sm` (12 MB NER model) for entity counting.
 
 ---
 
@@ -13,441 +14,785 @@
 
 | File | Role |
 |---|---|
-| `classifier/run/run_large_train_feat_single_vs_multi.sh` (102 lines) | **New.** Single shell script that trains, validates, and predicts for all three model variants. Parameterized by positional arg (`flan_t5_xl`, `flan_t5_xxl`, `gpt`). |
-| `classifier/data_utils/add_feature_prefix.py` (120 lines) | **New.** Offline preprocessing script that reads original Clf2 JSON files, computes features via spaCy + regex, prepends `[LEN:X] [ENT:Y] [BRIDGE:Z]` to each question, and writes new files. Run once before training. |
-| `classifier/postprocess/clf2_feature_probe.py` (497 lines) | **Reference only (IT6).** Defines the same three features and seven bridge-flag regex patterns. Not imported by the training pipeline. |
-| `classifier/run_classifier.py` (940 lines) | Shared — the manual Accelerate training loop (non-focal path) is the active code path. |
-| `classifier/utils.py` (254 lines) | Shared — `preprocess_features_function()` tokenizes the (now-prefixed) question string. |
-| `classifier/postprocess/predict_complexity_split_classifiers.py` | Routing — merges Clf1 + Clf2 predictions into A/B/C, routes to QA strategy answers. **Identical to IT1.** |
-| `classifier/postprocess/predict_complexity_agreement.py` (251 lines) | Routing — IT5 agreement gate. Intended Gate 1 pairing for IT7. |
+| `classifier/postprocess/predict_complexity_kappa.py` (567 lines) | **The ONLY new script.** Implements the full training-free cascade: agreement-based Gate 1, κ(q)-based Gate 2, threshold tuning, prediction routing, and output writing. |
+| `classifier/postprocess/postprocess_utils.py` | Shared — provides `load_json()` and `save_json()` helpers. **Identical to IT1.** |
 | `evaluate_final_acc.py` (341 lines) | QA evaluation — **identical to IT1.** |
-| `run-all-iterations.sh` | Orchestrator — **does NOT call the feature-augmented Clf2 training** (see §1.1 note below). |
+| `run-all-iterations.sh` | Top-level orchestrator. Invokes IT7 via the `route_kappa()` helper, which calls `predict_complexity_kappa.py` with `--use_agreement_gate --tune_threshold`, then runs `evaluate_final_acc.py`. |
+| `classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/{model}/silver/single_vs_multi/valid.json` | Clf2 validation data (B/C silver labels) — used for threshold tuning only. Not used for training. |
+| `classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/predict.json` | Unlabelled test set (3 000 questions, 500 per dataset). |
 
-**`run_classifier.py` and `utils.py` are NOT modified.** The feature injection happens entirely in the data files — the training script reads the pre-augmented JSON files and processes them through the same tokenization pipeline as IT1.
+### 1.1 Relationship to prior iterations
 
-### 1.1 Orchestrator mismatch
+| Component | IT5 (Gate 1 only) | IT6 (diagnostic) | **IT7 (this)** |
+|---|---|---|---|
+| Gate 1 | Agreement gate | Not involved | Agreement gate (reused from IT5) |
+| Gate 2 | Trained Clf2 consumed as-is | Logistic regression probe (feasibility only) | **κ(q) structural heuristic (new)** |
+| Training required? | No (Gate 1), Yes (Clf2) | No | **No** |
+| QA routing? | Yes | No | **Yes** |
+| End-to-end evaluation? | Yes | No | **Yes** |
 
-`run-all-iterations.sh` labels its 7th iteration as **"UE kappa (fully training-free)"** (L325–335), which calls `route_kappa()` → `predict_complexity_kappa.py` — a SymRAG-inspired structural κ(q) score that requires **no model training**.  This is a **different experiment** from the feature-augmented Clf2 described in the rest of this document.
+IT7 combines IT5's Gate 1 replacement with a new Gate 2 replacement derived from IT6's go/no-go feasibility check. It is the first fully training-free iteration.
 
-The feature-augmented Clf2 pipeline (`add_feature_prefix.py` → `run_large_train_feat_single_vs_multi.sh` → routing) is **not wired into the orchestrator**.  It must be run as a standalone experiment outside `run-all-iterations.sh`.
+### 1.2 External dependencies
+
+| Library | Import line | Purpose |
+|---|---|---|
+| `spacy` (+ `en_core_web_sm` model) | [L361–365] | Named-entity recognition for `entity_count` raw feature |
+| `numpy` | [L43] | Array operations in `compute_kappa()` and threshold tuning |
+| `sklearn.metrics.f1_score` | [L221] (lazy import inside `tune_threshold()`) | Macro-F1 during threshold search |
+
+### 1.3 NOT imported
+
+| Library | Relevance |
+|---|---|
+| `torch` | Not imported. No tensor operations. |
+| `transformers` | Not imported. No T5 model, no tokenizer, no `generate()`. |
+| `run_classifier.py` | Not imported. No training loop, no `FocalLossTrainer`. |
+| `utils.py` | Not imported. No `load_model()`, no `preprocess_features_function()`. |
+| `accelerate` | Not imported. No distributed training. |
+| `pandas` | Not imported. No DataFrame operations. |
+| `matplotlib` | Not imported. No plots generated. |
 
 ---
 
-## 2. Model Architecture
+## 2. Gate 1 — Agreement Gate (Reused from IT5)
 
-### 2.1 T5-Large — completely unmodified
+### 2.1 What is replaced
 
-The model is the same T5-Large (~770 M parameters) loaded via `AutoModelForSeq2SeqLM` as in IT1. No new layers, no additional input heads, no embedding modifications. The model's `config.json`, vocabulary, and architecture are identical.
+In IT1–IT4, Gate 1 is a trained T5-Large binary classifier (Clf1) that reads a question and predicts A or R. The classifier requires a fine-tuned model checkpoint (~770 M parameters) and GPU inference.
 
-### 2.2 How features are prepended
+### 2.2 What replaces it
 
-Features are injected as a **plain-text prefix** before the original question string. The preprocessing script `add_feature_prefix.py` modifies the `"question"` field in each JSON item at [L65–67]:
+The same agreement gate from IT5. The logic is embedded directly in `predict_complexity_kappa.py` — the `normalize_answer()`, `answer_extractor()`, `compute_agreement()`, and `load_strategy_predictions()` functions are copied from `predict_complexity_agreement.py`.
+
+### 2.3 Agreement computation
+
+The `compute_agreement()` function [L151–174] implements the full comparison pipeline:
+
+| Step | Code | Description |
+|---|---|---|
+| 1 | `nor_raw = nor_preds[qid]` | Load raw no-retrieval answer |
+| 2 | `oner_raw = oner_preds[qid]` | Load raw single-step retrieval answer |
+| 3 | Handle list answers | `if isinstance(nor_raw, list): nor_raw = nor_raw[0]` [L159–162] |
+| 4 | Cast to string | `nor_raw = str(nor_raw)` [L163–164] |
+| 5 | Extract answer from CoT | `answer_extractor(nor_raw)` — regex `".* answer is:? (.*)\\.?"` [L110–121] |
+| 6 | Normalize | `normalize_answer()` — lower → remove punctuation → remove articles → collapse whitespace [L99–108] |
+| 7 | Compare | `agree = bool(nor_norm and oner_norm and nor_norm == oner_norm)` [L170] — exact string match |
+
+### 2.4 Invocation path
+
+When `--use_agreement_gate` is passed (always the case in `run-all-iterations.sh`), the script at [L384–390]:
 
 ```python
-item["question"] = (
-    f"[LEN:{token_len}] [ENT:{entity_count}] [BRIDGE:{bridge_flag}] {q}"
-)
+agreement = compute_agreement(nor_preds, oner_preds, all_qids)
+gate1 = {}
+for qid in all_qids:
+    gate1[qid] = "A" if agreement[qid]["agree"] else "R"
 ```
 
-### 2.3 Concrete example
+When `--clf1_pred_file` is passed instead (alternative path), the script loads a Clf1 prediction JSON and reads each question's A/R label directly [L392–397].
 
-Original question:
-```
-What country was the director of the film born in?
-```
+### 2.5 No trained model is loaded for Gate 1
 
-After feature augmentation:
-```
-[LEN:14] [ENT:2] [BRIDGE:1] What country was the director of the film born in?
-```
+Same as IT5: no `torch`, `transformers`, or GPU allocation. The entire Gate 1 decision is string comparison on pre-computed QA outputs.
 
-Actual sample from the XL training file:
-```
-[LEN:9] [ENT:1] [BRIDGE:0] When was the institute that owned The Collegian founded?
-```
+---
 
-### 2.4 How T5 processes the prefix
+## 3. Gate 2 — SymRAG Structural κ(q) Score
 
-The feature prefix is tokenized by T5's SentencePiece tokenizer as ordinary text. At training time, `preprocess_features_function()` in `utils.py` [L79–105] tokenizes the full prefixed string:
+### 3.1 Theoretical basis
+
+Gate 2 uses the structural heuristic component of SymRAG's κ(q) complexity score (Hakim et al., 2025, Definition 1, Appendix A.1.1):
+
+$$\kappa(q) = (w_A \cdot A(q) + w_L \cdot L(q)) \cdot (1 + S_H(q))$$
+
+where:
+- $A(q)$ = mean attention score from `prajjwal1/bert-tiny` (4.4 M parameter model)
+- $L(q) = \text{token\_len} / \max(\text{token\_len})$ — normalised query length
+- $S_H(q) = w_{sh1} \cdot \frac{N_{ents}(q)}{|q|} + w_{sh2} \cdot \frac{N_{hops}(q)}{|q|}$ — structural heuristic
+
+**IT7 omits $A(q)$** and uses only the structural components:
+
+$$\kappa(q) = w_L \cdot L(q) \cdot (1 + S_H(q))$$
+
+### 3.2 Justification for omitting A(q)
+
+Two reasons:
+
+1. **No new model dependency:** Including $A(q)$ would require loading `prajjwal1/bert-tiny` and running a forward pass for each question. While cheap (4.4 M parameters), it introduces a model dependency that breaks the "no model required" property.
+2. **Clean comparison:** Using only structural features provides a direct comparison against the T5-Large Clf2 — both use the same question text, but IT7 uses hand-crafted features while Clf2 uses learned representations.
+
+### 3.3 Published SymRAG weights
+
+Defined as module-level constants [L56–58]:
+
+| Weight | Variable | Value | Purpose |
+|---|---|---|---|
+| $w_L$ | `W_L` | `1.0` | Token-length scaling |
+| $w_{sh1}$ | `W_SH1` | `0.05` | Entity-density contribution |
+| $w_{sh2}$ | `W_SH2` | `0.10` | Hop-indicator-density contribution |
+
+Source: SymRAG (Hakim et al., 2025), Appendix A.1.1.
+
+### 3.4 SymRAG initial thresholds (reference only)
+
+SymRAG publishes $T_{low,\kappa} = 0.4$ and $T_{high,\kappa} = 0.8$ (Table 7, page 23) for their 3-way routing (symbolic / neural / hybrid). IT7 uses a **binary** threshold (B vs C) that is tuned on validation data, so these reference values are not directly used.
+
+---
+
+## 4. Feature Extraction
+
+### 4.1 Raw features
+
+The `extract_features()` function [L186–197] extracts three raw features per question:
+
+| Feature | Extraction method | Library | Line |
+|---|---|---|---|
+| `token_len` | `len(text.split())` — whitespace-split token count | Built-in `str.split()` | [L194] |
+| `entity_count` | `len(doc.ents)` — number of named entities | spaCy `en_core_web_sm` NER | [L195] |
+| `hop_count` | `sum(1 for pat in _BRIDGE_RES if pat.search(text))` — count of matching bridging patterns | `re` stdlib | [L196] |
+
+Processing: all questions are passed through `nlp.pipe(questions, batch_size=256)` [L191].
+
+### 4.2 spaCy configuration
+
+Loaded at [L362–365]:
 
 ```python
-model_inputs = tokenizer(
-    examples[question_column],  # now includes "[LEN:X] [ENT:Y] ..." prefix
-    truncation=True,
-    max_length=max_seq_length,
-    ...
-)
+nlp = spacy.load("en_core_web_sm", disable=["parser", "lemmatizer"])
 ```
 
-The tokenizer decomposes each bracket-tag into subword tokens. The T5-Large tokenizer splits the prefix `[LEN:9] [ENT:1] [BRIDGE:0] ` into **18 subword tokens**:
+Only the NER component runs. The tokenizer always runs (cannot be disabled). The parser and lemmatizer are disabled for speed. This is a ~12 MB model — no GPU required.
 
+**Note:** `token_len` is computed via `text.split()` (whitespace split), **not** via spaCy's tokenizer. The spaCy pipeline is used exclusively for entity counting.
+
+### 4.3 Bridge-pattern compilation
+
+Seven regex patterns are compiled individually [L92]:
+
+```python
+_BRIDGE_RES = [re.compile(p, re.IGNORECASE) for p in BRIDGE_PATTERNS]
 ```
-▁[  LE  N  :  9  ]  ▁[  ENT  :  1  ]  ▁[  BR  ID  GE  :  0  ]
-```
 
-This 18-token overhead is **constant** regardless of the feature values (single-digit vs double-digit numbers tokenize to the same count, as T5 treats numbers as single tokens up to 2–3 digits).
+This enables **counting** matching patterns (via `sum(...)`) rather than producing a binary match/no-match flag. All patterns are case-insensitive.
 
-The model learns to attend to these prefix tokens during fine-tuning. No explicit attention mask modification is needed — the prefix is simply part of the input sequence.
+### 4.4 Bridge patterns
+
+Seven patterns are defined in `BRIDGE_PATTERNS` [L75–91]:
+
+| # | Pattern | Description | Example match |
+|---|---|---|---|
+| 1 | `\b(?:who\|where\|which\|that)\s+(?:was\|were\|is\|are\|did\|had\|has\|does)\b` | Relative-clause bridges linking two entities | "the person **who was** born in…" |
+| 2 | `\w+'s\s+\w+(?:\s+\w+){0,5}\s+\w+'s` | Double possessive — two possessives suggest two hops | "**Obama's** mother**'s** birthplace" |
+| 3 | `\b(?:before\|after\|when\|while)\b.{3,60}\b(?:who\|what\|where\|which)\b` | Temporal/causal subordination before a wh-word | "**after** X was elected, **what** happened…" |
+| 4 | `\b(?:that\|this\|those\|these)\s+(?:country\|city\|person\|team\|company\|film\|movie\|album\|book\|organization\|university\|school)\b` | Demonstrative back-reference to a prior fact | "**that country**'s capital" |
+| 5 | `\b(?:both)\b.{1,40}\band\b` | Explicit comparison linking two entities | "**both** France **and** Germany" |
+| 6 | `\bbetween\b.{1,40}\band\b` | Explicit comparison | "**between** Paris **and** Berlin" |
+| 7 | `\bof\s+the\s+\w+\s+(?:who\|that\|which\|where)\b` | Nested wh-question | "the capital **of the country that** won…" |
+
+These patterns are **identical** to those in `clf2_kappa_feature_probe.py` (IT6).
+
+### 4.5 Mapping to SymRAG's N_hops(q)
+
+SymRAG's $N_{hops}(q)$ "counts multi-hop keywords" in the query. The IT7 implementation maps this to the count of bridging patterns that fire (`hop_count`). This is an integer count (0–7), not a binary flag. The older `clf2_feature_probe.py` (pre-IT6) used a binary `bridge_flag`; the IT6/IT7 scripts both use the multi-valued count.
 
 ---
 
-## 3. Structural Features
+## 5. Complexity Score κ(q)
 
-### 3.1 Feature table
+### 5.1 `compute_kappa()` implementation
 
-| Feature | Tag format | Extraction logic | Library | Source file |
-|---|---|---|---|---|
-| `token_len` | `[LEN:X]` | `len(question.split())` — whitespace-split word count | Built-in `str.split()` | `add_feature_prefix.py` [L62] |
-| `entity_count` | `[ENT:Y]` | `len(doc.ents)` — spaCy named-entity count | spaCy `en_core_web_sm` | `add_feature_prefix.py` [L63] |
-| `bridge_flag` | `[BRIDGE:Z]` | `1 if _BRIDGE_RE.search(question) else 0` — binary regex match | `re` stdlib | `add_feature_prefix.py` [L64] |
+Defined at [L200–217]:
 
-### 3.2 Feature set is identical to Iteration 6
+```python
+def compute_kappa(token_lens, entity_counts, hop_counts):
+    token_lens = np.array(token_lens, dtype=float)
+    entity_counts = np.array(entity_counts, dtype=float)
+    hop_counts = np.array(hop_counts, dtype=float)
 
-The three features and their extraction logic are the same as in `clf2_feature_probe.py` (IT6). The `BRIDGE_PATTERNS` list and `_BRIDGE_RE` compiled regex are **literally copied** between the two files:
+    max_len = token_lens.max() if token_lens.max() > 0 else 1.0
+    L = token_lens / max_len
 
-| Pattern | `add_feature_prefix.py` lines | `clf2_feature_probe.py` lines |
-|---|---|---|
-| 7 regex patterns | [L30–37] | [L60–73] |
-| Compiled alternation | [L38] | [L75] |
+    safe_lens = np.where(token_lens > 0, token_lens, 1.0)
+    S_H = W_SH1 * (entity_counts / safe_lens) + W_SH2 * (hop_counts / safe_lens)
 
-Both files import `re`, define the same 7 patterns in the same order, and compile them with `re.IGNORECASE`.
+    kappa = W_L * L * (1.0 + S_H)
+    return kappa
+```
 
-### 3.3 The seven bridge-flag patterns
+### 5.2 Step-by-step computation
 
-| # | Pattern | Description |
-|---|---|---|
-| 1 | `\b(?:who\|where\|which\|that)\s+(?:was\|were\|is\|are\|did\|had\|has\|does)\b` | Relative-clause bridges |
-| 2 | `\w+'s\s+\w+(?:\s+\w+){0,5}\s+\w+'s` | Double possessive |
-| 3 | `\b(?:before\|after\|when\|while)\b.{3,60}\b(?:who\|what\|where\|which)\b` | Temporal subordination |
-| 4 | `\b(?:that\|this\|those\|these)\s+(?:country\|city\|person\|...)\b` | Demonstrative back-reference |
-| 5 | `\b(?:both)\b.{1,40}\band\b` | Explicit comparison (both…and) |
-| 6 | `\bbetween\b.{1,40}\band\b` | Explicit comparison (between…and) |
-| 7 | `\bof\s+the\s+\w+\s+(?:who\|that\|which\|where)\b` | Nested wh-question |
+For each question $q$ with whitespace-split token count $|q|$:
 
-### 3.4 bridge_flag distribution by dataset (XL training data)
-
-| Dataset | N | bridge=1 | % |
+| Step | Formula | Variable | Line |
 |---|---|---|---|
-| 2wikimultihopqa | 513 | 190 | 37.0 % |
-| musique | 522 | 175 | 33.5 % |
-| hotpotqa | 561 | 124 | 22.1 % |
-| nq | 546 | 120 | 22.0 % |
-| trivia | 580 | 81 | 14.0 % |
-| squad | 546 | 46 | 8.4 % |
+| 1. Normalise query length | $L(q) = |q| / \max_{q' \in Q}|q'|$ | `L` | [L207] |
+| 2. Avoid division by zero | $|q|_{safe} = \max(|q|, 1)$ | `safe_lens` | [L210] |
+| 3. Entity density | $w_{sh1} \cdot N_{ents}(q) / |q|_{safe}$ | first term of `S_H` | [L211] |
+| 4. Hop density | $w_{sh2} \cdot N_{hops}(q) / |q|_{safe}$ | second term of `S_H` | [L211] |
+| 5. Structural heuristic | $S_H(q) = 0.05 \cdot \frac{N_{ents}}{|q|} + 0.10 \cdot \frac{N_{hops}}{|q|}$ | `S_H` | [L211] |
+| 6. Final score | $\kappa(q) = 1.0 \cdot L(q) \cdot (1 + S_H(q))$ | `kappa` | [L213] |
 
-The flag varies substantially across datasets — from 8.4 % (squad) to 37.0 % (2wikimultihopqa). It is not near-constant globally but may be near-constant within individual datasets that are predominantly single-hop (e.g., squad).
+### 5.3 Score range
+
+- $L(q) \in [0, 1]$ (normalised by max token length)
+- $S_H(q) \geq 0$ (all terms non-negative)
+- Therefore $\kappa(q) \in [0, 1 + S_H^{max}]$ — bounded above by $\approx 1 + \epsilon$ since $w_{sh1}$ and $w_{sh2}$ are small (0.05 and 0.10)
+- In practice, $\kappa(q) \approx L(q)$ with small perturbations from entity and hop features
+
+### 5.4 Max-normalisation scope
+
+`max_len = token_lens.max()` [L206] is computed over **all R-routed questions** (questions that Gate 1 classified as "needs retrieval"), not over the full predict set. A-routed questions are excluded from feature extraction [L404–405]:
+
+```python
+r_qids = [qid for qid in all_qids if gate1[qid] != "A"]
+r_questions = [qid_to_question[qid] for qid in r_qids]
+```
+
+This means the normalisation base depends on Gate 1's decisions. Different Gate 1 configurations (agreement gate vs trained Clf1) will produce different R-question pools, leading to different `max_len` values and therefore slightly different κ(q) scores for the same question.
 
 ---
 
-## 4. Training Parameters
+## 6. Threshold Tuning
 
-### 4.1 Comparison table: IT7 feature-augmented Clf2 vs IT1 standard Clf2
+### 6.1 When tuning is activated
 
-| Parameter | IT7 (feat Clf2) | IT1 (standard Clf2) | Match? |
-|---|---|---|---|
-| Base model | `t5-large` | `t5-large` | ✓ |
-| Learning rate | `3e-5` | `3e-5` | ✓ |
-| Train batch size | `32` | `32` | ✓ |
-| Eval batch size | `100` | `100` | ✓ |
-| Max seq length | `384` | `384` | ✓ |
-| Doc stride | `128` | `128` | ✓ |
-| Weight decay | `0.0` (default) | `0.0` | ✓ |
-| Grad accum steps | `1` (default) | `1` | ✓ |
-| Seed | `42` | `42` | ✓ |
-| Labels | `B C` | `B C` | ✓ |
-| Epochs (XL) | `15, 20, 25, 30, 35` | `15, 20, 25, 30, 35` | ✓ |
-| Epochs (XXL) | `15, 20, 25, 30, 35` | `15, 20, 25, 30, 35` | ✓ |
-| Epochs (GPT) | `35, 40` | `35, 40` | ✓ |
-| Loss | Standard CE (T5 built-in) | Standard CE | ✓ |
-| `--use_focal_loss` | **Not set** | Not set | ✓ |
-| `--auto_class_weights` | **Not set** | Not set | ✓ |
-| Optimizer | `torch.optim.AdamW` [run_classifier.py L643] | `torch.optim.AdamW` | ✓ |
-| LR scheduler | `get_scheduler("linear")` | `get_scheduler("linear")` | ✓ |
-| Code path | Manual Accelerate loop [run_classifier.py L731–842] | Manual Accelerate loop | ✓ |
-| **Training file** | **`binary_silver_feat_single_vs_multi/train.json`** | `binary_silver_single_vs_multi/train.json` | **Different (feature-prefixed)** |
-| **Validation file** | **`silver_feat_single_vs_multi/valid.json`** | `silver/single_vs_multi/valid.json` | **Different (feature-prefixed)** |
-| **Predict file** | **`feat_predict.json`** | `predict.json` | **Different (feature-prefixed)** |
-| **Output dir tag** | **`feat_single_vs_multi/`** | `single_vs_multi/` | **Different** |
-| GPU | `GPU=0` | `GPU=0` | ✓ |
-| Shell script | Single unified script (all 3 models) | 3 separate scripts (one per model) | Different structure |
-
-### 4.2 Epoch ranges match standard Clf2
-
-The script conditionally sets epoch ranges [run_large_train_feat_single_vs_multi.sh L31–35]:
+Tuning is activated when `--tune_threshold` is passed. This requires `--valid_file` (a Clf2 validation JSON with B/C labels). When invoked via `run-all-iterations.sh`, the `route_kappa()` helper always passes both flags:
 
 ```bash
-if [ "$LLM_NAME" = "gpt" ]; then
-    EPOCHS="35 40"
-else
-    EPOCHS="15 20 25 30 35"
-fi
+python classifier/postprocess/predict_complexity_kappa.py "${model}" \
+    --use_agreement_gate \
+    --tune_threshold \
+    --valid_file "classifier/data/${DATASET}/${model}/silver/single_vs_multi/valid.json" \
+    --output_path "${out}"
 ```
 
-These are **identical** to the standard Clf2 scripts (`run_large_train_{xl,xxl}_single_vs_multi.sh`: `15 20 25 30 35`; `run_large_train_gpt_single_vs_multi.sh`: `35 40`).
+### 6.2 `tune_threshold()` implementation
 
-### 4.3 Code path: manual Accelerate training loop
+Defined at [L220–291]. Step-by-step:
 
-Since `--use_focal_loss` is not set, the training enters the manual Accelerate loop at [run_classifier.py L731–842]:
-- `torch.optim.AdamW` optimizer [L643]
-- `accelerator.prepare(model, optimizer)` [L651–653]
-- Standard `outputs = model(**batch)` → `loss = outputs.loss` [L782–783]
-- T5's built-in full-vocabulary cross-entropy (not the 2-class softmax used in IT3/IT4)
+| Step | Code | Line(s) | Description |
+|---|---|---|---|
+| 1 | `data = json.load(f)` | [L225] | Load validation JSON |
+| 2 | `bc_items = [item for item in data if item.get("answer") in ("B", "C")]` | [L227] | Filter to B/C items only |
+| 3 | `labels = np.array([1 if item["answer"] == "C" else 0 for item in bc_items])` | [L232] | Encode: C=1, B=0 |
+| 4 | `extract_features(questions, nlp)` | [L234] | Extract raw features for validation questions |
+| 5 | `compute_kappa(token_lens, entity_counts, hop_counts)` | [L235] | Compute κ(q) for each validation question |
+| 6 | `lo = np.percentile(kappa, 5)` / `hi = np.percentile(kappa, 95)` | [L237–238] | Search range: 5th to 95th percentile |
+| 7 | `thresholds = np.linspace(lo, hi, 100)` | [L239] | 100 candidate thresholds |
+| 8 | For each threshold: `preds = (kappa >= t).astype(int)` | [L245] | κ ≥ t → C, else → B |
+| 9 | `acc = (preds == labels).mean()` | [L246] | Accuracy at this threshold |
+| 10 | `f1 = f1_score(labels, preds, average="macro", zero_division=0)` | [L247] | Macro-F1 at this threshold |
+| 11 | Track best accuracy threshold and best F1 threshold separately | [L248–253] | Two optima may differ |
+| 12 | Report per-class accuracy at best-accuracy threshold | [L255–261] | B-accuracy and C-accuracy |
+
+### 6.3 Threshold selection criterion
+
+The **accuracy-optimal** threshold is used for prediction [L375]:
+
+```python
+threshold = best_acc_t
+```
+
+The F1-optimal threshold is reported for comparison but not used. If the two differ, a diagnostic message is printed [L270–272]:
+
+```
+Best macro-F1: {best_f1:.4f} at threshold {best_f1_t:.4f}
+  (differs from accuracy-optimal {best_acc_t:.4f})
+```
+
+### 6.4 Default threshold (when tuning is off)
+
+If `--tune_threshold` is not passed, the default `--kappa_threshold` of `0.5` is used [L333]:
+
+```python
+parser.add_argument("--kappa_threshold", type=float, default=0.5)
+```
+
+### 6.5 Validation data used for tuning
+
+| Model | Validation file | Contents |
+|---|---|---|
+| `flan_t5_xl` | `classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xl/silver/single_vs_multi/valid.json` | Silver-labelled B/C questions |
+| `flan_t5_xxl` | `...flan_t5_xxl/silver/single_vs_multi/valid.json` | Silver-labelled B/C questions |
+| `gpt` | `...gpt/silver/single_vs_multi/valid.json` | Silver-labelled B/C questions |
+
+These are the **same** validation files used for Clf2 validation in IT1. They contain only silver labels (no inductive-bias labels). This enables a direct comparison: IT7's tuned threshold accuracy on this validation set can be compared against Clf2's validation accuracy from IT1.
+
+### 6.6 Tuning return values
+
+`tune_threshold()` returns a 5-tuple [L286–291]:
+
+```python
+return best_acc_t, best_acc, best_f1_t, best_f1, stats
+```
+
+The `stats` dict contains:
+
+```python
+{
+    "best_acc_threshold": float,
+    "best_accuracy": float,
+    "macro_f1_at_used_threshold": float,
+    "val_B_accuracy": float,
+    "val_C_accuracy": float,
+    "best_f1_threshold": float,
+    "best_macro_f1": float,
+    "n_val_samples": int,
+    "n_B": int,
+    "n_C": int,
+}
+```
 
 ---
 
-## 5. Feature Preprocessing
+## 7. Routing Logic
 
-### 5.1 Preprocessing script: `add_feature_prefix.py`
+### 7.1 Full cascade decision tree
 
-The script is run **once** before training to create the feature-prefixed data files. It is not part of the training loop.
+For each question in predict.json:
 
-### 5.2 No binning, no normalization — raw integers
-
-Features are injected as raw integer values with no transformation:
-
-| Feature | Type | Range (typical) | Representation |
-|---|---|---|---|
-| `token_len` | int | 5–50+ | Raw integer: `[LEN:14]` |
-| `entity_count` | int | 0–10+ | Raw integer: `[ENT:2]` |
-| `bridge_flag` | int (binary) | 0 or 1 | Raw integer: `[BRIDGE:0]` or `[BRIDGE:1]` |
-
-No binning (e.g., "short"/"medium"/"long"), no min-max normalization, no z-score standardization. The T5 model must learn the relationship between raw numeric values and the B/C decision from the training data alone.
-
-### 5.3 The f-string format
-
-At [add_feature_prefix.py L65–67]:
-
-```python
-item["question"] = (
-    f"[LEN:{token_len}] [ENT:{entity_count}] [BRIDGE:{bridge_flag}] {q}"
-)
+```
+Question q
+    │
+    ▼
+Gate 1: Agreement gate
+    │
+    ├── Agree (nor_qa == oner_qa after normalization) → Route A → use nor_qa answer
+    │
+    └── Disagree → Gate 2: κ(q) threshold
+                     │
+                     ├── κ(q) ≥ threshold → Route C → use ircot_qa answer
+                     │
+                     └── κ(q) < threshold → Route B → use oner_qa answer
 ```
 
-Each tag is enclosed in square brackets with a colon separator. Tags are separated by single spaces. The prefix ends with a space before the original question text.
+### 7.2 Implementation
 
-### 5.4 How T5 tokenizer processes the prefix
+The routing decision is at [L414–421]:
 
-T5-Large uses SentencePiece tokenization. The bracket/colon/number tokens are decomposed as follows:
+```python
+for qid in all_qids:
+    ds = qid_to_dataset[qid]
+    if gate1[qid] == "A":
+        merged[qid] = {"prediction": "A", "dataset_name": ds}
+    else:
+        k = qid_to_kappa[qid]
+        label = "C" if k >= threshold else "B"
+        merged[qid] = {"prediction": label, "dataset_name": ds}
+```
 
-| Token group | Subword tokens |
+### 7.3 Feature extraction scope
+
+Features are computed **only for R-routed questions** (questions where Gate 1 = "R"). A-routed questions bypass feature extraction entirely [L404–406]:
+
+```python
+r_qids = [qid for qid in all_qids if gate1[qid] != "A"]
+r_questions = [qid_to_question[qid] for qid in r_qids]
+```
+
+### 7.4 Optional Clf2 comparison
+
+When `--clf2_pred_file` is provided, the script computes agreement between κ(q) routing and Clf2 routing on R-routed questions [L429–437]:
+
+```python
+if args.clf2_pred_file:
+    clf2_data = load_json(args.clf2_pred_file)
+    agree = 0
+    for qid in r_qids:
+        clf2_pred = clf2_data.get(qid, {})
+        if isinstance(clf2_pred, dict):
+            clf2_pred = clf2_pred.get("prediction", "")
+        kappa_pred = merged[qid]["prediction"]
+        if kappa_pred == clf2_pred:
+            agree += 1
+```
+
+This is for diagnostic comparison only — Clf2 predictions are never used for routing in IT7.
+
+---
+
+## 8. Data Pipeline
+
+### 8.1 How queries are fed
+
+Questions are **not** fed through a trained model. The script:
+
+1. Loads `predict.json` for the qid → dataset_name and qid → question mappings [L355–359]
+2. Loads pre-computed QA prediction files (nor_qa, oner_qa) for agreement computation [L382]
+3. Extracts structural features from question text using spaCy NER + regex [L407–408]
+4. Computes κ(q) from features [L409]
+5. Routes each question to the appropriate pre-computed QA answer [L493–506]
+
+### 8.2 Prediction file loading
+
+`load_strategy_predictions()` [L128–147] loads nor_qa and oner_qa predictions for all datasets, following the same file path pattern as `predict_complexity_agreement.py`:
+
+| Strategy | Pattern |
 |---|---|
-| `[LEN:9]` | `▁[`, `LE`, `N`, `:`, `9`, `]` (6 tokens) |
-| `[ENT:1]` | `▁[`, `ENT`, `:`, `1`, `]` (5 tokens) |
-| `[BRIDGE:0]` | `▁[`, `BR`, `ID`, `GE`, `:`, `0`, `]` (7 tokens) |
+| nor_qa | `predictions/test/nor_qa_{model}_{ds}____prompt_set_1/prediction__{ds}_to_{ds}__test_subsampled.json` |
+| oner_qa | `predictions/test/oner_qa_{model}_{ds}____prompt_set_1___bm25_retrieval_count__{N}___distractor_count__1/prediction__{ds}_to_{ds}__test_subsampled.json` |
 
-Total prefix overhead: **18 subword tokens** (constant across all feature values, since single- and double-digit integers are each encoded as one token by T5).
+### 8.3 BM25 retrieval counts
 
-### 5.5 Token overhead vs max_seq_length
+| Model | `ONER_BM25` | `IRCOT_BM25` | Source |
+|---|---|---|---|
+| `flan_t5_xl` | 15 | 6 | [L52–53] |
+| `flan_t5_xxl` | 15 | 6 | [L52–53] |
+| `gpt` | 6 | 3 | [L52–53] |
 
-With `max_seq_length=384` and a prefix overhead of 18 tokens, the effective capacity for the question text is 384 − 18 − 1 (EOS) = **365 tokens**. Clf2 questions are typically short (< 50 tokens), so the overhead is negligible in practice.
+These are **identical** to all prior iterations.
 
-### 5.6 Batch NER processing
+### 8.4 predict.json format
 
-The `augment_file()` function [add_feature_prefix.py L50–73] processes all questions in a single spaCy batch for efficiency [L58]:
+JSON list of 3 000 objects (500 per dataset). The script extracts `id`, `dataset_name`, and `question` [L355–359]:
 
 ```python
-docs = list(nlp.pipe(questions, batch_size=512))
+qid_to_dataset = {item["id"]: item["dataset_name"] for item in predict_data}
+qid_to_question = {item["id"]: item["question"] for item in predict_data}
 ```
 
-The spaCy model is loaded once with `disable=["parser", "lemmatizer"]` [L79], keeping only the NER pipeline component.
+### 8.5 Per-dataset QA prediction file routing
+
+Built at [L462–478]:
+
+```python
+dataName_to_files[ds] = {
+    "C": "predictions/test/ircot_qa_{m}_{ds}____prompt_set_1___bm25_retrieval_count__{ircot_bm25}___distractor_count__1/prediction__{ds}_to_{ds}__test_subsampled.json",
+    "B": "predictions/test/oner_qa_{m}_{ds}____prompt_set_1___bm25_retrieval_count__{oner_bm25}___distractor_count__1/prediction__{ds}_to_{ds}__test_subsampled.json",
+    "A": "predictions/test/nor_qa_{m}_{ds}____prompt_set_1/prediction__{ds}_to_{ds}__test_subsampled.json",
+}
+```
+
+### 8.6 stepNum loading
+
+The script loads step numbers for ircot-routed questions [L440–455] with a fallback path:
+
+1. **Primary:** `predictions/test/ircot_qa_{m}/total/stepNum.json` (consolidated file)
+2. **Fallback:** per-dataset `predictions/test/ircot_qa_{m}_{ds}____prompt_set_1___bm25_retrieval_count__{N}___distractor_count__1/stepNum.json`
+3. **Default:** `total_step_num.get(qid, 0)` — if neither exists, stepNum defaults to 0
+
+Step number values: A → 0, B → 1, C → variable (loaded from stepNum file).
 
 ---
 
-## 6. No Residual Changes from Iterations 2–4
+## 9. No Training Artifacts — Confirmed
 
-### 6.1 Confirmed: no `--use_focal_loss`
+### 9.1 Complete import list
 
-The shell script [run_large_train_feat_single_vs_multi.sh] does not pass `--use_focal_loss` to `run_classifier.py`. Verified: zero occurrences of "focal", "undersampl", "class_weight", or "auto_class" in the script.
+The script's imports [L32–44]:
 
-### 6.2 Confirmed: no undersampling
+```python
+import argparse
+import json
+import os
+import re
+import string
+import sys
+from collections import Counter
 
-The training data files (`binary_silver_feat_single_vs_multi/train.json`) are feature-prefixed copies of the **full** `binary_silver_single_vs_multi/train.json` files. Sample counts are identical:
+import numpy as np
 
-| Model | Original Clf2 train | Feature-prefixed train | Labels match? |
-|---|---|---|---|
-| `flan_t5_xl` | 3 268 (B=1 871, C=1 397) | 3 268 (B=1 871, C=1 397) | ✓ |
-| `flan_t5_xxl` | 3 298 (B=1 903, C=1 395) | 3 298 (B=1 903, C=1 395) | ✓ |
-| `gpt` | 2 804 (B=1 475, C=1 329) | 2 804 (B=1 475, C=1 329) | ✓ |
+sys.path.insert(0, ...)
+from postprocess_utils import load_json, save_json
+```
 
-### 6.3 Confirmed: no class weighting
+Plus a lazy import of `sklearn.metrics.f1_score` inside `tune_threshold()` [L221].
 
-No `--auto_class_weights`, no `--focal_alpha`. Standard unweighted cross-entropy on the full training data.
+### 9.2 What is absent
 
-### 6.4 Summary: IT7 changes ONLY the input text
+| Library | Present? | Implication |
+|---|---|---|
+| `torch` | **No** | No tensor operations, no GPU usage |
+| `transformers` | **No** | No model loading, no tokenizer, no generate() |
+| `accelerate` | **No** | No distributed training/inference |
+| `datasets` | **No** | No HuggingFace dataset loading |
+| `pandas` | **No** | No DataFrame operations |
+| `matplotlib` | **No** | No plots (unlike IT6's probe) |
 
-The sole difference from IT1's Clf2 is the `[LEN:X] [ENT:Y] [BRIDGE:Z]` prefix in the question field. Everything else — model, optimizer, loss, scheduler, hyperparameters, code path — is identical.
+### 9.3 No checkpoint references
+
+The script takes no `--model_name_or_path` argument, no `--checkpoint` argument, no path to a trained model. The only model loaded is spaCy `en_core_web_sm` (12 MB NER model, CPU-only).
+
+### 9.4 No writes to classifier/outputs/
+
+All output is written to `--output_path` (typically `predictions/classifier/t5-large/{model}/iter7_kappa/`). No files are created under `classifier/outputs/` (the checkpoint tree).
 
 ---
 
-## 7. Gate 1
+## 10. Evaluation Setup
 
-### 7.1 No Gate 1 training
+### 10.1 End-to-end QA evaluation
 
-The shell script trains only Clf2 (B vs C). There is no Clf1 (A vs R) training in IT7. The `--labels B C` argument confirms this [run_large_train_feat_single_vs_multi.sh L51].
-
-### 7.2 Intended Gate 1 pairing
-
-At evaluation time, the IT7 feature-augmented Clf2 is intended to be paired with the **IT5 agreement gate** (`predict_complexity_agreement.py`). The agreement gate produces A/R decisions (agree → A, disagree → Clf2's B/C). The IT7 Clf2 checkpoint is passed to the agreement script via `--clf2_pred_file`.
-
-This pairing can also be done with any IT1–IT4 Clf1 checkpoint via `predict_complexity_split_classifiers.py`, but the agreement gate is the primary intended pairing for IT7.
-
-### 7.3 Routing flow
+**Identical to Iteration 1.** After routing, the output directory structure is compatible with `evaluate_final_acc.py`:
 
 ```
-Question → Agreement Gate (IT5)
-              ├── Agree → A (no retrieval)
-              └── Disagree → IT7 Clf2 prediction
-                                ├── B → single-step retrieval
-                                └── C → multi-step retrieval
+python evaluate_final_acc.py --pred_path predictions/classifier/t5-large/{model}/iter7_kappa/
 ```
-
----
-
-## 8. Evaluation Setup
-
-**Identical to all prior iterations.**
 
 | Step | Procedure | Difference from IT1? |
 |---|---|---|
-| Per-epoch validation | `run_classifier.py --do_eval` on `silver_feat_single_vs_multi/valid.json` | Different input file (feature-prefixed), same evaluation code |
-| Per-epoch prediction | `run_classifier.py --do_eval` on `feat_predict.json` | Different input file, same evaluation code |
-| Cascade routing | `predict_complexity_agreement.py` or `predict_complexity_split_classifiers.py` | No change |
-| QA evaluation | `evaluate_final_acc.py --pred_path ...` | No change |
+| Routed prediction format | `{dataset}/{dataset}.json` + `{dataset}_option.json` | No |
+| Evaluation script | `evaluate_final_acc.py --pred_path ...` | No |
+| Single-hop metrics (nq, trivia, squad) | `SquadAnswerEmF1Metric` | No |
+| Multi-hop metrics (musique, hotpotqa, 2wikimultihopqa) | Official evaluator scripts via `subprocess` | No |
+| Per-dataset output | Printed to stdout | No |
 
-The validation and prediction files are feature-prefixed versions of the same data. The evaluation code in `run_classifier.py` (`calculate_accuracy`, `calculate_accuracy_perClass`) is unchanged — it compares predicted labels to ground-truth labels regardless of the input format.
+### 10.2 Invocation via `run-all-iterations.sh`
+
+The `route_kappa()` helper [L141–152] runs both routing and evaluation:
+
+```bash
+route_kappa() {
+    local tag="$1" model="$2"
+    local out="predictions/classifier/t5-large/${model}/${tag}"
+    python classifier/postprocess/predict_complexity_kappa.py "${model}" \
+        --use_agreement_gate \
+        --tune_threshold \
+        --valid_file "classifier/data/${DATASET}/${model}/silver/single_vs_multi/valid.json" \
+        --output_path "${out}"
+    python evaluate_final_acc.py --pred_path "${out}"
+}
+```
+
+Called for all three models [L242–244]:
+
+```bash
+for m in "${MODELS[@]}"; do
+    route_kappa "iter7_kappa" "$m"
+done
+```
+
+### 10.3 No Phase 0 dependency
+
+IT7 does **not** depend on Phase 0 (standard classifier training). The `needs_std` flag at [run-all-iterations.sh L35–36] includes only iterations 1–5:
+
+```bash
+for i in 1 2 3 4 5; do should_run "$i" && needs_std=true; done
+```
+
+IT7 can run independently with `bash run-all-iterations.sh 7` — no prior training is required.
 
 ---
 
-## 9. Output Artifacts
+## 11. Output Artifacts
 
-### 9.1 Directory tree
+### 11.1 Directory tree
+
+When invoked via `run-all-iterations.sh`:
 
 ```
-classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/
-  {model}/                                          # flan_t5_xl, flan_t5_xxl, or gpt
-    feat_single_vs_multi/                           ← SEPARATE from IT1's single_vs_multi/
-      epoch/
-        {epoch}/                                    # 15..35 for xl/xxl; 35,40 for gpt
-          feat/                                     ← DATE=feat (static, not timestamped)
-            config.json
-            generation_config.json
-            model.safetensors                       # or pytorch_model.bin
-            spiece.model
-            special_tokens_map.json
-            tokenizer.json
-            tokenizer_config.json
-            valid/
-              dict_id_pred_results.json
-              final_eval_results.json
-              final_eval_results_perClass.json
-              logs.log
-            predict/
-              dict_id_pred_results.json
-              final_eval_results.json
-              final_eval_results_perClass.json
-              logs.log
+predictions/classifier/t5-large/{model}/iter7_kappa/
+  routing_stats.json
+  musique/
+    musique.json
+    musique_option.json
+  hotpotqa/
+    hotpotqa.json
+    hotpotqa_option.json
+  2wikimultihopqa/
+    2wikimultihopqa.json
+    2wikimultihopqa_option.json
+  nq/
+    nq.json
+    nq_option.json
+  trivia/
+    trivia.json
+    trivia_option.json
+  squad/
+    squad.json
+    squad_option.json
 ```
 
-### 9.2 `DATE=feat` is static, not timestamped
+### 11.2 Per-dataset files
 
-The shell script sets `DATE=feat` [run_large_train_feat_single_vs_multi.sh L24] — a fixed string, not `$(date ...)`. This means the innermost directory is always named `feat/`.
+**`{dataset}.json`** — maps qid → final answer string:
+```json
+{"single_nq_dev_9": "Gal Gadot", ...}
+```
 
-Contrast with IT1's standard Clf2 scripts, which use `DATE=$(date +"%Y_%m_%d")` and `TIME=$(date +"%H_%M_%S")`, creating unique `{YYYY_MM_DD}/{HH_MM_SS}/` subdirectories per run.
+**`{dataset}_option.json`** — maps qid → routing metadata, **including κ(q) score** for R-routed questions [L507–511]:
 
-### 9.3 Separation from other iterations
+```json
+{
+    "2hop__511176_22458": {
+        "prediction": "answer text",
+        "option": "C",
+        "stepNum": 4,
+        "kappa": 0.847231
+    },
+    "single_nq_dev_9": {
+        "prediction": "answer text",
+        "option": "A",
+        "stepNum": 0
+    }
+}
+```
 
-| Iteration | Clf2 output path |
-|---|---|
-| IT1 (standard) | `.../single_vs_multi/epoch/{N}/{DATE}/{TIME}/` |
-| **IT7 (features)** | **`.../feat_single_vs_multi/epoch/{N}/feat/`** |
+The `kappa` field is present only for R-routed questions (those that passed through Gate 2). A-routed questions have no `kappa` field.
 
-The directory names (`feat_single_vs_multi` vs `single_vs_multi`) are distinct. No risk of overwriting IT1 outputs.
+### 11.3 `routing_stats.json`
 
-### 9.4 Data file artifacts
+Saved at [L536–562]:
 
-| File | Path | Size |
-|---|---|---|
-| Feature-prefixed training data | `classifier/data/.../{model}/binary_silver_feat_single_vs_multi/train.json` | Same row count as original |
-| Feature-prefixed validation data | `classifier/data/.../{model}/silver_feat_single_vs_multi/valid.json` | Same row count as original |
-| Feature-prefixed predict data | `classifier/data/.../feat_predict.json` | 3 000 items (shared across models) |
+```json
+{
+    "method": "symrag_kappa_structural",
+    "model_name": "flan_t5_xl",
+    "threshold_used": 0.4321,
+    "threshold_tuned": true,
+    "kappa_stats": {
+        "mean": 0.5234,
+        "std": 0.1876,
+        "min": 0.0312,
+        "max": 1.0847
+    },
+    "routing_counts": {"A": 1200, "B": 800, "C": 1000},
+    "total_questions": 3000,
+    "total_steps": 4500,
+    "per_dataset": {
+        "musique": {"A": 100, "B": 150, "C": 250, "steps": 1100},
+        ...
+    },
+    "symrag_weights": {"w_L": 1.0, "w_sh1": 0.05, "w_sh2": 0.10},
+    "note": "A(q) attention term omitted; structural heuristic only",
+    "tuning_stats": {
+        "best_acc_threshold": 0.4321,
+        "best_accuracy": 0.7234,
+        "macro_f1_at_used_threshold": 0.6891,
+        "val_B_accuracy": 0.8012,
+        "val_C_accuracy": 0.5432,
+        "best_f1_threshold": 0.4567,
+        "best_macro_f1": 0.6923,
+        "n_val_samples": 911,
+        "n_B": 691,
+        "n_C": 220
+    }
+}
+```
+
+### 11.4 Stdout output
+
+The script prints structured progress to stdout:
+
+```
+[data]  3000 questions from classifier/data/.../predict.json
+
+[tune]  Tuning threshold on validation data...
+Tuned threshold: 0.4321, validation accuracy: 0.7234, val B-acc: 0.8012, val C-acc: 0.5432, macro-F1 at this threshold: 0.6891
+Best macro-F1: 0.6923 at threshold 0.4567 (differs from accuracy-optimal 0.4321)
+[tune]  Using tuned threshold: 0.4321
+
+[gate1] Loading predictions...
+[gate1] Computing nor_qa/oner_qa agreement...
+[gate1] A=1200, R=1800
+
+[feat]  Extracting features for 1800 R-routed questions...
+[feat]  κ stats: mean=0.5234, std=0.1876, min=0.0312, max=1.0847
+
+[gate2] Routing with threshold=0.4321...
+[route] A=1200, B=800, C=1000
+
+[out]   Writing predictions to predictions/classifier/t5-large/flan_t5_xl/iter7_kappa/
+  musique: A=100, B=150, C=250, steps=1100
+  hotpotqa: A=200, B=100, C=200, steps=900
+  ...
+
+Routed predictions saved to predictions/classifier/t5-large/flan_t5_xl/iter7_kappa/
+Run evaluation with: python evaluate_final_acc.py --pred_path predictions/classifier/t5-large/flan_t5_xl/iter7_kappa/
+```
 
 ---
 
-## 10. Suspicious Items / Flags
+## 12. Suspicious / Noteworthy Items
 
-### 10.1 `DATE=feat` — static, overwrites on re-run
-
-| Issue | Detail |
-|---|---|
-| **What** | `DATE=feat` [run_large_train_feat_single_vs_multi.sh L24] is a fixed string. If the script is run twice for the same model, the second run **overwrites** the first run's outputs without warning. |
-| **Contrast** | IT1's standard Clf2 scripts use `DATE=$(date ...)` + `TIME=$(date ...)`, creating unique per-run subdirectories. |
-| **Impact** | No run isolation. Previous results are silently destroyed on re-run. |
-
-### 10.2 Feature prefix token overhead vs max_seq_length
+### 12.1 Max-normalisation computed on R-routed questions only
 
 | Issue | Detail |
 |---|---|
-| **What** | The 18-token prefix reduces effective input capacity from 384 to ~365 tokens. |
-| **Impact** | Negligible for Clf2 questions (typically < 50 tokens). However, if the prefix grew (e.g., more features), it could start truncating actual question content. |
+| **What** | `compute_kappa()` normalises token lengths by `max_len = token_lens.max()` [L206], where `token_lens` is extracted only from R-routed questions [L404–406]. A-routed questions are excluded. |
+| **Risk** | The normalisation base depends on Gate 1's output. If the longest question happens to be A-routed, the max-normalisation denominator is smaller, inflating all κ(q) values. Different Gate 1 configurations produce different R-question pools, making κ(q) scores non-comparable across iterations. |
+| **Severity** | Low — the threshold is tuned on validation data using the same `compute_kappa()` function (which normalises by its own max), so the tuning and prediction use consistent normalisation. The issue only arises when comparing raw κ(q) values across different Gate 1 configurations. |
 
-### 10.3 No data leakage in features
-
-| Issue | Detail |
-|---|---|
-| **What** | All three features — token length, entity count, bridge flag — are computed solely from the question text itself. They do not use the answer, the label (B/C), the dataset name, or any external information. |
-| **Status** | **No leakage.** The features are legitimate question-intrinsic properties. |
-
-### 10.4 bridge_flag near-constant for some datasets
+### 12.2 Validation-set max-normalisation differs from test-set normalisation
 
 | Issue | Detail |
 |---|---|
-| **What** | In the XL training data: squad has only 8.4 % bridge=1, trivia has 14.0 %. Within these datasets, the bridge_flag provides almost no discriminative signal. |
-| **Impact** | The model may learn to ignore the bridge_flag for questions from these datasets. However, across the full mixed dataset, the flag varies from 8.4 % to 37.0 %, providing some signal. |
+| **What** | During threshold tuning, `compute_kappa()` is called on the **validation** questions [L234–235]. During prediction, `compute_kappa()` is called on the **R-routed test** questions [L408–409]. Each call computes its own `max_len`. If the validation set has a different max token length than the test set, the same question would receive a different κ(q) score in tuning vs prediction. |
+| **Risk** | The tuned threshold is calibrated to validation-set κ(q) values, but applied to test-set κ(q) values with a potentially different normalisation base. This is a **distribution shift in feature space** introduced by the normalisation. |
+| **Severity** | Medium — if max token lengths are similar between validation and test sets, the effect is negligible. If they differ substantially, the tuned threshold may be suboptimal. |
 
-### 10.5 Raw integers not binned
-
-| Issue | Detail |
-|---|---|
-| **What** | `token_len` and `entity_count` are raw integers (e.g., `[LEN:14]`, `[ENT:2]`). T5 treats each number as a separate token. The model must learn that `[LEN:14]` and `[LEN:15]` are similar, while `[LEN:5]` and `[LEN:50]` are very different — purely from training data. |
-| **Alternative** | Binning (e.g., `[LEN:short]`, `[LEN:medium]`, `[LEN:long]`) would reduce the vocabulary burden and make nearby values equivalent. Not implemented. |
-| **Impact** | With ~3 000 training examples, the model may not see enough instances of each specific number to learn robust associations. |
-
-### 10.6 `feat_predict.json` shared across models
+### 12.3 Threshold tuning uses accuracy, not macro-F1
 
 | Issue | Detail |
 |---|---|
-| **What** | The predict file `feat_predict.json` is generated once (not per-model) at [add_feature_prefix.py L111–113]. All three model variants use the same file [run_large_train_feat_single_vs_multi.sh L87]. |
-| **Implication** | This is correct — predict.json contains the same 3 000 questions for all models. The features are question-intrinsic, so they don't depend on the model variant. However, training files are per-model because different models produce different silver labels (different B/C splits). |
-| **Risk** | None — this is intentional and correct. |
+| **What** | The tuned threshold is the one that maximises **accuracy** on the validation set [L248, L375], not macro-F1. The best macro-F1 threshold is reported but not used. |
+| **Risk** | With imbalanced B/C validation data (e.g., XL: 691 B vs 220 C), accuracy can be maximised by predicting the majority class (B) for most questions. The accuracy-optimal threshold may have low C-recall. |
+| **Mitigation** | The script reports both B-accuracy and C-accuracy [L258–261], and the best F1 threshold [L270–272], allowing the user to identify this issue. The routing_stats.json preserves both thresholds for post-hoc analysis. |
 
-### 10.7 Duplicated feature logic between two files
-
-| Issue | Detail |
-|---|---|
-| **What** | `add_feature_prefix.py` [L30–38] and `clf2_feature_probe.py` [L59–75] define identical `BRIDGE_PATTERNS` lists and `_BRIDGE_RE` compiled regex. The entity-count and token-length logic is also duplicated. Neither file imports from the other. |
-| **Risk** | If one file's patterns are updated and the other is not, the features used in the diagnostic probe (IT6) and the training data (IT7) would diverge. |
-| **Status** | Currently identical. |
-
-### 10.8 No feature validation at inference time
+### 12.4 Prediction files are loaded redundantly per question
 
 | Issue | Detail |
 |---|---|
-| **What** | The training script reads pre-augmented JSON files. At inference time (validation, prediction), the files must also be pre-augmented. If someone accidentally passes a non-prefixed file, the model would receive questions without the feature prefix it was trained on. |
-| **Detection** | There is no runtime check that the question starts with `[LEN:`. The model would silently produce degraded predictions. |
-| **Mitigation** | The shell script explicitly uses `silver_feat_single_vs_multi/valid.json` and `feat_predict.json`, which are the correct feature-prefixed files. |
+| **What** | In the per-dataset loop [L493–506], `load_json(dataName_to_files[data_name][option])` is called once per question inside the inner loop. This re-reads the same JSON file from disk for every question. |
+| **Performance** | For 500 questions per dataset, this means up to 500 redundant file reads per strategy per dataset. |
+| **Impact** | Correctness unaffected. Runtime slower than necessary but acceptable for 3 000 questions. This is the same pattern present in IT1's `predict_complexity_split_classifiers.py` and IT5's `predict_complexity_agreement.py`. |
 
-### 10.9 spaCy model version sensitivity
-
-| Issue | Detail |
-|---|---|
-| **What** | NER results from `en_core_web_sm` may differ across spaCy versions. If `add_feature_prefix.py` is run with one version and `clf2_feature_probe.py` is run with another, the entity counts could differ. |
-| **Impact** | The training data features and the diagnostic probe features could be inconsistent. |
-| **Mitigation** | Both scripts are expected to run in the same virtual environment. |
-
-### 10.10 Fresh-from-scratch training per epoch value
+### 12.5 `answer_extractor()` and `normalize_answer()` are duplicated
 
 | Issue | Detail |
 |---|---|
-| **What** | Same as IT1: each epoch value (15, 20, 25, 30, 35 for XL/XXL; 35, 40 for GPT) trains from the base `t5-large` model, not from a previous checkpoint. |
-| **Cost** | XL: 15+20+25+30+35 = 125 epochs total. XXL: same. GPT: 35+40 = 75 epochs. |
-| **Note** | This is identical to the standard Clf2 training pattern and is not a new issue in IT7. |
+| **What** | Both functions are copy-pasted from `predict_complexity_agreement.py` (which itself copied from `evaluate_final_acc.py`). They are not imported from a shared module. |
+| **Risk** | If one copy is updated and the others are not, the normalization applied during routing and evaluation could diverge. |
+| **Current state** | All three copies (predict_complexity_kappa.py, predict_complexity_agreement.py, evaluate_final_acc.py) are identical. |
+
+### 12.6 κ(q) is dominated by L(q) due to small SymRAG weights
+
+| Issue | Detail |
+|---|---|
+| **What** | With $w_{sh1} = 0.05$ and $w_{sh2} = 0.10$, the $S_H(q)$ term contributes very little to $\kappa(q)$. For a typical question with 2 entities in 15 tokens and 1 hop pattern: $S_H = 0.05 \cdot (2/15) + 0.10 \cdot (1/15) = 0.0067 + 0.0067 = 0.013$. So $\kappa(q) \approx L(q) \cdot 1.013$. |
+| **Implication** | The threshold-based B/C decision is effectively a **query-length threshold** with minor perturbations from entity and hop features. This means IT7's Gate 2 is approximately: "long questions → multi-step (C), short questions → single-step (B)." |
+| **Relevance** | This is consistent with IT6's probe findings: `token_len_norm` had the largest logistic regression coefficient among the four features. The structural features add marginal discriminative power. |
+
+### 12.7 spaCy entity count may not correspond to SymRAG's N_ents(q)
+
+| Issue | Detail |
+|---|---|
+| **What** | SymRAG defines $N_{ents}(q)$ as the count of named entities in the query but does not specify which NER model. IT7 uses spaCy `en_core_web_sm`, which has a known NER F1 of ~85% on OntoNotes. The entity count may differ from what SymRAG's pipeline produces. |
+| **Impact** | Minor — given $w_{sh1} = 0.05$, entity density's contribution to κ(q) is very small. Even a 15% NER error rate translates to negligible κ(q) differences. |
+
+### 12.8 Hop patterns are a superset of SymRAG's multi-hop keywords
+
+| Issue | Detail |
+|---|---|
+| **What** | SymRAG mentions "multi-hop keyword indicators" for $N_{hops}(q)$ but does not publish the exact patterns. IT7's 7 bridging patterns were designed for the Adaptive-RAG dataset mix (MuSiQue, HotpotQA, 2WikiMultiHopQA, NQ, TriviaQA, SQuAD) and may not match SymRAG's keyword list. |
+| **Impact** | The κ(q) scores are not directly comparable to SymRAG's published results. This is a known approximation. |
+
+### 12.9 No early termination on empty R-set
+
+| Issue | Detail |
+|---|---|
+| **What** | If Gate 1 routes all 3 000 questions to A (complete agreement), `r_qids` would be empty, and `compute_kappa()` would receive empty arrays. `np.array([]).max()` raises `ValueError: zero-size array reduction`. |
+| **Risk** | Extremely unlikely in practice — complete agreement across 3 000 questions with different retrieval strategies would require identical answers for every question. |
+| **Mitigation** | None present. A defensive check like `if not r_qids: ...` would prevent the crash. |
+
+### 12.10 stepNum default of 0 for missing C-routed questions
+
+| Issue | Detail |
+|---|---|
+| **What** | `step_num = total_step_num.get(qid, 0)` [L497] defaults to 0 if the question ID is not found in the stepNum file. For C-routed questions, the actual step count should be ≥ 1. |
+| **Impact** | Affects cost accounting only (total retrieval steps reported), not answer selection. Same pattern as IT5's `predict_complexity_agreement.py`. |
+
+### 12.11 `--tune_threshold` without `--valid_file` is caught
+
+| Issue | Detail |
+|---|---|
+| **What** | `parser.error("--tune_threshold requires --valid_file.")` [L347] is called if `--tune_threshold` is passed without `--valid_file`. This is a proper argument validation. |
+| **Impact** | None — correct behaviour. |
+
+### 12.12 No `--clf1_pred_file` and no `--use_agreement_gate` is caught
+
+| Issue | Detail |
+|---|---|
+| **What** | `parser.error("Provide --clf1_pred_file or --use_agreement_gate.")` [L345] is called if neither Gate 1 option is specified. |
+| **Impact** | None — correct behaviour. |
