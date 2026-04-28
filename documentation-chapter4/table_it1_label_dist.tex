@@ -1,0 +1,85 @@
+% Iteration 1 — Label distributions per backbone model across all data stages.
+% Requires: booktabs
+\begin{table}[htbp]
+\caption{Iteration~1 label distributions per backbone model.
+         Percentages are computed within each row group.}
+\label{tab:it1-label-dist}
+\centering
+\small
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{@{}ll rrrrrrr@{}}
+\toprule
+ & &
+  \multicolumn{2}{c}{Flan-T5-XL} &
+  \multicolumn{2}{c}{Flan-T5-XXL} &
+  \multicolumn{2}{c}{GPT} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
+Data stage & Label &
+  \multicolumn{1}{c}{$n$} & \multicolumn{1}{c}{\%} &
+  \multicolumn{1}{c}{$n$} & \multicolumn{1}{c}{\%} &
+  \multicolumn{1}{c}{$n$} & \multicolumn{1}{c}{\%} \\
+\midrule
+%%% ---- Panel A: Silver 3-class ----------------------------------------
+\multicolumn{8}{@{}l}{\textit{Silver labels (3-class source)}} \\[2pt]
+Train        & A     &    424 & 32.8 &    511 & 36.3 & 1\,013 & 71.5 \\
+             & B     &    671 & 51.9 &    703 & 49.9 &    275 & 19.4 \\
+             & C     &    197 & 15.2 &    195 & 13.8 &    129 &  9.1 \\
+\cmidrule(l){3-8}
+             & Total & 1\,292 &      & 1\,409 &      & 1\,417 &      \\
+\addlinespace
+Valid        & A     &    439 & 32.5 &    519 & 36.7 & 1\,038 & 72.5 \\
+             & B     &    691 & 51.2 &    701 & 49.5 &    272 & 19.0 \\
+             & C     &    220 & 16.3 &    195 & 13.8 &    121 &  8.5 \\
+\cmidrule(l){3-8}
+             & Total & 1\,350 &      & 1\,415 &      & 1\,431 &      \\
+\midrule
+%%% ---- Panel B: Clf1 (A vs R) -----------------------------------------
+\multicolumn{8}{@{}l}{\textit{Clf1 data (A vs.\ R\,)\textsuperscript{a}}} \\[2pt]
+Train        & A     &    424 & 32.8 &    511 & 36.3 & 1\,013 & 71.5 \\
+             & R     &    868 & 67.2 &    898 & 63.7 &    404 & 28.5 \\
+\cmidrule(l){3-8}
+             & Total & 1\,292 &      & 1\,409 &      & 1\,417 &      \\
+\addlinespace
+Valid        & A     &    439 & 32.5 &    519 & 36.7 & 1\,038 & 72.5 \\
+             & R     &    911 & 67.5 &    896 & 63.3 &    393 & 27.5 \\
+\cmidrule(l){3-8}
+             & Total & 1\,350 &      & 1\,415 &      & 1\,431 &      \\
+\midrule
+%%% ---- Panel C: Clf2 (B vs C) -----------------------------------------
+\multicolumn{8}{@{}l}{\textit{Clf2 data (B vs.\ C\,)}} \\[2pt]
+\multicolumn{8}{@{}l}{\quad\footnotesize Component 1: inductive-bias heuristic\textsuperscript{b}} \\[1pt]
+             & B     & 1\,200 & 50.0 & 1\,200 & 50.0 & 1\,200 & 50.0 \\
+             & C     & 1\,200 & 50.0 & 1\,200 & 50.0 & 1\,200 & 50.0 \\
+\cmidrule(l){3-8}
+             & Total & 2\,400 &      & 2\,400 &      & 2\,400 &      \\
+\addlinespace
+\multicolumn{8}{@{}l}{\quad\footnotesize Component 2: silver B/C subset\textsuperscript{c}} \\[1pt]
+             & B     &    671 & 77.3 &    703 & 78.3 &    275 & 68.1 \\
+             & C     &    197 & 22.7 &    195 & 21.7 &    129 & 31.9 \\
+\cmidrule(l){3-8}
+             & Total &    868 &      &    898 &      &    404 &      \\
+\addlinespace
+Train (merged)\textsuperscript{d}
+             & B     & 1\,871 & 57.3 & 1\,903 & 57.7 & 1\,475 & 52.6 \\
+             & C     & 1\,397 & 42.7 & 1\,395 & 42.3 & 1\,329 & 47.4 \\
+\cmidrule(l){3-8}
+             & Total & 3\,268 &      & 3\,298 &      & 2\,804 &      \\
+\addlinespace
+Valid\textsuperscript{e}
+             & B     &    691 & 75.9 &    701 & 78.2 &    272 & 69.2 \\
+             & C     &    220 & 24.1 &    195 & 21.8 &    121 & 30.8 \\
+\cmidrule(l){3-8}
+             & Total &    911 &      &    896 &      &    393 &      \\
+\bottomrule
+\end{tabular}
+
+\smallskip\raggedright\footnotesize
+\textsuperscript{a}Binary collapse of silver labels: B and C $\to$ R.\quad
+\textsuperscript{b}Dataset-level heuristic (shared across models):
+  400~questions $\times$ 6~datasets; multi-hop $\to$~C, single-hop $\to$~B.\quad
+\textsuperscript{c}B- and C-labelled subset of the silver training data.\quad
+\textsuperscript{d}Heuristic + silver B/C; A-labelled silver samples removed.
+  Zero ID overlap between the two sources.\quad
+\textsuperscript{e}B- and C-labelled subset of the silver validation data
+  (no heuristic labels in validation).
+\end{table}
