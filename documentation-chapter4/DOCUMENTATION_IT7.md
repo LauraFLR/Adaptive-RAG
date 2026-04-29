@@ -18,7 +18,7 @@
 | `classifier/postprocess/postprocess_utils.py` | Shared — provides `load_json()` and `save_json()` helpers. **Identical to IT1.** |
 | `evaluate_final_acc.py` (341 lines) | QA evaluation — **identical to IT1.** |
 | `run-all-iterations.sh` | Top-level orchestrator. Invokes IT7 via the `route_kappa()` helper, which calls `predict_complexity_kappa.py` with `--use_agreement_gate --tune_threshold`, then runs `evaluate_final_acc.py`. |
-| `classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/{model}/silver/single_vs_multi/valid.json` | Clf2 validation data (B/C silver labels) — used for threshold tuning only. Not used for training. |
+| `classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/{model}/binary_silver_single_vs_multi/train.json` | IB+silver merged B/C labels (~2 800–3 300 items per model, ~1.1–1.4:1 B:C ratio) — used for threshold tuning only. Not used for training. |
 | `classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/predict.json` | Unlabelled test set (3 000 questions, 500 per dataset). |
 
 ### 1.1 Relationship to prior iterations
@@ -263,9 +263,11 @@ Tuning is activated when `--tune_threshold` is passed. This requires `--valid_fi
 python classifier/postprocess/predict_complexity_kappa.py "${model}" \
     --use_agreement_gate \
     --tune_threshold \
-    --valid_file "classifier/data/${DATASET}/${model}/silver/single_vs_multi/valid.json" \
+    --valid_file "classifier/data/${DATASET}/${model}/binary_silver_single_vs_multi/train.json" \
     --output_path "${out}"
 ```
+
+The `--valid_file` points to the **IB+silver merged** dataset, not the silver-only validation split. This merged set combines empirical silver labels with inductive-bias labels (multi-hop datasets → C, single-hop → B), producing a much less skewed B:C ratio (~1.1–1.4:1 vs ~3:1 in silver-only). Since κ(q) has no learned parameters, the full merged set can be used for threshold selection without risk of overfitting.
 
 ### 6.2 `tune_threshold()` implementation
 
@@ -284,21 +286,23 @@ Defined at [L220–291]. Step-by-step:
 | 9 | `acc = (preds == labels).mean()` | [L246] | Accuracy at this threshold |
 | 10 | `f1 = f1_score(labels, preds, average="macro", zero_division=0)` | [L247] | Macro-F1 at this threshold |
 | 11 | Track best accuracy threshold and best F1 threshold separately | [L248–253] | Two optima may differ |
-| 12 | Report per-class accuracy at best-accuracy threshold | [L255–261] | B-accuracy and C-accuracy |
+| 12 | Report per-class accuracy at **F1-optimal** threshold | [L255–266] | B-accuracy, C-accuracy, accuracy at F1 threshold |
 
 ### 6.3 Threshold selection criterion
 
-The **accuracy-optimal** threshold is used for prediction [L375]:
+The **macro-F1–optimal** threshold is used for prediction [L375]:
 
 ```python
-threshold = best_acc_t
+threshold = best_f1_t
 ```
 
-The F1-optimal threshold is reported for comparison but not used. If the two differ, a diagnostic message is printed [L270–272]:
+Macro-F1 was chosen over accuracy because the B/C label distribution can be imbalanced. Accuracy-optimal thresholds tend to over-predict the majority class (B), suppressing C-recall. Macro-F1 weights both classes equally, producing thresholds that route more genuinely complex questions to multi-step retrieval.
+
+The accuracy-optimal threshold is still computed and reported for reference. If the two differ, a diagnostic message is printed [L270–272]:
 
 ```
-Best macro-F1: {best_f1:.4f} at threshold {best_f1_t:.4f}
-  (differs from accuracy-optimal {best_acc_t:.4f})
+Best accuracy: {best_acc:.4f} at threshold {best_acc_t:.4f}
+  (differs from F1-optimal {best_f1_t:.4f})
 ```
 
 ### 6.4 Default threshold (when tuning is off)
@@ -309,35 +313,45 @@ If `--tune_threshold` is not passed, the default `--kappa_threshold` of `0.5` is
 parser.add_argument("--kappa_threshold", type=float, default=0.5)
 ```
 
-### 6.5 Validation data used for tuning
+### 6.5 Tuning data used for threshold selection
 
-| Model | Validation file | Contents |
-|---|---|---|
-| `flan_t5_xl` | `classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xl/silver/single_vs_multi/valid.json` | Silver-labelled B/C questions |
-| `flan_t5_xxl` | `...flan_t5_xxl/silver/single_vs_multi/valid.json` | Silver-labelled B/C questions |
-| `gpt` | `...gpt/silver/single_vs_multi/valid.json` | Silver-labelled B/C questions |
+| Model | Tuning file | Items | B | C | B:C ratio |
+|---|---|---|---|---|---|
+| `flan_t5_xl` | `classifier/data/musique_hotpot_wiki2_nq_tqa_sqd/flan_t5_xl/binary_silver_single_vs_multi/train.json` | 3 268 | 1 871 | 1 397 | 1.34 |
+| `flan_t5_xxl` | `...flan_t5_xxl/binary_silver_single_vs_multi/train.json` | 3 298 | 1 903 | 1 395 | 1.36 |
+| `gpt` | `...gpt/binary_silver_single_vs_multi/train.json` | 2 804 | 1 475 | 1 329 | 1.11 |
 
-These are the **same** validation files used for Clf2 validation in IT1. They contain only silver labels (no inductive-bias labels). This enables a direct comparison: IT7's tuned threshold accuracy on this validation set can be compared against Clf2's validation accuracy from IT1.
+These are the **IB+silver merged** training sets — the same files used for Clf2 training in IT1. They concatenate:
+- **Silver labels** — empirical: based on which retrieval strategy actually got the answer right for each LLM (model-specific, ~400–900 B/C items)
+- **Inductive-bias (IB) labels** — heuristic: multi-hop datasets (MuSiQue, HotpotQA, 2WikiMultiHopQA) → C, single-hop datasets (NQ, TriviaQA, SQuAD) → B (model-independent, 2 400 items with 1:1 B:C ratio)
+
+The merged set is ~3× larger and much less skewed than the silver-only validation split (which has ~3:1 B:C ratio). Since κ(q) tuning involves no learned parameters (just a threshold sweep), using the full merged set does not risk overfitting.
+
+**Comparison with prior silver-only approach:** The silver-only valid.json files (e.g. XL: 911 items, 691 B / 220 C) produced accuracy-skewed thresholds around τ ≈ 0.29–0.46 that under-routed to C. The IB+silver merged set produces F1-optimal thresholds around τ ≈ 0.165, substantially increasing C-routing.
 
 ### 6.6 Tuning return values
 
 `tune_threshold()` returns a 5-tuple [L286–291]:
 
 ```python
-return best_acc_t, best_acc, best_f1_t, best_f1, stats
+return best_f1_t, best_f1, best_acc_t, best_acc, stats
 ```
+
+The primary return value is the **F1-optimal threshold** (`best_f1_t`). The accuracy-optimal threshold is returned as a secondary reference.
 
 The `stats` dict contains:
 
 ```python
 {
-    "best_acc_threshold": float,
-    "best_accuracy": float,
-    "macro_f1_at_used_threshold": float,
-    "val_B_accuracy": float,
-    "val_C_accuracy": float,
+    "tuning_criterion": "macro_f1",
     "best_f1_threshold": float,
     "best_macro_f1": float,
+    "accuracy_at_used_threshold": float,
+    "val_B_accuracy": float,
+    "val_C_accuracy": float,
+    "best_acc_threshold": float,
+    "best_accuracy": float,
+    "macro_f1_at_acc_threshold": float,
     "n_val_samples": int,
     "n_B": int,
     "n_C": int,
@@ -549,7 +563,7 @@ route_kappa() {
     python classifier/postprocess/predict_complexity_kappa.py "${model}" \
         --use_agreement_gate \
         --tune_threshold \
-        --valid_file "classifier/data/${DATASET}/${model}/silver/single_vs_multi/valid.json" \
+        --valid_file "classifier/data/${DATASET}/${model}/binary_silver_single_vs_multi/train.json" \
         --output_path "${out}"
     python evaluate_final_acc.py --pred_path "${out}"
 }
@@ -639,34 +653,36 @@ Saved at [L536–562]:
 {
     "method": "symrag_kappa_structural",
     "model_name": "flan_t5_xl",
-    "threshold_used": 0.4321,
+    "threshold_used": 0.1654,
     "threshold_tuned": true,
     "kappa_stats": {
-        "mean": 0.5234,
-        "std": 0.1876,
-        "min": 0.0312,
-        "max": 1.0847
+        "mean": 0.2474,
+        "std": 0.1100,
+        "min": 0.0575,
+        "max": 1.0066
     },
-    "routing_counts": {"A": 1200, "B": 800, "C": 1000},
+    "routing_counts": {"A": 581, "B": 527, "C": 1892},
     "total_questions": 3000,
-    "total_steps": 4500,
+    "total_steps": 9233,
     "per_dataset": {
-        "musique": {"A": 100, "B": 150, "C": 250, "steps": 1100},
+        "musique": {"A": 48, "B": 16, "C": 436, "steps": 1577},
         ...
     },
     "symrag_weights": {"w_L": 1.0, "w_sh1": 0.05, "w_sh2": 0.10},
     "note": "A(q) attention term omitted; structural heuristic only",
     "tuning_stats": {
-        "best_acc_threshold": 0.4321,
-        "best_accuracy": 0.7234,
-        "macro_f1_at_used_threshold": 0.6891,
-        "val_B_accuracy": 0.8012,
-        "val_C_accuracy": 0.5432,
-        "best_f1_threshold": 0.4567,
-        "best_macro_f1": 0.6923,
-        "n_val_samples": 911,
-        "n_B": 691,
-        "n_C": 220
+        "tuning_criterion": "macro_f1",
+        "best_f1_threshold": 0.1654,
+        "best_macro_f1": 0.6331,
+        "accuracy_at_used_threshold": 0.6398,
+        "val_B_accuracy": 0.6772,
+        "val_C_accuracy": 0.5898,
+        "best_acc_threshold": 0.1654,
+        "best_accuracy": 0.6398,
+        "macro_f1_at_acc_threshold": 0.6331,
+        "n_val_samples": 3268,
+        "n_B": 1871,
+        "n_C": 1397
     }
 }
 ```
@@ -678,24 +694,24 @@ The script prints structured progress to stdout:
 ```
 [data]  3000 questions from classifier/data/.../predict.json
 
-[tune]  Tuning threshold on validation data...
-Tuned threshold: 0.4321, validation accuracy: 0.7234, val B-acc: 0.8012, val C-acc: 0.5432, macro-F1 at this threshold: 0.6891
-Best macro-F1: 0.6923 at threshold 0.4567 (differs from accuracy-optimal 0.4321)
-[tune]  Using tuned threshold: 0.4321
+[tune]  Tuning threshold on validation data (criterion: macro-F1)...
+Tuned threshold (macro-F1): 0.1654, best macro-F1: 0.6331, val B-acc: 0.6772, val C-acc: 0.5898, accuracy at this threshold: 0.6398
+Best accuracy: 0.6398 at threshold 0.1654 (same as F1-optimal)
+[tune]  Using tuned threshold: 0.1654 (macro-F1=0.6331)
 
 [gate1] Loading predictions...
 [gate1] Computing nor_qa/oner_qa agreement...
-[gate1] A=1200, R=1800
+[gate1] A=581, R=2419
 
-[feat]  Extracting features for 1800 R-routed questions...
-[feat]  κ stats: mean=0.5234, std=0.1876, min=0.0312, max=1.0847
+[feat]  Extracting features for 2419 R-routed questions...
+[feat]  κ stats: mean=0.2474, std=0.1100, min=0.0575, max=1.0066
 
-[gate2] Routing with threshold=0.4321...
-[route] A=1200, B=800, C=1000
+[gate2] Routing with threshold=0.1654...
+[route] A=581, B=527, C=1892
 
 [out]   Writing predictions to predictions/classifier/t5-large/flan_t5_xl/iter7_kappa/
-  musique: A=100, B=150, C=250, steps=1100
-  hotpotqa: A=200, B=100, C=200, steps=900
+  musique: A=48, B=16, C=436, steps=1577
+  hotpotqa: A=120, B=14, C=366, steps=1972
   ...
 
 Routed predictions saved to predictions/classifier/t5-large/flan_t5_xl/iter7_kappa/
@@ -722,13 +738,12 @@ Run evaluation with: python evaluate_final_acc.py --pred_path predictions/classi
 | **Risk** | The tuned threshold is calibrated to validation-set κ(q) values, but applied to test-set κ(q) values with a potentially different normalisation base. This is a **distribution shift in feature space** introduced by the normalisation. |
 | **Severity** | Medium — if max token lengths are similar between validation and test sets, the effect is negligible. If they differ substantially, the tuned threshold may be suboptimal. |
 
-### 12.3 Threshold tuning uses accuracy, not macro-F1
+### 12.3 Threshold tuning uses macro-F1 on IB+silver merged data (resolved)
 
 | Issue | Detail |
 |---|---|
-| **What** | The tuned threshold is the one that maximises **accuracy** on the validation set [L248, L375], not macro-F1. The best macro-F1 threshold is reported but not used. |
-| **Risk** | With imbalanced B/C validation data (e.g., XL: 691 B vs 220 C), accuracy can be maximised by predicting the majority class (B) for most questions. The accuracy-optimal threshold may have low C-recall. |
-| **Mitigation** | The script reports both B-accuracy and C-accuracy [L258–261], and the best F1 threshold [L270–272], allowing the user to identify this issue. The routing_stats.json preserves both thresholds for post-hoc analysis. |
+| **What** | The tuned threshold now maximises **macro-F1** on the IB+silver merged data [L248, L375], not accuracy. The accuracy-optimal threshold is computed and reported as a secondary reference. |
+| **Status** | **Resolved.** The earlier version used accuracy on the silver-only validation split (e.g., XL: 691 B vs 220 C, 3:1 ratio), which produced high thresholds (~0.46) that under-routed to C. Switching to macro-F1 on the IB+silver merged set (~1.3:1 ratio) lowers τ to ~0.165 and matches or exceeds IT5's trained Clf2 on end-to-end QA F1. |
 
 ### 12.4 Prediction files are loaded redundantly per question
 
