@@ -24,10 +24,31 @@ def load_json(path):
 
 
 def find_best_epoch(gate_epoch_dir, valid_file, run_tag=None):
-    """Return (best_pred_path, best_valid_path, best_epoch, best_acc)."""
+    """Return (best_pred_path, best_valid_path, best_epoch, best_acc).
+
+    Only considers epochs from the latest run (most recent timestamp directory).
+    """
     gold = {item["id"]: item["answer"] for item in load_json(valid_file)}
     KNOWN_TAGS = {"silver_only", "feat"}
 
+    # First pass: find the latest timestamp across all epoch directories
+    latest_ts = ""
+    for vf in glob.glob(os.path.join(gate_epoch_dir, "**/valid/dict_id_pred_results.json"), recursive=True):
+        run_dir = os.path.dirname(os.path.dirname(vf))
+        rel = os.path.relpath(run_dir, gate_epoch_dir)
+        parts = rel.split(os.sep)
+        if run_tag:
+            if run_tag not in parts:
+                continue
+        else:
+            if any(p in KNOWN_TAGS for p in parts):
+                continue
+        if len(parts) >= 3:
+            ts = parts[1] + "/" + parts[2]
+            if ts > latest_ts:
+                latest_ts = ts
+
+    # Second pass: find best epoch within the latest timestamp only
     best_acc, best_pred, best_valid, best_epoch = -1, "", "", ""
     for vf in glob.glob(os.path.join(gate_epoch_dir, "**/valid/dict_id_pred_results.json"), recursive=True):
         run_dir = os.path.dirname(os.path.dirname(vf))
@@ -38,6 +59,11 @@ def find_best_epoch(gate_epoch_dir, valid_file, run_tag=None):
                 continue
         else:
             if any(p in KNOWN_TAGS for p in parts):
+                continue
+        # Only consider runs from the latest timestamp
+        if len(parts) >= 3:
+            ts = parts[1] + "/" + parts[2]
+            if ts != latest_ts:
                 continue
         pf = os.path.join(run_dir, "predict", "dict_id_pred_results.json")
         if not os.path.exists(pf):

@@ -5,36 +5,36 @@
     "models": {
       "flan_t5_xl": {
         "clf1": {
-          "best_epoch": 30,
-          "overall_accuracy": 0.7318518518518519,
+          "best_epoch": 25,
+          "overall_accuracy": 0.7281481481481481,
           "n_samples": 1350,
           "per_class": {
             "A": {
-              "accuracy": 0.4874715261958998,
+              "accuracy": 0.4783599088838269,
               "n": 439,
-              "correct": 214
+              "correct": 210
             },
             "R": {
-              "accuracy": 0.849615806805708,
+              "accuracy": 0.8485181119648738,
               "n": 911,
-              "correct": 774
+              "correct": 773
             }
           }
         },
         "clf2": {
-          "best_epoch": 35,
-          "overall_accuracy": 0.7135016465422612,
+          "best_epoch": 25,
+          "overall_accuracy": 0.6970362239297475,
           "n_samples": 911,
           "per_class": {
             "B": {
-              "accuracy": 0.7192474674384949,
+              "accuracy": 0.6946454413892909,
               "n": 691,
-              "correct": 497
+              "correct": 480
             },
             "C": {
-              "accuracy": 0.6954545454545454,
+              "accuracy": 0.7045454545454546,
               "n": 220,
-              "correct": 153
+              "correct": 155
             }
           }
         },
@@ -130,18 +130,18 @@
       "flan_t5_xxl": {
         "clf1": {
           "best_epoch": 20,
-          "overall_accuracy": 0.6692579505300353,
+          "overall_accuracy": 0.6657243816254417,
           "n_samples": 1415,
           "per_class": {
             "A": {
-              "accuracy": 0.3988439306358382,
+              "accuracy": 0.3583815028901734,
               "n": 519,
-              "correct": 207
+              "correct": 186
             },
             "R": {
-              "accuracy": 0.8258928571428571,
+              "accuracy": 0.84375,
               "n": 896,
-              "correct": 740
+              "correct": 756
             }
           }
         },
@@ -254,35 +254,35 @@
       "gpt": {
         "clf1": {
           "best_epoch": 40,
-          "overall_accuracy": 0.7309573724668065,
+          "overall_accuracy": 0.7288609364081062,
           "n_samples": 1431,
           "per_class": {
             "A": {
-              "accuracy": 0.869942196531792,
+              "accuracy": 0.8728323699421965,
               "n": 1038,
-              "correct": 903
+              "correct": 906
             },
             "R": {
-              "accuracy": 0.3638676844783715,
+              "accuracy": 0.3486005089058524,
               "n": 393,
-              "correct": 143
+              "correct": 137
             }
           }
         },
         "clf2": {
           "best_epoch": 40,
-          "overall_accuracy": 0.5419847328244275,
+          "overall_accuracy": 0.5292620865139949,
           "n_samples": 393,
           "per_class": {
             "B": {
-              "accuracy": 0.48161764705882354,
+              "accuracy": 0.46691176470588236,
               "n": 272,
-              "correct": 131
+              "correct": 127
             },
             "C": {
-              "accuracy": 0.6776859504132231,
+              "accuracy": 0.6694214876033058,
               "n": 121,
-              "correct": 82
+              "correct": 81
             }
           }
         },
@@ -383,20 +383,20 @@
     "models": {
       "flan_t5_xl": {
         "clf1": {
-          "best_epoch": 25,
-          "training_set_size_after_undersampling": 1292,
-          "overall_accuracy": 0.7303703703703703,
+          "best_epoch": 30,
+          "training_set_size_after_undersampling": 848,
+          "overall_accuracy": 0.7037037037037037,
           "n_samples": 1350,
           "per_class": {
             "A": {
-              "accuracy": 0.4920273348519362,
+              "accuracy": 0.6947608200455581,
               "n": 439,
-              "correct": 216
+              "correct": 305
             },
             "R": {
-              "accuracy": 0.845225027442371,
+              "accuracy": 0.70801317233809,
               "n": 911,
-              "correct": 770
+              "correct": 645
             }
           }
         },
@@ -519,20 +519,20 @@
       },
       "flan_t5_xxl": {
         "clf1": {
-          "best_epoch": 15,
-          "training_set_size_after_undersampling": 1409,
-          "overall_accuracy": 0.6579505300353357,
+          "best_epoch": 25,
+          "training_set_size_after_undersampling": 1022,
+          "overall_accuracy": 0.6332155477031802,
           "n_samples": 1415,
           "per_class": {
             "A": {
-              "accuracy": 0.37957610789980734,
+              "accuracy": 0.6705202312138728,
               "n": 519,
-              "correct": 197
+              "correct": 348
             },
             "R": {
-              "accuracy": 0.8191964285714286,
+              "accuracy": 0.6116071428571429,
               "n": 896,
-              "correct": 734
+              "correct": 548
             }
           }
         },
@@ -655,20 +655,20 @@
       },
       "gpt": {
         "clf1": {
-          "best_epoch": 35,
+          "best_epoch": 40,
           "training_set_size_after_undersampling": 808,
-          "overall_accuracy": 0.6436058700209644,
+          "overall_accuracy": 0.6198462613556953,
           "n_samples": 1431,
           "per_class": {
             "A": {
-              "accuracy": 0.7052023121387283,
+              "accuracy": 0.6522157996146436,
               "n": 1038,
-              "correct": 732
+              "correct": 677
             },
             "R": {
-              "accuracy": 0.48091603053435117,
+              "accuracy": 0.5343511450381679,
               "n": 393,
-              "correct": 189
+              "correct": 210
             }
           }
         },
@@ -797,19 +797,19 @@
     "models": {
       "flan_t5_xl": {
         "clf1": {
-          "best_epoch": 20,
-          "overall_accuracy": 0.7296296296296296,
+          "best_epoch": 35,
+          "overall_accuracy": 0.7207407407407408,
           "n_samples": 1350,
           "per_class": {
             "A": {
-              "accuracy": 0.49430523917995445,
+              "accuracy": 0.510250569476082,
               "n": 439,
-              "correct": 217
+              "correct": 224
             },
             "R": {
-              "accuracy": 0.8430296377607025,
+              "accuracy": 0.8221734357848518,
               "n": 911,
-              "correct": 768
+              "correct": 749
             }
           }
         },
@@ -933,18 +933,18 @@
       "flan_t5_xxl": {
         "clf1": {
           "best_epoch": 35,
-          "overall_accuracy": 0.6840989399293286,
+          "overall_accuracy": 0.6770318021201414,
           "n_samples": 1415,
           "per_class": {
             "A": {
-              "accuracy": 0.4951830443159923,
+              "accuracy": 0.51252408477842,
               "n": 519,
-              "correct": 257
+              "correct": 266
             },
             "R": {
-              "accuracy": 0.7935267857142857,
+              "accuracy": 0.7723214285714286,
               "n": 896,
-              "correct": 711
+              "correct": 692
             }
           }
         },

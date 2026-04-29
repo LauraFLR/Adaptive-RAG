@@ -76,6 +76,24 @@ gold = {item["id"]: item["answer"] for item in data}
 
 KNOWN_TAGS = {"silver_only", "feat"}
 
+# First pass: find the latest timestamp across all epoch directories
+latest_ts = ""
+for vf in glob.glob(os.path.join(base_path, "**/valid/dict_id_pred_results.json"), recursive=True):
+    run_dir = os.path.dirname(os.path.dirname(vf))
+    rel = os.path.relpath(run_dir, base_path)
+    parts = rel.split(os.sep)
+    if run_tag:
+        if run_tag not in parts:
+            continue
+    else:
+        if any(p in KNOWN_TAGS for p in parts):
+            continue
+    if len(parts) >= 3:
+        ts = parts[1] + "/" + parts[2]
+        if ts > latest_ts:
+            latest_ts = ts
+
+# Second pass: find best epoch within the latest timestamp only
 best_acc = -1
 best_path = ""
 best_label = ""
@@ -90,6 +108,12 @@ for vf in glob.glob(os.path.join(base_path, "**/valid/dict_id_pred_results.json"
             continue
     else:
         if any(p in KNOWN_TAGS for p in parts):
+            continue
+
+    # Only consider runs from the latest timestamp
+    if len(parts) >= 3:
+        ts = parts[1] + "/" + parts[2]
+        if ts != latest_ts:
             continue
 
     pf = os.path.join(run_dir, "predict", "dict_id_pred_results.json")
