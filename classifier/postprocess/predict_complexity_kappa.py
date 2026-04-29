@@ -329,6 +329,11 @@ def main():
         help="Tune threshold on --valid_file before predicting.",
     )
     parser.add_argument(
+        "--tuning_criterion", type=str, default="macro_f1",
+        choices=("macro_f1", "accuracy"),
+        help="Criterion for threshold selection: macro_f1 (default) or accuracy.",
+    )
+    parser.add_argument(
         "--valid_file", type=str, default=None,
         help="Clf2 validation JSON with B/C labels (required when --tune_threshold).",
     )
@@ -369,13 +374,19 @@ def main():
     tuning_stats = None
 
     if args.tune_threshold:
-        print("\n[tune]  Tuning threshold on validation data (criterion: macro-F1)...")
+        criterion = args.tuning_criterion
+        print(f"\n[tune]  Tuning threshold on validation data (criterion: {criterion})...")
         best_f1_t, best_f1, best_acc_t, best_acc, tuning_stats = tune_threshold(
             args.valid_file, nlp
         )
-        threshold = best_f1_t
+        if criterion == "macro_f1":
+            threshold = best_f1_t
+            print(f"[tune]  Using tuned threshold: {threshold:.4f} (macro-F1={best_f1:.4f})")
+        else:
+            threshold = best_acc_t
+            print(f"[tune]  Using tuned threshold: {threshold:.4f} (accuracy={best_acc:.4f})")
+        tuning_stats["tuning_criterion"] = criterion
         threshold_tuned = True
-        print(f"[tune]  Using tuned threshold: {threshold:.4f} (macro-F1={best_f1:.4f})")
     else:
         print(f"[cfg]   Using default threshold: {threshold:.4f}")
 
