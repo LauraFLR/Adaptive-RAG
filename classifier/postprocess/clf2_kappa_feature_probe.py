@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-IT8-aligned feasibility check: can the SymRAG κ(q) structural features
+IT7-aligned feasibility check: can the SymRAG κ(q) structural features
 separate B (single-step) from C (multi-step) better than chance?
 
-Uses the same features as predict_complexity_kappa.py (IT8):
+Uses the same features as predict_complexity_kappa.py (IT7):
   - token_len_norm:  whitespace-split token count / max token count
   - entity_density:  entity_count / token_len
   - hop_density:     hop_indicator_count / token_len
@@ -115,7 +115,7 @@ def load_bc_data_ib_only(merged_path: str, silver_path: str) -> list[dict]:
 
 
 def extract_features(questions: list[str], nlp) -> pd.DataFrame:
-    """Extract IT8's κ(q) features for each question.
+    """Extract IT7's κ(q) features for each question.
 
     Raw features (per question):
       - token_len:       whitespace-split token count
@@ -435,7 +435,7 @@ def run_probe(model: str, data_path: str | None, output_dir: str, nlp) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="κ(q) feature probe: can IT8's structural features separate B vs C?"
+        description="κ(q) feature probe: can IT7's structural features separate B vs C?"
     )
     parser.add_argument(
         "--data_path", type=str, default=None,

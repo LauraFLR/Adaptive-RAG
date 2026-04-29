@@ -24,8 +24,8 @@
 | Library | Import line | Purpose |
 |---|---|---|
 | `spacy` (+ `en_core_web_sm` model) | [L468–469] | Named-entity recognition for `entity_count` raw feature |
-| `sklearn` (`LogisticRegression`, `StratifiedKFold`, `roc_auc_score`, `accuracy_score`, `classification_report`, `f1_score`) | [L36–43] | Diagnostic classifier + evaluation metrics |
-| `pandas` | [L34] | DataFrame for feature matrix, CSV export |
+| `sklearn` (`LogisticRegression`, `StratifiedKFold`, `roc_auc_score`, `accuracy_score`, `classification_report`, `f1_score`) | [L34–41] | Diagnostic classifier + evaluation metrics |
+| `pandas` | [L33] | DataFrame for feature matrix, CSV export |
 | `matplotlib` | [L30–32] | Histogram + scatter plot (Agg backend, no display) |
 | `numpy` | [L29] (module-level import) | Array operations throughout feature extraction and fold aggregation |
 
@@ -94,10 +94,10 @@ The script extracts three **raw** features per question and derives four **model
 
 | Feature | Formula | Line(s) |
 |---|---|---|
-| `token_len_norm` | `token_len / max(token_len)` | [L148] |
-| `entity_density` | `entity_count / token_len` | [L151] |
-| `hop_density` | `hop_count / token_len` | [L152] |
-| `kappa` | $W_L \cdot \text{token\_len\_norm} \cdot (1 + W_{SH1} \cdot \text{entity\_density} + W_{SH2} \cdot \text{hop\_density})$ | [L154] |
+| `token_len_norm` | `token_len / max(token_len)` | [L146] |
+| `entity_density` | `entity_count / token_len` | [L149] |
+| `hop_density` | `hop_count / token_len` | [L150] |
+| `kappa` | $W_L \cdot \text{token\_len\_norm} \cdot (1 + W_{SH1} \cdot \text{entity\_density} + W_{SH2} \cdot \text{hop\_density})$ | [L152] |
 
 The SymRAG published weights are defined at [L46–48]:
 
@@ -249,9 +249,9 @@ Where `FEATURE_COLS = ["token_len_norm", "entity_density", "hop_density", "kappa
 
 | NOT in X | Why |
 |---|---|
-| `question` (text) | Stored in `feat_df` for CSV export [L185], but not in `X` |
+| `question` (text) | Stored in `feat_df` for CSV export [L184], but not in `X` |
 | `label` | Used only for `y` [L198] |
-| `id` | Stored for CSV export [L186], not in `X` |
+| `id` | Stored for CSV export [L185], not in `X` |
 | Raw `token_len`, `entity_count`, `hop_count` | Stored in `feat_df` but not in `FEATURE_COLS`; only the normalised/derived forms are used |
 | TF-IDF / BoW | Not computed anywhere in the script |
 | Embeddings | No embedding model is loaded |
@@ -271,12 +271,12 @@ Each of the 5 folds uses an 80/20 stratified train/test split (inherent to `Stra
 
 | Metric | Function | Scope | Line(s) |
 |---|---|---|---|
-| **Macro-F1** | `sklearn.metrics.f1_score(y_test, y_pred, average='macro')` | Per-fold, then mean ± std | [L216, L234–235] |
-| ROC-AUC | `sklearn.metrics.roc_auc_score(y_test, y_prob)` | Per-fold, then mean ± std | [L214, L230–231] |
-| Accuracy | `sklearn.metrics.accuracy_score(y_test, y_pred)` | Per-fold, then mean ± std | [L215, L232–233] |
-| Classification report | `sklearn.metrics.classification_report(last_fold_y_test, last_fold_y_pred, target_names=["B (single)", "C (multi)"])` | **Last fold only** | [L241–244] |
+| **Macro-F1** | `sklearn.metrics.f1_score(y_test, y_pred, average='macro')` | Per-fold, then mean ± std | [L216, L231–232] |
+| ROC-AUC | `sklearn.metrics.roc_auc_score(y_test, y_prob)` | Per-fold, then mean ± std | [L214, L227–228] |
+| Accuracy | `sklearn.metrics.accuracy_score(y_test, y_pred)` | Per-fold, then mean ± std | [L215, L229–230] |
+| Classification report | `sklearn.metrics.classification_report(last_fold_y_test, last_fold_y_pred, target_names=["B (single)", "C (multi)"])` | **Last fold only** | [L240–243] |
 
-The AUC uses `predict_proba()[:, 1]` [L212] (probability of class C). Accuracy and F1 use `predict()` [L213] (hard 0.5 threshold). **Macro-F1** is the primary metric used for the go/no-go verdict (see §6.4).
+The AUC uses `predict_proba()[:, 1]` [L211] (probability of class C). Accuracy and F1 use `predict()` [L212] (hard 0.5 threshold). **Macro-F1** is the primary metric used for the go/no-go verdict (see §6.4).
 
 ### 6.3 Feature importances
 
@@ -303,7 +303,7 @@ verdict = "GO" if verdict_f1 >= 0.55 else "NO-GO"
 | Mean macro-F1 ≥ 0.55 | **GO** | κ(q) features carry enough signal to proceed with a feature-augmented Gate 2 classifier |
 | Mean macro-F1 < 0.55 | **NO-GO** | Features are insufficiently discriminative; do not proceed |
 
-The threshold `0.55` is also persisted in the JSON output [L618]:
+The threshold `0.55` is also persisted in the JSON output [L606]:
 
 ```python
 json_out: dict = { ..., "go_no_go_threshold": 0.55, ... }
@@ -359,7 +359,7 @@ When invoked by `run-all-iterations.sh`, the output directory is explicitly set 
 
 ### 9.3 JSON results structure
 
-The JSON output [L605–632] persists the full numeric results:
+The JSON output [L601–634] persists the full numeric results:
 
 ```json
 {
@@ -390,11 +390,11 @@ The JSON output [L605–632] persists the full numeric results:
 
 In addition to the persisted files, the script prints to stdout:
 - Feature means by class [L187–189]
-- 5-fold CV results (macro-F1 ± std, ROC-AUC ± std, accuracy ± std) [L236–239]
-- Classification report from last fold [L241–244]
+- 5-fold CV results (macro-F1 ± std, ROC-AUC ± std, accuracy ± std) [L234–237]
+- Classification report from last fold [L240–243]
 - Per-feature LR coefficients (mean ± std) and intercept [L249–251]
 - Go/no-go verdict [L418–422]
-- Multi-model summary table (when `--all_models`) [L540–570]
+- Multi-model summary table (when `--all_models`) [L557–583]
 
 ---
 
@@ -434,7 +434,7 @@ In addition to the persisted files, the script prints to stdout:
 
 | Issue | Detail |
 |---|---|
-| **What** | `classification_report()` is called with `last_fold_y_test` and `last_fold_y_pred` [L241–244], which are from the **fifth and final** fold. The per-class precision/recall/F1 are not averaged across folds. |
+| **What** | `classification_report()` is called with `last_fold_y_test` and `last_fold_y_pred` [L240–243], which are from the **fifth and final** fold. The per-class precision/recall/F1 are not averaged across folds. |
 | **Impact** | The reported precision/recall may not be representative of all folds. Only macro-F1, AUC, and accuracy are properly averaged. |
 
 ### 10.6 Intercept reported from last fold only
@@ -464,7 +464,7 @@ In addition to the persisted files, the script prints to stdout:
 
 | Issue | Detail |
 |---|---|
-| **What** | `token_len_norm = token_lens / max_len` [L148] divides by the global maximum token length across all questions (not per-fold). This means the normalisation leaks information from the test fold into the training fold (all questions' max token length is used). |
+| **What** | `token_len_norm = token_lens / max_len` [L146] divides by the global maximum token length across all questions (not per-fold). This means the normalisation leaks information from the test fold into the training fold (all questions' max token length is used). |
 | **Impact** | Negligible in practice — the max token length is a single scalar and the CV is diagnostic only. But strictly speaking, normalisation should be fit on training data per fold. |
 
 ### 10.10 Plot shows κ histogram + 2-of-4 features
