@@ -151,7 +151,7 @@ route_kappa() {
     python classifier/postprocess/predict_complexity_kappa.py "${model}" \
         --use_agreement_gate \
         --tune_threshold \
-        --valid_file "classifier/data/${DATASET}/${model}/silver/single_vs_multi/valid.json" \
+        --valid_file "classifier/data/${DATASET}/${model}/binary_silver_single_vs_multi/train.json" \
         --output_path "${out}"
     echo "  [${tag}/${model}] Evaluating..."
     python evaluate_final_acc.py --pred_path "${out}"

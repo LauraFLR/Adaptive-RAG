@@ -214,9 +214,9 @@ def compute_kappa(token_lens, entity_counts, hop_counts):
 # ---------------------------------------------------------------------------
 
 def tune_threshold(valid_path, nlp):
-    """Tune kappa threshold on validation data.
+    """Tune kappa threshold on validation data using macro-F1.
 
-    Returns (best_acc_threshold, best_acc, best_f1_threshold, best_f1, stats_dict).
+    Returns (best_f1_threshold, best_f1, best_acc_threshold, best_acc, stats_dict).
     """
     from sklearn.metrics import f1_score
 
@@ -255,31 +255,39 @@ def tune_threshold(valid_path, nlp):
 
     b_mask = labels == 0
     c_mask = labels == 1
-    best_preds = (kappa >= best_acc_t).astype(int)
-    b_acc = (best_preds[b_mask] == labels[b_mask]).mean() if b_mask.any() else 0.0
-    c_acc = (best_preds[c_mask] == labels[c_mask]).mean() if c_mask.any() else 0.0
-    f1_at_acc_t = f1_score(labels, best_preds, average="macro", zero_division=0)
 
-    print(f"Tuned threshold: {best_acc_t:.4f}, validation accuracy: {best_acc:.4f}, "
-          f"val B-acc: {b_acc:.4f}, val C-acc: {c_acc:.4f}, "
-          f"macro-F1 at this threshold: {f1_at_acc_t:.4f}")
-    print(f"Best macro-F1: {best_f1:.4f} at threshold {best_f1_t:.4f}"
-          + (" (same as accuracy-optimal)" if abs(best_f1_t - best_acc_t) < 1e-9
-             else f" (differs from accuracy-optimal {best_acc_t:.4f})"))
+    # Primary criterion: macro-F1
+    best_preds_f1 = (kappa >= best_f1_t).astype(int)
+    b_acc_f1 = (best_preds_f1[b_mask] == labels[b_mask]).mean() if b_mask.any() else 0.0
+    c_acc_f1 = (best_preds_f1[c_mask] == labels[c_mask]).mean() if c_mask.any() else 0.0
+    acc_at_f1_t = (best_preds_f1 == labels).mean()
+
+    # Secondary: accuracy-optimal (for reference)
+    best_preds_acc = (kappa >= best_acc_t).astype(int)
+    f1_at_acc_t = f1_score(labels, best_preds_acc, average="macro", zero_division=0)
+
+    print(f"Tuned threshold (macro-F1): {best_f1_t:.4f}, best macro-F1: {best_f1:.4f}, "
+          f"val B-acc: {b_acc_f1:.4f}, val C-acc: {c_acc_f1:.4f}, "
+          f"accuracy at this threshold: {acc_at_f1_t:.4f}")
+    print(f"Best accuracy: {best_acc:.4f} at threshold {best_acc_t:.4f}"
+          + (" (same as F1-optimal)" if abs(best_f1_t - best_acc_t) < 1e-9
+             else f" (differs from F1-optimal {best_f1_t:.4f})"))
 
     stats = {
-        "best_acc_threshold": best_acc_t,
-        "best_accuracy": float(best_acc),
-        "macro_f1_at_used_threshold": float(f1_at_acc_t),
-        "val_B_accuracy": float(b_acc),
-        "val_C_accuracy": float(c_acc),
+        "tuning_criterion": "macro_f1",
         "best_f1_threshold": best_f1_t,
         "best_macro_f1": float(best_f1),
+        "accuracy_at_used_threshold": float(acc_at_f1_t),
+        "val_B_accuracy": float(b_acc_f1),
+        "val_C_accuracy": float(c_acc_f1),
+        "best_acc_threshold": best_acc_t,
+        "best_accuracy": float(best_acc),
+        "macro_f1_at_acc_threshold": float(f1_at_acc_t),
         "n_val_samples": len(bc_items),
         "n_B": int(b_mask.sum()),
         "n_C": int(c_mask.sum()),
     }
-    return best_acc_t, best_acc, best_f1_t, best_f1, stats
+    return best_f1_t, best_f1, best_acc_t, best_acc, stats
 
 
 # ---------------------------------------------------------------------------
@@ -361,13 +369,13 @@ def main():
     tuning_stats = None
 
     if args.tune_threshold:
-        print("\n[tune]  Tuning threshold on validation data...")
-        best_acc_t, best_acc, best_f1_t, best_f1, tuning_stats = tune_threshold(
+        print("\n[tune]  Tuning threshold on validation data (criterion: macro-F1)...")
+        best_f1_t, best_f1, best_acc_t, best_acc, tuning_stats = tune_threshold(
             args.valid_file, nlp
         )
-        threshold = best_acc_t
+        threshold = best_f1_t
         threshold_tuned = True
-        print(f"[tune]  Using tuned threshold: {threshold:.4f}")
+        print(f"[tune]  Using tuned threshold: {threshold:.4f} (macro-F1={best_f1:.4f})")
     else:
         print(f"[cfg]   Using default threshold: {threshold:.4f}")
 
