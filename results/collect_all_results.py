@@ -322,19 +322,6 @@ def collect_it6():
     # Compute per-class recall from CSVs
     import csv
 
-    def class_recall_from_csv(csv_path):
-        """Compute B-recall and C-recall from probe data CSV with true_label column."""
-        rows = []
-        with open(csv_path) as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                rows.append(row)
-        if not rows or "true_label" not in rows[0]:
-            return None
-        # Use kappa as simple threshold: above median = C, below = B
-        # Actually we need the probe predictions, not in the CSV. Use logistic regression.
-        return None  # Will compute via sklearn below
-
     def compute_class_recalls(csv_path):
         """5-fold CV to get per-class recall, matching the probe methodology."""
         import csv
@@ -351,15 +338,13 @@ def collect_it6():
 
         from sklearn.linear_model import LogisticRegression
         from sklearn.model_selection import StratifiedKFold
-        from sklearn.preprocessing import StandardScaler
 
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
         b_recalls, c_recalls = [], []
         for train_idx, test_idx in skf.split(X, y):
-            scaler = StandardScaler()
-            X_train = scaler.fit_transform(X[train_idx])
-            X_test = scaler.transform(X[test_idx])
-            clf = LogisticRegression(max_iter=1000, random_state=42)
+            X_train = X[train_idx]
+            X_test = X[test_idx]
+            clf = LogisticRegression(max_iter=1000, random_state=42, class_weight='balanced')
             clf.fit(X_train, y[train_idx])
             y_pred = clf.predict(X_test)
             y_true = y[test_idx]
@@ -437,14 +422,15 @@ def collect_it7():
                 "best_acc_threshold": ts["best_acc_threshold"],
                 "best_macro_f1": ts["best_macro_f1"],
                 "best_f1_threshold": ts["best_f1_threshold"],
-                "macro_f1_at_used_threshold": ts.get("macro_f1_at_used_threshold"),
+                "macro_f1_at_acc_threshold": ts.get("macro_f1_at_acc_threshold"),
                 "val_B_accuracy": ts["val_B_accuracy"],
                 "val_C_accuracy": ts["val_C_accuracy"],
             }
             # Normalized top-level aliases for easy thesis lookup
-            kappa_gate2["tuned_threshold"] = ts["best_acc_threshold"]
-            kappa_gate2["val_accuracy"] = ts["best_accuracy"]
-            kappa_gate2["val_macro_f1"] = ts.get("macro_f1_at_used_threshold")
+            # IT7 uses the F1-optimal threshold, not the accuracy-optimal one
+            kappa_gate2["tuned_threshold"] = ts["best_f1_threshold"]
+            kappa_gate2["val_accuracy"] = ts["accuracy_at_used_threshold"]
+            kappa_gate2["val_macro_f1"] = ts["best_macro_f1"]
 
         # Agreement info (shared with IT5)
         agreement_rate = stats.get("agreement_rate")
