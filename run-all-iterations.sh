@@ -34,7 +34,8 @@ else
     ITERATIONS=(1 2 3 4 5 6 7)
 fi
 
-SKIP_PHASE0=${SKIP_PHASE0:-false}   # <-- ADD THIS LINE
+SKIP_PHASE0=${SKIP_PHASE0:-false}
+SKIP_TRAINING=${SKIP_TRAINING:-false}
 
 should_run() {
     for i in "${ITERATIONS[@]}"; do [[ "$i" == "$1" ]] && return 0; done
@@ -253,13 +254,15 @@ if should_run 2; then
     echo "  IT2: Clf1 undersampling"
     echo "================================================================="
 
-    cd "${CLF_DIR}"
-    for m in "${MODELS[@]}"; do
-        s=$(script_tag "$m")
-        echo "--- Training undersampled Clf1 for ${m} ---"
-        bash "run/run_large_train_${s}_no_ret_vs_ret_undersampled.sh"
-    done
-    cd "${REPO_ROOT}"
+    if ! $SKIP_TRAINING; then
+        cd "${CLF_DIR}"
+        for m in "${MODELS[@]}"; do
+            s=$(script_tag "$m")
+            echo "--- Training undersampled Clf1 for ${m} ---"
+            bash "run/run_large_train_${s}_no_ret_vs_ret_undersampled.sh"
+        done
+        cd "${REPO_ROOT}"
+    fi
 
     for m in "${MODELS[@]}"; do
         BEST_CLF1_UNDER=$(find_best_epoch \
@@ -279,13 +282,15 @@ if should_run 3; then
     echo "  IT3: Clf1 weighted cross-entropy"
     echo "================================================================="
 
-    cd "${CLF_DIR}"
-    for m in "${MODELS[@]}"; do
-        s=$(script_tag "$m")
-        echo "--- Training weighted CE Clf1 for ${m} ---"
-        bash "run/run_large_train_${s}_no_ret_vs_ret_weighted_ce.sh"
-    done
-    cd "${REPO_ROOT}"
+    if ! $SKIP_TRAINING; then
+        cd "${CLF_DIR}"
+        for m in "${MODELS[@]}"; do
+            s=$(script_tag "$m")
+            echo "--- Training weighted CE Clf1 for ${m} ---"
+            bash "run/run_large_train_${s}_no_ret_vs_ret_weighted_ce.sh"
+        done
+        cd "${REPO_ROOT}"
+    fi
 
     for m in "${MODELS[@]}"; do
         BEST_CLF1_WCE=$(find_best_epoch \
@@ -305,13 +310,15 @@ if should_run 4; then
     echo "  IT4: Clf1 focal loss"
     echo "================================================================="
 
-    cd "${CLF_DIR}"
-    for m in "${MODELS[@]}"; do
-        s=$(script_tag "$m")
-        echo "--- Training focal Clf1 for ${m} ---"
-        bash "run/run_large_train_${s}_no_ret_vs_ret_focal.sh"
-    done
-    cd "${REPO_ROOT}"
+    if ! $SKIP_TRAINING; then
+        cd "${CLF_DIR}"
+        for m in "${MODELS[@]}"; do
+            s=$(script_tag "$m")
+            echo "--- Training focal Clf1 for ${m} ---"
+            bash "run/run_large_train_${s}_no_ret_vs_ret_focal.sh"
+        done
+        cd "${REPO_ROOT}"
+    fi
 
     for m in "${MODELS[@]}"; do
         BEST_CLF1_FOCAL=$(find_best_epoch \
