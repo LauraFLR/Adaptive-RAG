@@ -53,8 +53,14 @@ def main() -> None:
     minority_size = min(len(by_label["A"]), len(by_label["R"]))
     rng = random.Random(args.seed)
 
-    balanced = list(by_label["R"])
-    balanced.extend(rng.sample(by_label["A"], minority_size))
+    if len(by_label["A"]) <= len(by_label["R"]):
+        # A is the minority — keep all A, undersample R
+        balanced = list(by_label["A"])
+        balanced.extend(rng.sample(by_label["R"], minority_size))
+    else:
+        # R is the minority — keep all R, undersample A
+        balanced = list(by_label["R"])
+        balanced.extend(rng.sample(by_label["A"], minority_size))
     rng.shuffle(balanced)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
