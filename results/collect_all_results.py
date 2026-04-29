@@ -183,34 +183,34 @@ def collect_it1():
     return result
 
 
-# ── IT2: Undersampled Clf1 (GPT only) ────────────────────────────────────
+# ── IT2: Undersampled Clf1 ────────────────────────────────────────────────
 
 def collect_it2():
-    print("Collecting IT2: Clf1 Undersampling (GPT only)...")
-    result = {"iteration": 2, "name": "Clf1 Undersampling (GPT only)", "models": {}}
-    m = "gpt"
-    iter_dir = os.path.join(PRED_BASE, m, "iter2_undersampled")
+    print("Collecting IT2: Clf1 Undersampling...")
+    result = {"iteration": 2, "name": "Clf1 Undersampling", "models": {}}
+    for m in MODELS:
+        iter_dir = os.path.join(PRED_BASE, m, "iter2_undersampled")
 
-    # Undersampled Clf1
-    clf1_dir = os.path.join(CLF_BASE, m, "no_ret_vs_ret_undersampled/epoch")
-    vf1 = os.path.join(DATA_BASE, m, "silver/no_retrieval_vs_retrieval/valid.json")
-    clf1_pred, clf1_valid, clf1_epoch, clf1_acc = find_best_epoch(clf1_dir, vf1)
-    clf1_metrics = per_class_accuracy(clf1_valid)
+        # Undersampled Clf1
+        clf1_dir = os.path.join(CLF_BASE, m, "no_ret_vs_ret_undersampled/epoch")
+        vf1 = os.path.join(DATA_BASE, m, "silver/no_retrieval_vs_retrieval/valid.json")
+        clf1_pred, clf1_valid, clf1_epoch, clf1_acc = find_best_epoch(clf1_dir, vf1)
+        clf1_metrics = per_class_accuracy(clf1_valid)
 
-    # Count undersampled training set size
-    train_file = os.path.join(DATA_BASE, m, "silver/no_retrieval_vs_retrieval/train_undersampled.json")
-    train_size = len(load_json(train_file)) if os.path.exists(train_file) else None
+        # Count undersampled training set size
+        train_file = os.path.join(DATA_BASE, m, "silver/no_retrieval_vs_retrieval/train_undersampled.json")
+        train_size = len(load_json(train_file)) if os.path.exists(train_file) else None
 
-    model_result = {
-        "clf1": {
-            "best_epoch": int(clf1_epoch),
-            "training_set_size_after_undersampling": train_size,
-            **clf1_metrics,
-        },
-        "qa": qa_metrics(iter_dir),
-        "routing": routing_distribution(iter_dir),
-    }
-    result["models"][m] = model_result
+        model_result = {
+            "clf1": {
+                "best_epoch": int(clf1_epoch),
+                "training_set_size_after_undersampling": train_size,
+                **clf1_metrics,
+            },
+            "qa": qa_metrics(iter_dir),
+            "routing": routing_distribution(iter_dir),
+        }
+        result["models"][m] = model_result
     return result
 
 
@@ -487,12 +487,8 @@ def main():
     print("\nComputing deltas...")
     it1_qa = {m: all_results["IT1"]["models"][m]["qa"] for m in MODELS}
 
-    # IT2 delta vs IT1 (GPT only)
-    all_results["IT2"]["models"]["gpt"]["delta_vs_IT1"] = compute_deltas(
-        all_results["IT2"]["models"]["gpt"]["qa"], it1_qa["gpt"])
-
-    # IT3, IT4 delta vs IT1
-    for itag in ["IT3", "IT4"]:
+    # IT2, IT3, IT4 delta vs IT1
+    for itag in ["IT2", "IT3", "IT4"]:
         for m in MODELS:
             all_results[itag]["models"][m]["delta_vs_IT1"] = compute_deltas(
                 all_results[itag]["models"][m]["qa"], it1_qa[m])

@@ -379,8 +379,280 @@
   },
   "IT2": {
     "iteration": 2,
-    "name": "Clf1 Undersampling (GPT only)",
+    "name": "Clf1 Undersampling",
     "models": {
+      "flan_t5_xl": {
+        "clf1": {
+          "best_epoch": 25,
+          "training_set_size_after_undersampling": 1292,
+          "overall_accuracy": 0.7303703703703703,
+          "n_samples": 1350,
+          "per_class": {
+            "A": {
+              "accuracy": 0.4920273348519362,
+              "n": 439,
+              "correct": 216
+            },
+            "R": {
+              "accuracy": 0.845225027442371,
+              "n": 911,
+              "correct": 770
+            }
+          }
+        },
+        "qa": {
+          "musique": {
+            "em": 0.234,
+            "f1": 0.324,
+            "count": 500
+          },
+          "hotpotqa": {
+            "em": 0.414,
+            "f1": 0.53023,
+            "count": 500
+          },
+          "2wikimultihopqa": {
+            "em": 0.392,
+            "f1": 0.4762,
+            "count": 500
+          },
+          "nq": {
+            "em": 0.36,
+            "f1": 0.46,
+            "count": 500
+          },
+          "trivia": {
+            "em": 0.498,
+            "f1": 0.588,
+            "count": 500
+          },
+          "squad": {
+            "em": 0.264,
+            "f1": 0.381,
+            "count": 500
+          },
+          "macro_avg_f1": 0.459905,
+          "macro_avg_em": 0.36033333333333334
+        },
+        "routing": {
+          "A": 508,
+          "B": 1466,
+          "C": 1026,
+          "total": 3000,
+          "A_pct": 16.933333333333334,
+          "B_pct": 48.86666666666667,
+          "C_pct": 34.2,
+          "total_steps": 5899,
+          "per_dataset": {
+            "musique": {
+              "A": 16,
+              "B": 69,
+              "C": 415,
+              "total": 500,
+              "steps": 1591
+            },
+            "hotpotqa": {
+              "A": 85,
+              "B": 119,
+              "C": 296,
+              "total": 500,
+              "steps": 1693
+            },
+            "2wikimultihopqa": {
+              "A": 240,
+              "B": 29,
+              "C": 231,
+              "total": 500,
+              "steps": 947
+            },
+            "nq": {
+              "A": 59,
+              "B": 441,
+              "C": 0,
+              "total": 500,
+              "steps": 441
+            },
+            "trivia": {
+              "A": 82,
+              "B": 383,
+              "C": 35,
+              "total": 500,
+              "steps": 595
+            },
+            "squad": {
+              "A": 26,
+              "B": 425,
+              "C": 49,
+              "total": 500,
+              "steps": 632
+            }
+          }
+        },
+        "delta_vs_IT1": {
+          "musique": {
+            "delta_f1": 0.0010000000000000009,
+            "delta_em": -0.001999999999999974
+          },
+          "hotpotqa": {
+            "delta_f1": -0.003330000000000055,
+            "delta_em": -0.0020000000000000018
+          },
+          "2wikimultihopqa": {
+            "delta_f1": -0.0032999999999999696,
+            "delta_em": -0.0020000000000000018
+          },
+          "nq": {
+            "delta_f1": 0.006000000000000005,
+            "delta_em": 0.0
+          },
+          "trivia": {
+            "delta_f1": -0.0030000000000000027,
+            "delta_em": -0.006000000000000005
+          },
+          "squad": {
+            "delta_f1": 0.0010000000000000009,
+            "delta_em": 0.0
+          },
+          "macro_avg_delta_f1": -0.00027166666666667005,
+          "macro_avg_delta_em": -0.0020000000000000018
+        }
+      },
+      "flan_t5_xxl": {
+        "clf1": {
+          "best_epoch": 15,
+          "training_set_size_after_undersampling": 1409,
+          "overall_accuracy": 0.6579505300353357,
+          "n_samples": 1415,
+          "per_class": {
+            "A": {
+              "accuracy": 0.37957610789980734,
+              "n": 519,
+              "correct": 197
+            },
+            "R": {
+              "accuracy": 0.8191964285714286,
+              "n": 896,
+              "correct": 734
+            }
+          }
+        },
+        "qa": {
+          "musique": {
+            "em": 0.208,
+            "f1": 0.289,
+            "count": 500
+          },
+          "hotpotqa": {
+            "em": 0.412,
+            "f1": 0.52131,
+            "count": 500
+          },
+          "2wikimultihopqa": {
+            "em": 0.432,
+            "f1": 0.5309,
+            "count": 500
+          },
+          "nq": {
+            "em": 0.404,
+            "f1": 0.503,
+            "count": 500
+          },
+          "trivia": {
+            "em": 0.494,
+            "f1": 0.576,
+            "count": 500
+          },
+          "squad": {
+            "em": 0.278,
+            "f1": 0.395,
+            "count": 500
+          },
+          "macro_avg_f1": 0.4692016666666667,
+          "macro_avg_em": 0.37133333333333335
+        },
+        "routing": {
+          "A": 476,
+          "B": 1503,
+          "C": 1021,
+          "total": 3000,
+          "A_pct": 15.866666666666667,
+          "B_pct": 50.1,
+          "C_pct": 34.03333333333333,
+          "total_steps": 3657,
+          "per_dataset": {
+            "musique": {
+              "A": 11,
+              "B": 76,
+              "C": 413,
+              "total": 500,
+              "steps": 940
+            },
+            "hotpotqa": {
+              "A": 72,
+              "B": 133,
+              "C": 295,
+              "total": 500,
+              "steps": 743
+            },
+            "2wikimultihopqa": {
+              "A": 189,
+              "B": 65,
+              "C": 246,
+              "total": 500,
+              "steps": 600
+            },
+            "nq": {
+              "A": 54,
+              "B": 445,
+              "C": 1,
+              "total": 500,
+              "steps": 447
+            },
+            "trivia": {
+              "A": 124,
+              "B": 352,
+              "C": 24,
+              "total": 500,
+              "steps": 402
+            },
+            "squad": {
+              "A": 26,
+              "B": 432,
+              "C": 42,
+              "total": 500,
+              "steps": 525
+            }
+          }
+        },
+        "delta_vs_IT1": {
+          "musique": {
+            "delta_f1": 0.0,
+            "delta_em": 0.0
+          },
+          "hotpotqa": {
+            "delta_f1": -0.006169999999999898,
+            "delta_em": -0.0040000000000000036
+          },
+          "2wikimultihopqa": {
+            "delta_f1": 0.010000000000000009,
+            "delta_em": 0.010000000000000009
+          },
+          "nq": {
+            "delta_f1": 0.009000000000000008,
+            "delta_em": 0.01200000000000001
+          },
+          "trivia": {
+            "delta_f1": -0.02300000000000002,
+            "delta_em": -0.02400000000000002
+          },
+          "squad": {
+            "delta_f1": -0.006000000000000005,
+            "delta_em": -0.003999999999999948
+          },
+          "macro_avg_delta_f1": -0.0026949999999999474,
+          "macro_avg_delta_em": -0.0016666666666666496
+        }
+      },
       "gpt": {
         "clf1": {
           "best_epoch": 35,
@@ -1684,33 +1956,33 @@
           "macro_avg_delta_em": 0.032999999999999974
         },
         "delta_vs_best_IT2_4": {
-          "reference": "IT3",
+          "reference": "IT2",
           "musique": {
-            "delta_f1": -0.0030000000000000027,
-            "delta_em": -0.0020000000000000018
+            "delta_f1": 0.0040000000000000036,
+            "delta_em": 0.008000000000000007
           },
           "hotpotqa": {
-            "delta_f1": 0.040060000000000096,
-            "delta_em": 0.033999999999999975
-          },
-          "2wikimultihopqa": {
-            "delta_f1": 0.053300000000000014,
-            "delta_em": 0.052000000000000046
-          },
-          "nq": {
-            "delta_f1": 0.05099999999999999,
-            "delta_em": 0.04999999999999999
-          },
-          "trivia": {
-            "delta_f1": 0.07700000000000007,
-            "delta_em": 0.07200000000000006
-          },
-          "squad": {
-            "delta_f1": 0.026000000000000023,
+            "delta_f1": 0.033519999999999994,
             "delta_em": 0.026000000000000023
           },
-          "macro_avg_delta_f1": 0.040726666666666744,
-          "macro_avg_delta_em": 0.03866666666666663
+          "2wikimultihopqa": {
+            "delta_f1": 0.09899999999999998,
+            "delta_em": 0.09800000000000003
+          },
+          "nq": {
+            "delta_f1": 0.009000000000000008,
+            "delta_em": 0.009999999999999953
+          },
+          "trivia": {
+            "delta_f1": 0.06800000000000006,
+            "delta_em": 0.06400000000000006
+          },
+          "squad": {
+            "delta_f1": 0.0050000000000000044,
+            "delta_em": 0.0020000000000000018
+          },
+          "macro_avg_delta_f1": 0.03642000000000006,
+          "macro_avg_delta_em": 0.03466666666666662
         }
       },
       "gpt": {

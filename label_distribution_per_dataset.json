@@ -1,0 +1,1136 @@
+{
+  "flan_t5_xl": {
+    "silver_3class_train": {
+      "file": "flan_t5_xl/silver/train.json",
+      "n": 1292,
+      "labels": [
+        "A",
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "A": 6,
+          "B": 70,
+          "C": 52,
+          "total": 128
+        },
+        "hotpotqa": {
+          "A": 80,
+          "B": 111,
+          "C": 50,
+          "total": 241
+        },
+        "2wikimultihopqa": {
+          "A": 113,
+          "B": 69,
+          "C": 44,
+          "total": 226
+        },
+        "nq": {
+          "A": 67,
+          "B": 125,
+          "C": 21,
+          "total": 213
+        },
+        "trivia": {
+          "A": 129,
+          "B": 166,
+          "C": 14,
+          "total": 309
+        },
+        "squad": {
+          "A": 29,
+          "B": 130,
+          "C": 16,
+          "total": 175
+        },
+        "TOTAL": {
+          "A": 424,
+          "B": 671,
+          "C": 197,
+          "total": 1292
+        }
+      }
+    },
+    "silver_3class_valid": {
+      "file": "flan_t5_xl/silver/valid.json",
+      "n": 1350,
+      "labels": [
+        "A",
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "A": 12,
+          "B": 54,
+          "C": 58,
+          "total": 124
+        },
+        "hotpotqa": {
+          "A": 83,
+          "B": 110,
+          "C": 63,
+          "total": 256
+        },
+        "2wikimultihopqa": {
+          "A": 130,
+          "B": 88,
+          "C": 47,
+          "total": 265
+        },
+        "nq": {
+          "A": 71,
+          "B": 145,
+          "C": 21,
+          "total": 237
+        },
+        "trivia": {
+          "A": 125,
+          "B": 166,
+          "C": 17,
+          "total": 308
+        },
+        "squad": {
+          "A": 18,
+          "B": 128,
+          "C": 14,
+          "total": 160
+        },
+        "TOTAL": {
+          "A": 439,
+          "B": 691,
+          "C": 220,
+          "total": 1350
+        }
+      }
+    },
+    "clf1_A_vs_R_train": {
+      "file": "flan_t5_xl/silver/no_retrieval_vs_retrieval/train.json",
+      "n": 1292,
+      "labels": [
+        "A",
+        "R"
+      ],
+      "per_dataset": {
+        "musique": {
+          "A": 6,
+          "R": 122,
+          "total": 128
+        },
+        "hotpotqa": {
+          "A": 80,
+          "R": 161,
+          "total": 241
+        },
+        "2wikimultihopqa": {
+          "A": 113,
+          "R": 113,
+          "total": 226
+        },
+        "nq": {
+          "A": 67,
+          "R": 146,
+          "total": 213
+        },
+        "trivia": {
+          "A": 129,
+          "R": 180,
+          "total": 309
+        },
+        "squad": {
+          "A": 29,
+          "R": 146,
+          "total": 175
+        },
+        "TOTAL": {
+          "A": 424,
+          "R": 868,
+          "total": 1292
+        }
+      }
+    },
+    "clf1_A_vs_R_valid": {
+      "file": "flan_t5_xl/silver/no_retrieval_vs_retrieval/valid.json",
+      "n": 1350,
+      "labels": [
+        "A",
+        "R"
+      ],
+      "per_dataset": {
+        "musique": {
+          "A": 12,
+          "R": 112,
+          "total": 124
+        },
+        "hotpotqa": {
+          "A": 83,
+          "R": 173,
+          "total": 256
+        },
+        "2wikimultihopqa": {
+          "A": 130,
+          "R": 135,
+          "total": 265
+        },
+        "nq": {
+          "A": 71,
+          "R": 166,
+          "total": 237
+        },
+        "trivia": {
+          "A": 125,
+          "R": 183,
+          "total": 308
+        },
+        "squad": {
+          "A": 18,
+          "R": 142,
+          "total": 160
+        },
+        "TOTAL": {
+          "A": 439,
+          "R": 911,
+          "total": 1350
+        }
+      }
+    },
+    "clf2_ib_only_train": {
+      "file": "set difference of flan_t5_xl/binary_silver_single_vs_multi/train.json \u2212 flan_t5_xl/silver/single_vs_multi/train.json",
+      "n": 2400,
+      "labels": [
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "B": 0,
+          "C": 400,
+          "total": 400
+        },
+        "hotpotqa": {
+          "B": 0,
+          "C": 400,
+          "total": 400
+        },
+        "2wikimultihopqa": {
+          "B": 0,
+          "C": 400,
+          "total": 400
+        },
+        "nq": {
+          "B": 400,
+          "C": 0,
+          "total": 400
+        },
+        "trivia": {
+          "B": 400,
+          "C": 0,
+          "total": 400
+        },
+        "squad": {
+          "B": 400,
+          "C": 0,
+          "total": 400
+        },
+        "TOTAL": {
+          "B": 1200,
+          "C": 1200,
+          "total": 2400
+        }
+      }
+    },
+    "clf2_silver_bc_train": {
+      "file": "flan_t5_xl/silver/single_vs_multi/train.json",
+      "n": 868,
+      "labels": [
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "B": 70,
+          "C": 52,
+          "total": 122
+        },
+        "hotpotqa": {
+          "B": 111,
+          "C": 50,
+          "total": 161
+        },
+        "2wikimultihopqa": {
+          "B": 69,
+          "C": 44,
+          "total": 113
+        },
+        "nq": {
+          "B": 125,
+          "C": 21,
+          "total": 146
+        },
+        "trivia": {
+          "B": 166,
+          "C": 14,
+          "total": 180
+        },
+        "squad": {
+          "B": 130,
+          "C": 16,
+          "total": 146
+        },
+        "TOTAL": {
+          "B": 671,
+          "C": 197,
+          "total": 868
+        }
+      }
+    },
+    "clf2_merged_train": {
+      "file": "flan_t5_xl/binary_silver_single_vs_multi/train.json",
+      "n": 3268,
+      "labels": [
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "B": 70,
+          "C": 452,
+          "total": 522
+        },
+        "hotpotqa": {
+          "B": 111,
+          "C": 450,
+          "total": 561
+        },
+        "2wikimultihopqa": {
+          "B": 69,
+          "C": 444,
+          "total": 513
+        },
+        "nq": {
+          "B": 525,
+          "C": 21,
+          "total": 546
+        },
+        "trivia": {
+          "B": 566,
+          "C": 14,
+          "total": 580
+        },
+        "squad": {
+          "B": 530,
+          "C": 16,
+          "total": 546
+        },
+        "TOTAL": {
+          "B": 1871,
+          "C": 1397,
+          "total": 3268
+        }
+      }
+    },
+    "clf2_valid": {
+      "file": "flan_t5_xl/silver/single_vs_multi/valid.json",
+      "n": 911,
+      "labels": [
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "B": 54,
+          "C": 58,
+          "total": 112
+        },
+        "hotpotqa": {
+          "B": 110,
+          "C": 63,
+          "total": 173
+        },
+        "2wikimultihopqa": {
+          "B": 88,
+          "C": 47,
+          "total": 135
+        },
+        "nq": {
+          "B": 145,
+          "C": 21,
+          "total": 166
+        },
+        "trivia": {
+          "B": 166,
+          "C": 17,
+          "total": 183
+        },
+        "squad": {
+          "B": 128,
+          "C": 14,
+          "total": 142
+        },
+        "TOTAL": {
+          "B": 691,
+          "C": 220,
+          "total": 911
+        }
+      }
+    }
+  },
+  "flan_t5_xxl": {
+    "silver_3class_train": {
+      "file": "flan_t5_xxl/silver/train.json",
+      "n": 1409,
+      "labels": [
+        "A",
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "A": 21,
+          "B": 65,
+          "C": 41,
+          "total": 127
+        },
+        "hotpotqa": {
+          "A": 82,
+          "B": 124,
+          "C": 48,
+          "total": 254
+        },
+        "2wikimultihopqa": {
+          "A": 107,
+          "B": 103,
+          "C": 59,
+          "total": 269
+        },
+        "nq": {
+          "A": 89,
+          "B": 124,
+          "C": 24,
+          "total": 237
+        },
+        "trivia": {
+          "A": 174,
+          "B": 158,
+          "C": 11,
+          "total": 343
+        },
+        "squad": {
+          "A": 38,
+          "B": 129,
+          "C": 12,
+          "total": 179
+        },
+        "TOTAL": {
+          "A": 511,
+          "B": 703,
+          "C": 195,
+          "total": 1409
+        }
+      }
+    },
+    "silver_3class_valid": {
+      "file": "flan_t5_xxl/silver/valid.json",
+      "n": 1415,
+      "labels": [
+        "A",
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "A": 17,
+          "B": 66,
+          "C": 38,
+          "total": 121
+        },
+        "hotpotqa": {
+          "A": 87,
+          "B": 113,
+          "C": 61,
+          "total": 261
+        },
+        "2wikimultihopqa": {
+          "A": 122,
+          "B": 115,
+          "C": 59,
+          "total": 296
+        },
+        "nq": {
+          "A": 94,
+          "B": 141,
+          "C": 21,
+          "total": 256
+        },
+        "trivia": {
+          "A": 164,
+          "B": 145,
+          "C": 8,
+          "total": 317
+        },
+        "squad": {
+          "A": 35,
+          "B": 121,
+          "C": 8,
+          "total": 164
+        },
+        "TOTAL": {
+          "A": 519,
+          "B": 701,
+          "C": 195,
+          "total": 1415
+        }
+      }
+    },
+    "clf1_A_vs_R_train": {
+      "file": "flan_t5_xxl/silver/no_retrieval_vs_retrieval/train.json",
+      "n": 1409,
+      "labels": [
+        "A",
+        "R"
+      ],
+      "per_dataset": {
+        "musique": {
+          "A": 21,
+          "R": 106,
+          "total": 127
+        },
+        "hotpotqa": {
+          "A": 82,
+          "R": 172,
+          "total": 254
+        },
+        "2wikimultihopqa": {
+          "A": 107,
+          "R": 162,
+          "total": 269
+        },
+        "nq": {
+          "A": 89,
+          "R": 148,
+          "total": 237
+        },
+        "trivia": {
+          "A": 174,
+          "R": 169,
+          "total": 343
+        },
+        "squad": {
+          "A": 38,
+          "R": 141,
+          "total": 179
+        },
+        "TOTAL": {
+          "A": 511,
+          "R": 898,
+          "total": 1409
+        }
+      }
+    },
+    "clf1_A_vs_R_valid": {
+      "file": "flan_t5_xxl/silver/no_retrieval_vs_retrieval/valid.json",
+      "n": 1415,
+      "labels": [
+        "A",
+        "R"
+      ],
+      "per_dataset": {
+        "musique": {
+          "A": 17,
+          "R": 104,
+          "total": 121
+        },
+        "hotpotqa": {
+          "A": 87,
+          "R": 174,
+          "total": 261
+        },
+        "2wikimultihopqa": {
+          "A": 122,
+          "R": 174,
+          "total": 296
+        },
+        "nq": {
+          "A": 94,
+          "R": 162,
+          "total": 256
+        },
+        "trivia": {
+          "A": 164,
+          "R": 153,
+          "total": 317
+        },
+        "squad": {
+          "A": 35,
+          "R": 129,
+          "total": 164
+        },
+        "TOTAL": {
+          "A": 519,
+          "R": 896,
+          "total": 1415
+        }
+      }
+    },
+    "clf2_ib_only_train": {
+      "file": "set difference of flan_t5_xxl/binary_silver_single_vs_multi/train.json \u2212 flan_t5_xxl/silver/single_vs_multi/train.json",
+      "n": 2400,
+      "labels": [
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "B": 0,
+          "C": 400,
+          "total": 400
+        },
+        "hotpotqa": {
+          "B": 0,
+          "C": 400,
+          "total": 400
+        },
+        "2wikimultihopqa": {
+          "B": 0,
+          "C": 400,
+          "total": 400
+        },
+        "nq": {
+          "B": 400,
+          "C": 0,
+          "total": 400
+        },
+        "trivia": {
+          "B": 400,
+          "C": 0,
+          "total": 400
+        },
+        "squad": {
+          "B": 400,
+          "C": 0,
+          "total": 400
+        },
+        "TOTAL": {
+          "B": 1200,
+          "C": 1200,
+          "total": 2400
+        }
+      }
+    },
+    "clf2_silver_bc_train": {
+      "file": "flan_t5_xxl/silver/single_vs_multi/train.json",
+      "n": 898,
+      "labels": [
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "B": 65,
+          "C": 41,
+          "total": 106
+        },
+        "hotpotqa": {
+          "B": 124,
+          "C": 48,
+          "total": 172
+        },
+        "2wikimultihopqa": {
+          "B": 103,
+          "C": 59,
+          "total": 162
+        },
+        "nq": {
+          "B": 124,
+          "C": 24,
+          "total": 148
+        },
+        "trivia": {
+          "B": 158,
+          "C": 11,
+          "total": 169
+        },
+        "squad": {
+          "B": 129,
+          "C": 12,
+          "total": 141
+        },
+        "TOTAL": {
+          "B": 703,
+          "C": 195,
+          "total": 898
+        }
+      }
+    },
+    "clf2_merged_train": {
+      "file": "flan_t5_xxl/binary_silver_single_vs_multi/train.json",
+      "n": 3298,
+      "labels": [
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "B": 65,
+          "C": 441,
+          "total": 506
+        },
+        "hotpotqa": {
+          "B": 124,
+          "C": 448,
+          "total": 572
+        },
+        "2wikimultihopqa": {
+          "B": 103,
+          "C": 459,
+          "total": 562
+        },
+        "nq": {
+          "B": 524,
+          "C": 24,
+          "total": 548
+        },
+        "trivia": {
+          "B": 558,
+          "C": 11,
+          "total": 569
+        },
+        "squad": {
+          "B": 529,
+          "C": 12,
+          "total": 541
+        },
+        "TOTAL": {
+          "B": 1903,
+          "C": 1395,
+          "total": 3298
+        }
+      }
+    },
+    "clf2_valid": {
+      "file": "flan_t5_xxl/silver/single_vs_multi/valid.json",
+      "n": 896,
+      "labels": [
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "B": 66,
+          "C": 38,
+          "total": 104
+        },
+        "hotpotqa": {
+          "B": 113,
+          "C": 61,
+          "total": 174
+        },
+        "2wikimultihopqa": {
+          "B": 115,
+          "C": 59,
+          "total": 174
+        },
+        "nq": {
+          "B": 141,
+          "C": 21,
+          "total": 162
+        },
+        "trivia": {
+          "B": 145,
+          "C": 8,
+          "total": 153
+        },
+        "squad": {
+          "B": 121,
+          "C": 8,
+          "total": 129
+        },
+        "TOTAL": {
+          "B": 701,
+          "C": 195,
+          "total": 896
+        }
+      }
+    }
+  },
+  "gpt": {
+    "silver_3class_train": {
+      "file": "gpt/silver/train.json",
+      "n": 1417,
+      "labels": [
+        "A",
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "A": 78,
+          "B": 39,
+          "C": 27,
+          "total": 144
+        },
+        "hotpotqa": {
+          "A": 167,
+          "B": 58,
+          "C": 37,
+          "total": 262
+        },
+        "2wikimultihopqa": {
+          "A": 158,
+          "B": 62,
+          "C": 37,
+          "total": 257
+        },
+        "nq": {
+          "A": 189,
+          "B": 29,
+          "C": 14,
+          "total": 232
+        },
+        "trivia": {
+          "A": 343,
+          "B": 20,
+          "C": 2,
+          "total": 365
+        },
+        "squad": {
+          "A": 78,
+          "B": 67,
+          "C": 12,
+          "total": 157
+        },
+        "TOTAL": {
+          "A": 1013,
+          "B": 275,
+          "C": 129,
+          "total": 1417
+        }
+      }
+    },
+    "silver_3class_valid": {
+      "file": "gpt/silver/valid.json",
+      "n": 1431,
+      "labels": [
+        "A",
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "A": 87,
+          "B": 29,
+          "C": 32,
+          "total": 148
+        },
+        "hotpotqa": {
+          "A": 187,
+          "B": 58,
+          "C": 33,
+          "total": 278
+        },
+        "2wikimultihopqa": {
+          "A": 165,
+          "B": 66,
+          "C": 30,
+          "total": 261
+        },
+        "nq": {
+          "A": 199,
+          "B": 38,
+          "C": 13,
+          "total": 250
+        },
+        "trivia": {
+          "A": 320,
+          "B": 30,
+          "C": 4,
+          "total": 354
+        },
+        "squad": {
+          "A": 80,
+          "B": 51,
+          "C": 9,
+          "total": 140
+        },
+        "TOTAL": {
+          "A": 1038,
+          "B": 272,
+          "C": 121,
+          "total": 1431
+        }
+      }
+    },
+    "clf1_A_vs_R_train": {
+      "file": "gpt/silver/no_retrieval_vs_retrieval/train.json",
+      "n": 1417,
+      "labels": [
+        "A",
+        "R"
+      ],
+      "per_dataset": {
+        "musique": {
+          "A": 78,
+          "R": 66,
+          "total": 144
+        },
+        "hotpotqa": {
+          "A": 167,
+          "R": 95,
+          "total": 262
+        },
+        "2wikimultihopqa": {
+          "A": 158,
+          "R": 99,
+          "total": 257
+        },
+        "nq": {
+          "A": 189,
+          "R": 43,
+          "total": 232
+        },
+        "trivia": {
+          "A": 343,
+          "R": 22,
+          "total": 365
+        },
+        "squad": {
+          "A": 78,
+          "R": 79,
+          "total": 157
+        },
+        "TOTAL": {
+          "A": 1013,
+          "R": 404,
+          "total": 1417
+        }
+      }
+    },
+    "clf1_A_vs_R_valid": {
+      "file": "gpt/silver/no_retrieval_vs_retrieval/valid.json",
+      "n": 1431,
+      "labels": [
+        "A",
+        "R"
+      ],
+      "per_dataset": {
+        "musique": {
+          "A": 87,
+          "R": 61,
+          "total": 148
+        },
+        "hotpotqa": {
+          "A": 187,
+          "R": 91,
+          "total": 278
+        },
+        "2wikimultihopqa": {
+          "A": 165,
+          "R": 96,
+          "total": 261
+        },
+        "nq": {
+          "A": 199,
+          "R": 51,
+          "total": 250
+        },
+        "trivia": {
+          "A": 320,
+          "R": 34,
+          "total": 354
+        },
+        "squad": {
+          "A": 80,
+          "R": 60,
+          "total": 140
+        },
+        "TOTAL": {
+          "A": 1038,
+          "R": 393,
+          "total": 1431
+        }
+      }
+    },
+    "clf2_ib_only_train": {
+      "file": "set difference of gpt/binary_silver_single_vs_multi/train.json \u2212 gpt/silver/single_vs_multi/train.json",
+      "n": 2400,
+      "labels": [
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "B": 0,
+          "C": 400,
+          "total": 400
+        },
+        "hotpotqa": {
+          "B": 0,
+          "C": 400,
+          "total": 400
+        },
+        "2wikimultihopqa": {
+          "B": 0,
+          "C": 400,
+          "total": 400
+        },
+        "nq": {
+          "B": 400,
+          "C": 0,
+          "total": 400
+        },
+        "trivia": {
+          "B": 400,
+          "C": 0,
+          "total": 400
+        },
+        "squad": {
+          "B": 400,
+          "C": 0,
+          "total": 400
+        },
+        "TOTAL": {
+          "B": 1200,
+          "C": 1200,
+          "total": 2400
+        }
+      }
+    },
+    "clf2_silver_bc_train": {
+      "file": "gpt/silver/single_vs_multi/train.json",
+      "n": 404,
+      "labels": [
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "B": 39,
+          "C": 27,
+          "total": 66
+        },
+        "hotpotqa": {
+          "B": 58,
+          "C": 37,
+          "total": 95
+        },
+        "2wikimultihopqa": {
+          "B": 62,
+          "C": 37,
+          "total": 99
+        },
+        "nq": {
+          "B": 29,
+          "C": 14,
+          "total": 43
+        },
+        "trivia": {
+          "B": 20,
+          "C": 2,
+          "total": 22
+        },
+        "squad": {
+          "B": 67,
+          "C": 12,
+          "total": 79
+        },
+        "TOTAL": {
+          "B": 275,
+          "C": 129,
+          "total": 404
+        }
+      }
+    },
+    "clf2_merged_train": {
+      "file": "gpt/binary_silver_single_vs_multi/train.json",
+      "n": 2804,
+      "labels": [
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "B": 39,
+          "C": 427,
+          "total": 466
+        },
+        "hotpotqa": {
+          "B": 58,
+          "C": 437,
+          "total": 495
+        },
+        "2wikimultihopqa": {
+          "B": 62,
+          "C": 437,
+          "total": 499
+        },
+        "nq": {
+          "B": 429,
+          "C": 14,
+          "total": 443
+        },
+        "trivia": {
+          "B": 420,
+          "C": 2,
+          "total": 422
+        },
+        "squad": {
+          "B": 467,
+          "C": 12,
+          "total": 479
+        },
+        "TOTAL": {
+          "B": 1475,
+          "C": 1329,
+          "total": 2804
+        }
+      }
+    },
+    "clf2_valid": {
+      "file": "gpt/silver/single_vs_multi/valid.json",
+      "n": 393,
+      "labels": [
+        "B",
+        "C"
+      ],
+      "per_dataset": {
+        "musique": {
+          "B": 29,
+          "C": 32,
+          "total": 61
+        },
+        "hotpotqa": {
+          "B": 58,
+          "C": 33,
+          "total": 91
+        },
+        "2wikimultihopqa": {
+          "B": 66,
+          "C": 30,
+          "total": 96
+        },
+        "nq": {
+          "B": 38,
+          "C": 13,
+          "total": 51
+        },
+        "trivia": {
+          "B": 30,
+          "C": 4,
+          "total": 34
+        },
+        "squad": {
+          "B": 51,
+          "C": 9,
+          "total": 60
+        },
+        "TOTAL": {
+          "B": 272,
+          "C": 121,
+          "total": 393
+        }
+      }
+    }
+  }
+}

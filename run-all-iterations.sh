@@ -3,7 +3,7 @@
 #
 # Iterations:
 #   1: Normal cascade (standard Clf1 + standard Clf2)
-#   2: Cascade w/ Clf1 undersampling (GPT only)
+#   2: Cascade w/ Clf1 undersampling
 #   3: Cascade w/ Clf1 weighted CE
 #   4: Cascade w/ Clf1 focal loss
 #   5: Cascade w/ Clf1 UE agreement gate
@@ -221,25 +221,29 @@ if should_run 1; then
 fi
 
 # =========================================================================
-#  IT2: Cascade w/ Clf1 undersampling (GPT only)
+#  IT2: Cascade w/ Clf1 undersampling
 # =========================================================================
 if should_run 2; then
     echo ""
     echo "================================================================="
-    echo "  IT2: Clf1 undersampling (GPT only)"
+    echo "  IT2: Clf1 undersampling"
     echo "================================================================="
 
     cd "${CLF_DIR}"
-    echo "--- Training undersampled Clf1 for gpt ---"
-    bash "run/run_large_train_gpt_no_ret_vs_ret_undersampled.sh"
+    for m in "${MODELS[@]}"; do
+        s=$(script_tag "$m")
+        echo "--- Training undersampled Clf1 for ${m} ---"
+        bash "run/run_large_train_${s}_no_ret_vs_ret_undersampled.sh"
+    done
     cd "${REPO_ROOT}"
 
-    BEST_CLF1_UNDER=$(find_best_epoch \
-        "classifier/outputs/${DATASET}/model/t5-large/gpt/no_ret_vs_ret_undersampled/epoch" \
-        "classifier/data/${DATASET}/gpt/silver/no_retrieval_vs_retrieval/valid.json")
-    echo "  Undersampled Clf1: ${BEST_CLF1_UNDER}"
-
-    route_split "iter2_undersampled" "gpt" "${BEST_CLF1_UNDER}" "${BEST_CLF2_STD[gpt]}"
+    for m in "${MODELS[@]}"; do
+        BEST_CLF1_UNDER=$(find_best_epoch \
+            "classifier/outputs/${DATASET}/model/t5-large/${m}/no_ret_vs_ret_undersampled/epoch" \
+            "classifier/data/${DATASET}/${m}/silver/no_retrieval_vs_retrieval/valid.json")
+        echo "  Undersampled Clf1 (${m}): ${BEST_CLF1_UNDER}"
+        route_split "iter2_undersampled" "$m" "${BEST_CLF1_UNDER}" "${BEST_CLF2_STD[$m]}"
+    done
 fi
 
 # =========================================================================
