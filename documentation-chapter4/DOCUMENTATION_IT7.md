@@ -14,7 +14,7 @@
 
 | File | Role |
 |---|---|
-| `classifier/postprocess/predict_complexity_kappa.py` (567 lines) | **The ONLY new script.** Implements the full training-free cascade: agreement-based Gate 1, κ(q)-based Gate 2, threshold tuning, prediction routing, and output writing. |
+| `classifier/postprocess/predict_complexity_kappa.py` (586 lines) | **The ONLY new script.** Implements the full training-free cascade: agreement-based Gate 1, κ(q)-based Gate 2, threshold tuning, prediction routing, and output writing. |
 | `classifier/postprocess/postprocess_utils.py` | Shared — provides `load_json()` and `save_json()` helpers. **Identical to IT1.** |
 | `evaluate_final_acc.py` (341 lines) | QA evaluation — **identical to IT1.** |
 | `run-all-iterations.sh` | Top-level orchestrator. Invokes IT7 via the `route_kappa()` helper, which calls `predict_complexity_kappa.py` with `--use_agreement_gate --tune_threshold`, then runs `evaluate_final_acc.py`. |
@@ -37,8 +37,8 @@ IT7 combines IT5's Gate 1 replacement with a new Gate 2 replacement derived from
 
 | Library | Import line | Purpose |
 |---|---|---|
-| `spacy` (+ `en_core_web_sm` model) | [L361–365] | Named-entity recognition for `entity_count` raw feature |
-| `numpy` | [L43] | Array operations in `compute_kappa()` and threshold tuning |
+| `spacy` (+ `en_core_web_sm` model) | [L362–365] | Named-entity recognition for `entity_count` raw feature |
+| `numpy` | [L39] | Array operations in `compute_kappa()` and threshold tuning |
 | `sklearn.metrics.f1_score` | [L221] (lazy import inside `tune_threshold()`) | Macro-F1 during threshold search |
 
 ### 1.3 NOT imported
@@ -67,21 +67,21 @@ The same agreement gate from IT5. The logic is embedded directly in `predict_com
 
 ### 2.3 Agreement computation
 
-The `compute_agreement()` function [L151–174] implements the full comparison pipeline:
+The `compute_agreement()` function [L144–171] implements the full comparison pipeline:
 
 | Step | Code | Description |
 |---|---|---|
 | 1 | `nor_raw = nor_preds[qid]` | Load raw no-retrieval answer |
 | 2 | `oner_raw = oner_preds[qid]` | Load raw single-step retrieval answer |
-| 3 | Handle list answers | `if isinstance(nor_raw, list): nor_raw = nor_raw[0]` [L159–162] |
-| 4 | Cast to string | `nor_raw = str(nor_raw)` [L163–164] |
-| 5 | Extract answer from CoT | `answer_extractor(nor_raw)` — regex `".* answer is:? (.*)\\.?"` [L110–121] |
-| 6 | Normalize | `normalize_answer()` — lower → remove punctuation → remove articles → collapse whitespace [L99–108] |
-| 7 | Compare | `agree = bool(nor_norm and oner_norm and nor_norm == oner_norm)` [L170] — exact string match |
+| 3 | Handle list answers | `if isinstance(nor_raw, list): nor_raw = nor_raw[0]` [L152–155] |
+| 4 | Cast to string | `nor_raw = str(nor_raw)` [L156–157] |
+| 5 | Extract answer from CoT | `answer_extractor(nor_raw)` — regex `".* answer is:? (.*)\\.?"` [L107–121] |
+| 6 | Normalize | `normalize_answer()` — lower → remove punctuation → remove articles → collapse whitespace [L93–104] |
+| 7 | Compare | `agree = bool(nor_norm and oner_norm and nor_norm == oner_norm)` [L163] — exact string match |
 
 ### 2.4 Invocation path
 
-When `--use_agreement_gate` is passed (always the case in `run-all-iterations.sh`), the script at [L384–390]:
+When `--use_agreement_gate` is passed (always the case in `run-all-iterations.sh`), the script at [L399–402]:
 
 ```python
 agreement = compute_agreement(nor_preds, oner_preds, all_qids)
@@ -90,7 +90,7 @@ for qid in all_qids:
     gate1[qid] = "A" if agreement[qid]["agree"] else "R"
 ```
 
-When `--clf1_pred_file` is passed instead (alternative path), the script loads a Clf1 prediction JSON and reads each question's A/R label directly [L392–397].
+When `--clf1_pred_file` is passed instead (alternative path), the script loads a Clf1 prediction JSON and reads each question's A/R label directly [L403–411].
 
 ### 2.5 No trained model is loaded for Gate 1
 
@@ -124,7 +124,7 @@ Two reasons:
 
 ### 3.3 Published SymRAG weights
 
-Defined as module-level constants [L56–58]:
+Defined as module-level constants [L54–56]:
 
 | Weight | Variable | Value | Purpose |
 |---|---|---|---|
@@ -144,19 +144,19 @@ SymRAG publishes $T_{low,\kappa} = 0.4$ and $T_{high,\kappa} = 0.8$ (Table 7, pa
 
 ### 4.1 Raw features
 
-The `extract_features()` function [L186–197] extracts three raw features per question:
+The `extract_features()` function [L175–186] extracts three raw features per question:
 
 | Feature | Extraction method | Library | Line |
 |---|---|---|---|
-| `token_len` | `len(text.split())` — whitespace-split token count | Built-in `str.split()` | [L194] |
-| `entity_count` | `len(doc.ents)` — number of named entities | spaCy `en_core_web_sm` NER | [L195] |
-| `hop_count` | `sum(1 for pat in _BRIDGE_RES if pat.search(text))` — count of matching bridging patterns | `re` stdlib | [L196] |
+| `token_len` | `len(text.split())` — whitespace-split token count | Built-in `str.split()` | [L183] |
+| `entity_count` | `len(doc.ents)` — number of named entities | spaCy `en_core_web_sm` NER | [L184] |
+| `hop_count` | `sum(1 for pat in _BRIDGE_RES if pat.search(text))` — count of matching bridging patterns | `re` stdlib | [L185] |
 
-Processing: all questions are passed through `nlp.pipe(questions, batch_size=256)` [L191].
+Processing: all questions are passed through `nlp.pipe(questions, batch_size=256)` [L180].
 
 ### 4.2 spaCy configuration
 
-Loaded at [L362–365]:
+Loaded at [L363–365]:
 
 ```python
 nlp = spacy.load("en_core_web_sm", disable=["parser", "lemmatizer"])
@@ -168,7 +168,7 @@ Only the NER component runs. The tokenizer always runs (cannot be disabled). The
 
 ### 4.3 Bridge-pattern compilation
 
-Seven regex patterns are compiled individually [L92]:
+Seven regex patterns are compiled individually [L87]:
 
 ```python
 _BRIDGE_RES = [re.compile(p, re.IGNORECASE) for p in BRIDGE_PATTERNS]
@@ -178,7 +178,7 @@ This enables **counting** matching patterns (via `sum(...)`) rather than produci
 
 ### 4.4 Bridge patterns
 
-Seven patterns are defined in `BRIDGE_PATTERNS` [L75–91]:
+Seven patterns are defined in `BRIDGE_PATTERNS` [L72–86]:
 
 | # | Pattern | Description | Example match |
 |---|---|---|---|
@@ -202,7 +202,7 @@ SymRAG's $N_{hops}(q)$ "counts multi-hop keywords" in the query. The IT7 impleme
 
 ### 5.1 `compute_kappa()` implementation
 
-Defined at [L200–217]:
+Defined at [L190–209]:
 
 ```python
 def compute_kappa(token_lens, entity_counts, hop_counts):
@@ -226,12 +226,12 @@ For each question $q$ with whitespace-split token count $|q|$:
 
 | Step | Formula | Variable | Line |
 |---|---|---|---|
-| 1. Normalise query length | $L(q) = |q| / \max_{q' \in Q}|q'|$ | `L` | [L207] |
-| 2. Avoid division by zero | $|q|_{safe} = \max(|q|, 1)$ | `safe_lens` | [L210] |
-| 3. Entity density | $w_{sh1} \cdot N_{ents}(q) / |q|_{safe}$ | first term of `S_H` | [L211] |
-| 4. Hop density | $w_{sh2} \cdot N_{hops}(q) / |q|_{safe}$ | second term of `S_H` | [L211] |
-| 5. Structural heuristic | $S_H(q) = 0.05 \cdot \frac{N_{ents}}{|q|} + 0.10 \cdot \frac{N_{hops}}{|q|}$ | `S_H` | [L211] |
-| 6. Final score | $\kappa(q) = 1.0 \cdot L(q) \cdot (1 + S_H(q))$ | `kappa` | [L213] |
+| 1. Normalise query length | $L(q) = |q| / \max_{q' \in Q}|q'|$ | `L` | [L202] |
+| 2. Avoid division by zero | $|q|_{safe} = \max(|q|, 1)$ | `safe_lens` | [L205] |
+| 3. Entity density | $w_{sh1} \cdot N_{ents}(q) / |q|_{safe}$ | first term of `S_H` | [L206] |
+| 4. Hop density | $w_{sh2} \cdot N_{hops}(q) / |q|_{safe}$ | second term of `S_H` | [L206] |
+| 5. Structural heuristic | $S_H(q) = 0.05 \cdot \frac{N_{ents}}{|q|} + 0.10 \cdot \frac{N_{hops}}{|q|}$ | `S_H` | [L206] |
+| 6. Final score | $\kappa(q) = 1.0 \cdot L(q) \cdot (1 + S_H(q))$ | `kappa` | [L208] |
 
 ### 5.3 Score range
 
@@ -242,7 +242,7 @@ For each question $q$ with whitespace-split token count $|q|$:
 
 ### 5.4 Max-normalisation scope
 
-`max_len = token_lens.max()` [L206] is computed over **all R-routed questions** (questions that Gate 1 classified as "needs retrieval"), not over the full predict set. A-routed questions are excluded from feature extraction [L404–405]:
+`max_len = token_lens.max()` [L201] is computed over **all R-routed questions** (questions that Gate 1 classified as "needs retrieval"), not over the full predict set. A-routed questions are excluded from feature extraction [L418–419]:
 
 ```python
 r_qids = [qid for qid in all_qids if gate1[qid] != "A"]
@@ -271,26 +271,26 @@ The `--valid_file` points to the **IB+silver merged** dataset, not the silver-on
 
 ### 6.2 `tune_threshold()` implementation
 
-Defined at [L220–291]. Step-by-step:
+Defined at [L216–290]. Step-by-step:
 
 | Step | Code | Line(s) | Description |
 |---|---|---|---|
-| 1 | `data = json.load(f)` | [L225] | Load validation JSON |
-| 2 | `bc_items = [item for item in data if item.get("answer") in ("B", "C")]` | [L227] | Filter to B/C items only |
-| 3 | `labels = np.array([1 if item["answer"] == "C" else 0 for item in bc_items])` | [L232] | Encode: C=1, B=0 |
-| 4 | `extract_features(questions, nlp)` | [L234] | Extract raw features for validation questions |
-| 5 | `compute_kappa(token_lens, entity_counts, hop_counts)` | [L235] | Compute κ(q) for each validation question |
-| 6 | `lo = np.percentile(kappa, 5)` / `hi = np.percentile(kappa, 95)` | [L237–238] | Search range: 5th to 95th percentile |
-| 7 | `thresholds = np.linspace(lo, hi, 100)` | [L239] | 100 candidate thresholds |
-| 8 | For each threshold: `preds = (kappa >= t).astype(int)` | [L245] | κ ≥ t → C, else → B |
-| 9 | `acc = (preds == labels).mean()` | [L246] | Accuracy at this threshold |
-| 10 | `f1 = f1_score(labels, preds, average="macro", zero_division=0)` | [L247] | Macro-F1 at this threshold |
-| 11 | Track best accuracy threshold and best F1 threshold separately | [L248–253] | Two optima may differ |
-| 12 | Report per-class accuracy at **F1-optimal** threshold | [L255–266] | B-accuracy, C-accuracy, accuracy at F1 threshold |
+| 1 | `data = json.load(f)` | [L224] | Load validation JSON |
+| 2 | `bc_items = [item for item in data if item.get("answer") in ("B", "C")]` | [L226] | Filter to B/C items only |
+| 3 | `labels = np.array([1 if item["answer"] == "C" else 0 for item in bc_items])` | [L231] | Encode: C=1, B=0 |
+| 4 | `extract_features(questions, nlp)` | [L233] | Extract raw features for validation questions |
+| 5 | `compute_kappa(token_lens, entity_counts, hop_counts)` | [L234] | Compute κ(q) for each validation question |
+| 6 | `lo = np.percentile(kappa, 5)` / `hi = np.percentile(kappa, 95)` | [L236–237] | Search range: 5th to 95th percentile |
+| 7 | `thresholds = np.linspace(lo, hi, 100)` | [L238] | 100 candidate thresholds |
+| 8 | For each threshold: `preds = (kappa >= t).astype(int)` | [L246] | κ ≥ t → C, else → B |
+| 9 | `acc = (preds == labels).mean()` | [L247] | Accuracy at this threshold |
+| 10 | `f1 = f1_score(labels, preds, average="macro", zero_division=0)` | [L248] | Macro-F1 at this threshold |
+| 11 | Track best accuracy threshold and best F1 threshold separately | [L249–254] | Two optima may differ |
+| 12 | Report per-class accuracy at **F1-optimal** threshold | [L256–267] | B-accuracy, C-accuracy, accuracy at F1 threshold |
 
 ### 6.3 Threshold selection criterion
 
-The **macro-F1–optimal** threshold is used for prediction [L375]:
+The **macro-F1–optimal** threshold is used for prediction [L383]:
 
 ```python
 threshold = best_f1_t
@@ -298,7 +298,7 @@ threshold = best_f1_t
 
 Macro-F1 was chosen over accuracy because the B/C label distribution can be imbalanced. Accuracy-optimal thresholds tend to over-predict the majority class (B), suppressing C-recall. Macro-F1 weights both classes equally, producing thresholds that route more genuinely complex questions to multi-step retrieval.
 
-The accuracy-optimal threshold is still computed and reported for reference. If the two differ, a diagnostic message is printed [L270–272]:
+The accuracy-optimal threshold is still computed and reported for reference. If the two differ, a diagnostic message is printed [L272–274]:
 
 ```
 Best accuracy: {best_acc:.4f} at threshold {best_acc_t:.4f}
@@ -307,7 +307,7 @@ Best accuracy: {best_acc:.4f} at threshold {best_acc_t:.4f}
 
 ### 6.4 Default threshold (when tuning is off)
 
-If `--tune_threshold` is not passed, the default `--kappa_threshold` of `0.5` is used [L333]:
+If `--tune_threshold` is not passed, the default `--kappa_threshold` of `0.5` is used [L325]:
 
 ```python
 parser.add_argument("--kappa_threshold", type=float, default=0.5)
@@ -331,7 +331,7 @@ The merged set is ~3× larger and much less skewed than the silver-only validati
 
 ### 6.6 Tuning return values
 
-`tune_threshold()` returns a 5-tuple [L286–291]:
+`tune_threshold()` returns a 5-tuple [L276–290]:
 
 ```python
 return best_f1_t, best_f1, best_acc_t, best_acc, stats
@@ -383,7 +383,7 @@ Gate 1: Agreement gate
 
 ### 7.2 Implementation
 
-The routing decision is at [L414–421]:
+The routing decision is at [L434–441]:
 
 ```python
 for qid in all_qids:
@@ -398,7 +398,7 @@ for qid in all_qids:
 
 ### 7.3 Feature extraction scope
 
-Features are computed **only for R-routed questions** (questions where Gate 1 = "R"). A-routed questions bypass feature extraction entirely [L404–406]:
+Features are computed **only for R-routed questions** (questions where Gate 1 = "R"). A-routed questions bypass feature extraction entirely [L418–419]:
 
 ```python
 r_qids = [qid for qid in all_qids if gate1[qid] != "A"]
@@ -407,7 +407,7 @@ r_questions = [qid_to_question[qid] for qid in r_qids]
 
 ### 7.4 Optional Clf2 comparison
 
-When `--clf2_pred_file` is provided, the script computes agreement between κ(q) routing and Clf2 routing on R-routed questions [L429–437]:
+When `--clf2_pred_file` is provided, the script computes agreement between κ(q) routing and Clf2 routing on R-routed questions [L448–458]:
 
 ```python
 if args.clf2_pred_file:
@@ -433,14 +433,14 @@ This is for diagnostic comparison only — Clf2 predictions are never used for r
 Questions are **not** fed through a trained model. The script:
 
 1. Loads `predict.json` for the qid → dataset_name and qid → question mappings [L355–359]
-2. Loads pre-computed QA prediction files (nor_qa, oner_qa) for agreement computation [L382]
-3. Extracts structural features from question text using spaCy NER + regex [L407–408]
-4. Computes κ(q) from features [L409]
-5. Routes each question to the appropriate pre-computed QA answer [L493–506]
+2. Loads pre-computed QA prediction files (nor_qa, oner_qa) for agreement computation [L396]
+3. Extracts structural features from question text using spaCy NER + regex [L422]
+4. Computes κ(q) from features [L423]
+5. Routes each question to the appropriate pre-computed QA answer [L513–535]
 
 ### 8.2 Prediction file loading
 
-`load_strategy_predictions()` [L128–147] loads nor_qa and oner_qa predictions for all datasets, following the same file path pattern as `predict_complexity_agreement.py`:
+`load_strategy_predictions()` [L126–142] loads nor_qa and oner_qa predictions for all datasets, following the same file path pattern as `predict_complexity_agreement.py`:
 
 | Strategy | Pattern |
 |---|---|
@@ -451,9 +451,9 @@ Questions are **not** fed through a trained model. The script:
 
 | Model | `ONER_BM25` | `IRCOT_BM25` | Source |
 |---|---|---|---|
-| `flan_t5_xl` | 15 | 6 | [L52–53] |
-| `flan_t5_xxl` | 15 | 6 | [L52–53] |
-| `gpt` | 6 | 3 | [L52–53] |
+| `flan_t5_xl` | 15 | 6 | [L50–51] |
+| `flan_t5_xxl` | 15 | 6 | [L50–51] |
+| `gpt` | 6 | 3 | [L50–51] |
 
 These are **identical** to all prior iterations.
 
@@ -468,7 +468,7 @@ qid_to_question = {item["id"]: item["question"] for item in predict_data}
 
 ### 8.5 Per-dataset QA prediction file routing
 
-Built at [L462–478]:
+Built at [L480–500]:
 
 ```python
 dataName_to_files[ds] = {
@@ -480,7 +480,7 @@ dataName_to_files[ds] = {
 
 ### 8.6 stepNum loading
 
-The script loads step numbers for ircot-routed questions [L440–455] with a fallback path:
+The script loads step numbers for ircot-routed questions [L462–476] with a fallback path:
 
 1. **Primary:** `predictions/test/ircot_qa_{m}/total/stepNum.json` (consolidated file)
 2. **Fallback:** per-dataset `predictions/test/ircot_qa_{m}_{ds}____prompt_set_1___bm25_retrieval_count__{N}___distractor_count__1/stepNum.json`
@@ -494,7 +494,7 @@ Step number values: A → 0, B → 1, C → variable (loaded from stepNum file).
 
 ### 9.1 Complete import list
 
-The script's imports [L32–44]:
+The script's imports [L30–43]:
 
 ```python
 import argparse
@@ -554,22 +554,24 @@ python evaluate_final_acc.py --pred_path predictions/classifier/t5-large/{model}
 
 ### 10.2 Invocation via `run-all-iterations.sh`
 
-The `route_kappa()` helper [L141–152] runs both routing and evaluation:
+The `route_kappa()` helper [L147–159] runs both routing and evaluation:
 
 ```bash
 route_kappa() {
     local tag="$1" model="$2"
     local out="predictions/classifier/t5-large/${model}/${tag}"
+    echo "  [${tag}/${model}] Routing (agreement gate + kappa)..."
     python classifier/postprocess/predict_complexity_kappa.py "${model}" \
         --use_agreement_gate \
         --tune_threshold \
         --valid_file "classifier/data/${DATASET}/${model}/binary_silver_single_vs_multi/train.json" \
         --output_path "${out}"
+    echo "  [${tag}/${model}] Evaluating..."
     python evaluate_final_acc.py --pred_path "${out}"
 }
 ```
 
-Called for all three models [L242–244]:
+Called for all three models [L332–334]:
 
 ```bash
 for m in "${MODELS[@]}"; do
@@ -579,7 +581,7 @@ done
 
 ### 10.3 No Phase 0 dependency
 
-IT7 does **not** depend on Phase 0 (standard classifier training). The `needs_std` flag at [run-all-iterations.sh L35–36] includes only iterations 1–5:
+IT7 does **not** depend on Phase 0 (standard classifier training). The `needs_std` flag at [run-all-iterations.sh L167–168] includes only iterations 1–5:
 
 ```bash
 for i in 1 2 3 4 5; do should_run "$i" && needs_std=true; done
@@ -625,7 +627,7 @@ predictions/classifier/t5-large/{model}/iter7_kappa/
 {"single_nq_dev_9": "Gal Gadot", ...}
 ```
 
-**`{dataset}_option.json`** — maps qid → routing metadata, **including κ(q) score** for R-routed questions [L507–511]:
+**`{dataset}_option.json`** — maps qid → routing metadata, **including κ(q) score** for R-routed questions [L526–532]:
 
 ```json
 {
@@ -647,7 +649,7 @@ The `kappa` field is present only for R-routed questions (those that passed thro
 
 ### 11.3 `routing_stats.json`
 
-Saved at [L536–562]:
+Saved at [L552–579]:
 
 ```json
 {
@@ -726,7 +728,7 @@ Run evaluation with: python evaluate_final_acc.py --pred_path predictions/classi
 
 | Issue | Detail |
 |---|---|
-| **What** | `compute_kappa()` normalises token lengths by `max_len = token_lens.max()` [L206], where `token_lens` is extracted only from R-routed questions [L404–406]. A-routed questions are excluded. |
+| **What** | `compute_kappa()` normalises token lengths by `max_len = token_lens.max()` [L201], where `token_lens` is extracted only from R-routed questions [L418–419]. A-routed questions are excluded. |
 | **Risk** | The normalisation base depends on Gate 1's output. If the longest question happens to be A-routed, the max-normalisation denominator is smaller, inflating all κ(q) values. Different Gate 1 configurations produce different R-question pools, making κ(q) scores non-comparable across iterations. |
 | **Severity** | Low — the threshold is tuned on validation data using the same `compute_kappa()` function (which normalises by its own max), so the tuning and prediction use consistent normalisation. The issue only arises when comparing raw κ(q) values across different Gate 1 configurations. |
 
@@ -734,7 +736,7 @@ Run evaluation with: python evaluate_final_acc.py --pred_path predictions/classi
 
 | Issue | Detail |
 |---|---|
-| **What** | During threshold tuning, `compute_kappa()` is called on the **validation** questions [L234–235]. During prediction, `compute_kappa()` is called on the **R-routed test** questions [L408–409]. Each call computes its own `max_len`. If the validation set has a different max token length than the test set, the same question would receive a different κ(q) score in tuning vs prediction. |
+| **What** | During threshold tuning, `compute_kappa()` is called on the **validation** questions [L233–234]. During prediction, `compute_kappa()` is called on the **R-routed test** questions [L422–423]. Each call computes its own `max_len`. If the validation set has a different max token length than the test set, the same question would receive a different κ(q) score in tuning vs prediction. |
 | **Risk** | The tuned threshold is calibrated to validation-set κ(q) values, but applied to test-set κ(q) values with a potentially different normalisation base. This is a **distribution shift in feature space** introduced by the normalisation. |
 | **Severity** | Medium — if max token lengths are similar between validation and test sets, the effect is negligible. If they differ substantially, the tuned threshold may be suboptimal. |
 
@@ -742,14 +744,14 @@ Run evaluation with: python evaluate_final_acc.py --pred_path predictions/classi
 
 | Issue | Detail |
 |---|---|
-| **What** | The tuned threshold now maximises **macro-F1** on the IB+silver merged data [L248, L375], not accuracy. The accuracy-optimal threshold is computed and reported as a secondary reference. |
+| **What** | The tuned threshold now maximises **macro-F1** on the IB+silver merged data [L248, L383], not accuracy. The accuracy-optimal threshold is computed and reported as a secondary reference. |
 | **Status** | **Resolved.** The earlier version used accuracy on the silver-only validation split (e.g., XL: 691 B vs 220 C, 3:1 ratio), which produced high thresholds (~0.46) that under-routed to C. Switching to macro-F1 on the IB+silver merged set (~1.3:1 ratio) lowers τ to ~0.165 and matches or exceeds IT5's trained Clf2 on end-to-end QA F1. |
 
 ### 12.4 Prediction files are loaded redundantly per question
 
 | Issue | Detail |
 |---|---|
-| **What** | In the per-dataset loop [L493–506], `load_json(dataName_to_files[data_name][option])` is called once per question inside the inner loop. This re-reads the same JSON file from disk for every question. |
+| **What** | In the per-dataset loop [L513–535], `load_json(dataName_to_files[data_name][option])` is called once per question inside the inner loop. This re-reads the same JSON file from disk for every question. |
 | **Performance** | For 500 questions per dataset, this means up to 500 redundant file reads per strategy per dataset. |
 | **Impact** | Correctness unaffected. Runtime slower than necessary but acceptable for 3 000 questions. This is the same pattern present in IT1's `predict_complexity_split_classifiers.py` and IT5's `predict_complexity_agreement.py`. |
 
@@ -795,7 +797,7 @@ Run evaluation with: python evaluate_final_acc.py --pred_path predictions/classi
 
 | Issue | Detail |
 |---|---|
-| **What** | `step_num = total_step_num.get(qid, 0)` [L497] defaults to 0 if the question ID is not found in the stepNum file. For C-routed questions, the actual step count should be ≥ 1. |
+| **What** | `step_num = total_step_num.get(qid, 0)` [L518] defaults to 0 if the question ID is not found in the stepNum file. For C-routed questions, the actual step count should be ≥ 1. |
 | **Impact** | Affects cost accounting only (total retrieval steps reported), not answer selection. Same pattern as IT5's `predict_complexity_agreement.py`. |
 
 ### 12.11 `--tune_threshold` without `--valid_file` is caught
