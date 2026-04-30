@@ -22,7 +22,7 @@
 | `classifier/postprocess/predict_complexity_on_classification_results.py` | Original single-classifier routing script (used for the 3-class baseline; not used in IT1 split pipeline). |
 | `classifier/postprocess/postprocess_utils.py` | Shared helpers: `load_json()`, `save_json()`, `save_prediction_with_classified_label()`. |
 | `evaluate_final_acc.py` | End-to-end QA evaluation: computes EM, F1, accuracy per dataset using official evaluation scripts for multi-hop datasets and `SquadAnswerEmF1Metric` for single-hop. |
-| `run-all-iterations.sh` | Top-level orchestrator — trains standard Clf1 + Clf2 (PHASE 0), selects best epoch via `find_best_epoch()`, routes predictions via `route_split()`, and evaluates via `evaluate_final_acc.py`. |
+| `run-all-iterations.sh` | Top-level orchestrator — trains standard Clf1 + Clf2 (PHASE 0), selects best epoch from the latest run via `find_best_epoch()`, routes predictions via `route_split()`, and evaluates via `evaluate_final_acc.py`. Supports `SKIP_PHASE0=true` and `SKIP_TRAINING=true` to re-evaluate without retraining. |
 | `classifier/data/.../silver/no_retrieval_vs_retrieval/{train,valid}.json` | Clf1 silver-labelled data (A / R). |
 | `classifier/data/.../binary_silver_single_vs_multi/train.json` | Clf2 training data (B / C) — silver + inductive-bias binary labels merged. |
 | `classifier/data/.../silver/single_vs_multi/valid.json` | Clf2 validation data (B / C) — silver labels only. |
@@ -487,4 +487,4 @@ The inductive-bias binary labels in the training set add approximately 2 400 ext
 **Issue:** The scripts train 5 (or 2) independent models at different epoch budgets but perform no automated comparison to select the best epoch. The user must manually inspect `final_eval_results.json` files across epoch directories and pick the best one for routing.  
 **Impact:** Operational — requires manual intervention to determine which epoch's predictions to pass to the routing script.
 
-**Mitigation (added later):** `run-all-iterations.sh` automates best-epoch selection via its `find_best_epoch()` helper, which compares validation predictions against ground truth across all epoch runs and returns the predict path for the epoch with the highest validation accuracy.
+**Mitigation (added later):** `run-all-iterations.sh` automates best-epoch selection via its `find_best_epoch()` helper, which identifies the latest training run (most recent timestamp directory), compares validation predictions against ground truth across all epoch checkpoints within that run, and returns the predict path for the epoch with the highest validation accuracy. Historical runs are ignored.

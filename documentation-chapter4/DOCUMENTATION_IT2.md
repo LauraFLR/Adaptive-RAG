@@ -21,7 +21,7 @@
 | `classifier/run/run_large_train_{xl,xxl,gpt}_single_vs_multi.sh` | Gate 2 — **identical** to IT1 (B vs C, binary_silver training data). |
 | `classifier/postprocess/predict_complexity_split_classifiers.py` | Cascade routing — **identical** to IT1. |
 | `evaluate_final_acc.py` | QA evaluation — **identical** to IT1. |
-| `run-all-iterations.sh` | Top-level orchestrator — loops over all three models, trains undersampled Clf1 (IT2 section), selects best epoch via `find_best_epoch()`, routes predictions via `route_split()`, and evaluates via `evaluate_final_acc.py`. |
+| `run-all-iterations.sh` | Top-level orchestrator — loops over all three models, trains undersampled Clf1 (IT2 section), selects best epoch from the latest run via `find_best_epoch()`, routes predictions via `route_split()`, and evaluates via `evaluate_final_acc.py`. Supports `SKIP_TRAINING=true` to re-evaluate without retraining. |
 | `classifier/postprocess/postprocess_utils.py` | Shared helpers: `load_json()`, `save_json()`, `save_prediction_with_classified_label()`. |
 | `classifier/data/.../{model}/silver/no_retrieval_vs_retrieval/train.json` | Input to undersampling script (original Clf1 training set, per model). |
 | `classifier/data/.../{model}/silver/no_retrieval_vs_retrieval/train_undersampled.json` | Output of undersampling script (per model). |
@@ -306,7 +306,7 @@ classifier/outputs/musique_hotpot_wiki2_nq_tqa_sqd/model/t5-large/
 | Issue | Detail |
 |---|---|
 | **What** | All models train on reduced datasets: XL has 848 samples (27 steps/epoch, epochs 15–35), XXL has 1 022 samples (32 steps/epoch, epochs 15–35), GPT has 808 samples (26 steps/epoch, epochs 35–40). |
-| **Risk** | Overfitting risk for all models. No early stopping is used — `run-all-iterations.sh` selects the best checkpoint via `find_best_epoch()`, providing coarse validation-based selection. |
+| **Risk** | Overfitting risk for all models. No early stopping is used — `run-all-iterations.sh` selects the best checkpoint from the latest training run via `find_best_epoch()`, providing coarse validation-based selection (historical runs are not considered). |
 | **File** | `run_large_train_{xl,xxl,gpt}_no_ret_vs_ret_undersampled.sh` |
 
 ### 9.3 Undersampling re-run behaviour

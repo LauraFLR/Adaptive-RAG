@@ -20,7 +20,7 @@
 | `classifier/run/run_large_train_{xl,xxl,gpt}_single_vs_multi.sh` | Gate 2 — **identical** to IT1. |
 | `classifier/postprocess/predict_complexity_split_classifiers.py` | Cascade routing — **identical** to IT1. |
 | `evaluate_final_acc.py` | QA evaluation — **identical** to IT1. |
-| `run-all-iterations.sh` | Top-level orchestrator — trains focal Clf1 (IT4 block), selects best epoch via `find_best_epoch()`, routes via `route_split "iter4_focal"`, and evaluates. |
+| `run-all-iterations.sh` | Top-level orchestrator — trains focal Clf1 (IT4 block), selects best epoch from the latest run via `find_best_epoch()`, routes via `route_split "iter4_focal"`, and evaluates. Supports `SKIP_TRAINING=true` to re-evaluate without retraining. |
 
 ---
 
