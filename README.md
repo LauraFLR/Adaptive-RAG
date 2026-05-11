@@ -1,5 +1,8 @@
 # Adaptive-RAG: Cascaded Binary Routing
 
+**Laura Ehlert Moreno**
+DHBW Stuttgart — Business Information Systems (Data Science)
+
 B.Sc. thesis extension of [Adaptive-RAG](https://arxiv.org/pdf/2403.14403.pdf) (NAACL 2024). Replaces the original 3-class query complexity classifier (A/B/C) with a **cascaded binary routing** architecture: **Gate 1** decides *A vs. R* (no retrieval vs. retrieval needed), then **Gate 2** decides *B vs. C* (single-step vs. multi-step retrieval) for R-routed questions.
 
 Five iterations (plus the baseline) progressively refine both gates — from a trained cascade through class-imbalance mitigation, a training-free agreement gate, a diagnostic κ(q) feature probe, to a **fully training-free cascade** that requires no fine-tuned model, no checkpoint, and no GPU at routing time.
