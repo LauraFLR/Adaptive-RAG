@@ -703,7 +703,13 @@ These are discussed in the thesis Chapter 6 (Future Work) as a potential directi
 
 ---
 
+## Acknowledgements
+
+This repository is a B.Sc. thesis extension that builds upon the original [Adaptive-RAG](https://github.com/starsuzi/Adaptive-RAG) codebase by Jeong et al. (NAACL 2024). The upstream code — including the QA inference engine (`commaqa/`), retriever/LLM servers, dataset processing scripts, evaluation logic, and pre-computed QA predictions — is taken from their repository. All modifications and additions in this fork (the cascaded binary routing architecture, agreement gate, κ(q) threshold gate, and associated training/analysis scripts) were developed as part of this thesis.
+
 ## Citation
+
+If you use or reference the original Adaptive-RAG system, please cite:
 
 ```BibTex
 @inproceedings{jeong2024adaptiverag,
